@@ -1,6 +1,10 @@
 # FlowCraft
 
-A browser-based diagramming and flowchart application built with React, TypeScript, and React Flow.
+**Simplify the meticulous.**
+
+FlowCraft is a browser-based diagramming application for creating flowcharts, system architecture diagrams, and more — without the friction. No sign-ups, no subscriptions. Just open and build.
+
+**[Launch FlowCraft](https://ghost-ng.github.io/flowcraft/)**
 
 ## Features
 
@@ -9,13 +13,16 @@ A browser-based diagramming and flowchart application built with React, TypeScri
 - Icon support with full Lucide icon library and icon styling (color, background, outline)
 - Multiple status pucks per node with drag-to-corner snapping
 - Smart connectors with customizable edge styles (bezier, step, smoothstep, straight)
+- 14 diagram styles and 10 color palettes
 - Swimlane / matrix layout system
-- Dependency tracking between nodes
+- Dependency tracking and chain highlighting
 - Format painter for quick style copying
-- Export to PNG, SVG, PDF, and JSON
+- Presentation mode with annotation tools (pen, highlighter, eraser)
+- Export to PNG, SVG, PDF, PPTX, and JSON
+- Import from JSON with full validation
 - Keyboard shortcuts for common operations
 - Dark mode support
-- Alignment and distribution guides
+- Alignment, distribution, and auto-layout
 - Snap-to-grid with configurable spacing
 
 ## Tech Stack
