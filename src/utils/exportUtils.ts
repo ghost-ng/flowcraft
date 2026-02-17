@@ -662,12 +662,18 @@ export function exportAsJson(options: JsonExportOptions): void {
   // Always include swimlanes and layers if they have content
   const hasSwimLanes = swimlaneState.config.horizontal.length > 0 || swimlaneState.config.vertical.length > 0;
   if (hasSwimLanes) {
-    exportData.swimlanes = {
+    const swimlaneExport: Record<string, unknown> = {
       orientation: swimlaneState.config.orientation,
       containerTitle: swimlaneState.config.containerTitle,
       horizontal: swimlaneState.config.horizontal,
       vertical: swimlaneState.config.vertical,
     };
+    // Include container offset if non-zero for round-trip fidelity
+    const offset = swimlaneState.containerOffset;
+    if (offset.x !== 0 || offset.y !== 0) {
+      swimlaneExport.containerOffset = offset;
+    }
+    exportData.swimlanes = swimlaneExport;
   }
 
   const hasLayers = layerState.layers.length > 1 || layerState.layers[0]?.id !== 'default';
@@ -989,87 +995,101 @@ export function importFromJson(
     if (typeof s.darkMode === 'boolean') useStyleStore.getState().setDarkMode(s.darkMode);
   }
 
-  // Swimlanes
-  if (data.swimlanes && typeof data.swimlanes === 'object') {
-    const sw = data.swimlanes as Record<string, unknown>;
+  // Swimlanes — clear existing, then apply imported (or leave empty if none)
+  {
     const store = useSwimlaneStore.getState();
-    if (typeof sw.orientation === 'string') {
-      store.setOrientation(sw.orientation as SwimlaneConfig['orientation']);
-    }
-    if (typeof sw.containerTitle === 'string') {
-      store.setContainerTitle(sw.containerTitle);
-    }
-    // Clear existing and add imported lanes
+    // Always clear existing lanes on import to avoid orphaned swimlanes
     const existingH = store.config.horizontal.map((l) => l.id);
     for (const id of existingH) store.removeLane('horizontal', id);
     const existingV = store.config.vertical.map((l) => l.id);
     for (const id of existingV) store.removeLane('vertical', id);
+    // Reset container offset so imported lanes render at default position
+    store.setContainerOffset({ x: 0, y: 0 });
 
-    if (Array.isArray(sw.horizontal)) {
-      for (const lane of sw.horizontal) {
-        if (typeof lane === 'object' && lane !== null) {
-          const l = lane as Record<string, unknown>;
-          store.addLane('horizontal', {
-            id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            label: typeof l.label === 'string' ? l.label : 'Lane',
-            color: typeof l.color === 'string' ? l.color : '#e2e8f0',
-            collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
-            size: typeof l.size === 'number' ? l.size : 200,
-            order: typeof l.order === 'number' ? l.order : 0,
-          });
+    if (data.swimlanes && typeof data.swimlanes === 'object') {
+      const sw = data.swimlanes as Record<string, unknown>;
+      if (typeof sw.orientation === 'string') {
+        store.setOrientation(sw.orientation as SwimlaneConfig['orientation']);
+      }
+      if (typeof sw.containerTitle === 'string') {
+        store.setContainerTitle(sw.containerTitle);
+      }
+
+      if (Array.isArray(sw.horizontal)) {
+        for (const lane of sw.horizontal) {
+          if (typeof lane === 'object' && lane !== null) {
+            const l = lane as Record<string, unknown>;
+            store.addLane('horizontal', {
+              id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              label: typeof l.label === 'string' ? l.label : 'Lane',
+              color: typeof l.color === 'string' ? l.color : '#e2e8f0',
+              collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
+              size: typeof l.size === 'number' ? l.size : 200,
+              order: typeof l.order === 'number' ? l.order : 0,
+            });
+          }
         }
       }
-    }
-    if (Array.isArray(sw.vertical)) {
-      for (const lane of sw.vertical) {
-        if (typeof lane === 'object' && lane !== null) {
-          const l = lane as Record<string, unknown>;
-          store.addLane('vertical', {
-            id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            label: typeof l.label === 'string' ? l.label : 'Lane',
-            color: typeof l.color === 'string' ? l.color : '#e2e8f0',
-            collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
-            size: typeof l.size === 'number' ? l.size : 200,
-            order: typeof l.order === 'number' ? l.order : 0,
-          });
+      if (Array.isArray(sw.vertical)) {
+        for (const lane of sw.vertical) {
+          if (typeof lane === 'object' && lane !== null) {
+            const l = lane as Record<string, unknown>;
+            store.addLane('vertical', {
+              id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              label: typeof l.label === 'string' ? l.label : 'Lane',
+              color: typeof l.color === 'string' ? l.color : '#e2e8f0',
+              collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
+              size: typeof l.size === 'number' ? l.size : 200,
+              order: typeof l.order === 'number' ? l.order : 0,
+            });
+          }
+        }
+      }
+      // Restore container offset if present in exported data
+      if (sw.containerOffset && typeof sw.containerOffset === 'object') {
+        const co = sw.containerOffset as Record<string, unknown>;
+        if (typeof co.x === 'number' && typeof co.y === 'number') {
+          store.setContainerOffset({ x: co.x, y: co.y });
         }
       }
     }
   }
 
-  // Layers
-  if (Array.isArray(data.layers)) {
+  // Layers — always reset, then apply imported (or keep default if none)
+  {
     const layerStore = useLayerStore.getState();
-    // Remove all except default, then add imported
+    // Remove all except default to start clean
     const existingIds = layerStore.layers.map((l) => l.id);
     for (const id of existingIds) {
       if (id !== 'default' && layerStore.layers.length > 1) layerStore.removeLayer(id);
     }
 
-    for (const raw of data.layers) {
-      if (typeof raw !== 'object' || raw === null) continue;
-      const l = raw as Record<string, unknown>;
-      const layerObj: Layer = {
-        id: typeof l.id === 'string' ? l.id : `layer_${Date.now()}`,
-        name: typeof l.name === 'string' ? l.name : 'Layer',
-        visible: typeof l.visible === 'boolean' ? l.visible : true,
-        locked: typeof l.locked === 'boolean' ? l.locked : false,
-        opacity: typeof l.opacity === 'number' ? l.opacity : 1,
-        color: typeof l.color === 'string' ? l.color : '#6366f1',
-        order: typeof l.order === 'number' ? l.order : 0,
-      };
+    if (Array.isArray(data.layers)) {
+      for (const raw of data.layers) {
+        if (typeof raw !== 'object' || raw === null) continue;
+        const l = raw as Record<string, unknown>;
+        const layerObj: Layer = {
+          id: typeof l.id === 'string' ? l.id : `layer_${Date.now()}`,
+          name: typeof l.name === 'string' ? l.name : 'Layer',
+          visible: typeof l.visible === 'boolean' ? l.visible : true,
+          locked: typeof l.locked === 'boolean' ? l.locked : false,
+          opacity: typeof l.opacity === 'number' ? l.opacity : 1,
+          color: typeof l.color === 'string' ? l.color : '#6366f1',
+          order: typeof l.order === 'number' ? l.order : 0,
+        };
 
-      if (layerObj.id === 'default') {
-        // Update existing default layer
-        layerStore.updateLayer('default', {
-          name: layerObj.name,
-          visible: layerObj.visible,
-          locked: layerObj.locked,
-          opacity: layerObj.opacity,
-          color: layerObj.color,
-        });
-      } else {
-        layerStore.addLayer(layerObj);
+        if (layerObj.id === 'default') {
+          // Update existing default layer
+          layerStore.updateLayer('default', {
+            name: layerObj.name,
+            visible: layerObj.visible,
+            locked: layerObj.locked,
+            opacity: layerObj.opacity,
+            color: layerObj.color,
+          });
+        } else {
+          layerStore.addLayer(layerObj);
+        }
       }
     }
   }
