@@ -1,0 +1,37 @@
+import type { DiagramStyle } from '../types';
+
+export const gradientCards: DiagramStyle = {
+  id: 'gradientCards',
+  displayName: 'Gradient Cards',
+  canvas: {
+    background: '#f1f5f9',
+    gridColor: '#e2e8f0',
+    gridStyle: 'dots',
+  },
+  nodeDefaults: {
+    fill: '#ffffff',
+    stroke: 'transparent',
+    strokeWidth: 0,
+    borderRadius: 12,
+    shadow: '0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)',
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    fontSize: 14,
+    fontColor: '#334155',
+    fontWeight: 500,
+  },
+  edgeDefaults: {
+    stroke: '#cbd5e1',
+    strokeWidth: 1,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: [
+    '#6366f1',
+    '#0ea5e9',
+    '#14b8a6',
+    '#f43f5e',
+    '#a855f7',
+    '#f97316',
+  ],
+};

@@ -1,0 +1,30 @@
+import type { DiagramStyle } from '../types';
+
+export const infographicBold: DiagramStyle = {
+  id: 'infographicBold',
+  displayName: 'Infographic Bold',
+  canvas: {
+    background: '#f7f7f9',
+    gridColor: '#eaeaed',
+    gridStyle: 'none',
+  },
+  nodeDefaults: {
+    fill: '#4361ee',
+    stroke: '#3a0ca3',
+    strokeWidth: 3,
+    borderRadius: 24,
+    shadow: '0 4px 14px rgba(67, 97, 238, 0.3)',
+    fontFamily: "'Poppins', 'Montserrat', 'Segoe UI', sans-serif",
+    fontSize: 16,
+    fontColor: '#ffffff',
+    fontWeight: 700,
+  },
+  edgeDefaults: {
+    stroke: '#3a0ca3',
+    strokeWidth: 3,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#4361ee', '#f72585', '#4cc9f0', '#7209b7', '#4895ef'],
+};

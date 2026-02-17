@@ -1,0 +1,39 @@
+import type { DiagramStyle } from '../types';
+
+export const colorfulGradient: DiagramStyle = {
+  id: 'colorfulGradient',
+  displayName: 'Colorful Gradient',
+  canvas: {
+    background: '#fafbfc',
+    gridColor: '#e8ecf0',
+    gridStyle: 'dots',
+  },
+  nodeDefaults: {
+    fill: '#6366f1',
+    stroke: 'transparent',
+    strokeWidth: 0,
+    borderRadius: 12,
+    shadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+    fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    fontSize: 14,
+    fontColor: '#ffffff',
+    fontWeight: 600,
+  },
+  edgeDefaults: {
+    stroke: '#9ca3af',
+    strokeWidth: 1,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: [
+    '#ef4444',
+    '#f59e0b',
+    '#10b981',
+    '#3b82f6',
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#f97316',
+  ],
+};

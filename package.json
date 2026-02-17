@@ -1,0 +1,51 @@
+{
+  "name": "flowcraft",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A browser-based diagramming application for creating flowcharts, system architecture diagrams, and more",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.10.0",
+    "chroma-js": "^3.2.0",
+    "dagre": "^0.8.5",
+    "file-saver": "^2.0.5",
+    "html-to-image": "^1.11.13",
+    "immer": "^11.1.4",
+    "jspdf": "^4.1.0",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.564.0",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "roughjs": "^4.6.6",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/chroma-js": "^3.1.2",
+    "@types/dagre": "^0.7.53",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "gh-pages": "^6.3.0",
+    "globals": "^16.5.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}

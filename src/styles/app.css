@@ -1,0 +1,166 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&family=Patrick+Hand&family=VT323&family=Courier+Prime:wght@400;700&family=Space+Mono:wght@400;700&family=Roboto:wght@400;500;700&family=Nunito:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600&family=Lora:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #f8fafc;
+  --color-surface-alt: #ffffff;
+  --color-surface-dark: #0f172a;
+  --color-surface-alt-dark: #1e293b;
+  --color-border: #e2e8f0;
+  --color-border-dark: #334155;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-dark: #f1f5f9;
+  --color-text-muted-dark: #94a3b8;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-accent: #8b5cf6;
+  --color-danger: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Base resets */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Toast slide-up animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  cursor: grab;
+}
+
+.react-flow__node:active {
+  cursor: grabbing;
+}
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid #475569;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+}
+
+.react-flow__node.selected .react-flow__handle {
+  opacity: 0.5;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+/* Resize handles: hidden by default, visible on hover */
+.react-flow__resize-control.handle {
+  opacity: 0 !important;
+  transition: opacity 0.15s;
+}
+
+.react-flow__node:hover .react-flow__resize-control.handle {
+  opacity: 1 !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3;
+}
+
+.react-flow__minimap {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode support */
+.dark {
+  color-scheme: dark;
+}
+
+.dark #root {
+  color: var(--color-text-dark);
+  background: var(--color-surface-dark);
+}
+
+/* Scrollbar styling for panels */
+.panel-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Tooltip styles */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 100%;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: white;
+  background: var(--color-surface-dark);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}

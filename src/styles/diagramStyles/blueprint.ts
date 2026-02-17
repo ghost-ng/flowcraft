@@ -1,0 +1,31 @@
+import type { DiagramStyle } from '../types';
+
+export const blueprint: DiagramStyle = {
+  id: 'blueprint',
+  displayName: 'Blueprint',
+  dark: true,
+  canvas: {
+    background: '#0a1929',
+    gridColor: '#1e3a5f',
+    gridStyle: 'lines',
+  },
+  nodeDefaults: {
+    fill: 'transparent',
+    stroke: '#4fc3f7',
+    strokeWidth: 1.5,
+    borderRadius: 2,
+    shadow: '0 0 8px rgba(79, 195, 247, 0.15)',
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+    fontSize: 13,
+    fontColor: '#e0f7fa',
+    fontWeight: 400,
+  },
+  edgeDefaults: {
+    stroke: '#4fc3f7',
+    strokeWidth: 1,
+    type: 'straight',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#4fc3f7', '#00e5ff', '#0288d1', '#00838f', '#26c6da'],
+};
