@@ -27,6 +27,7 @@ import { edgeTypes } from '../Edges';
 import { SwimlaneLayer } from '../Swimlanes';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
+import PresentationOverlay from '../PresentationMode/PresentationOverlay';
 import { log } from '../../utils/logger';
 import {
   computeLaneBoundaries,
@@ -44,6 +45,11 @@ const FORMAT_PAINTER_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.
 const nodeTypes: NodeTypes = {
   shapeNode: GenericShapeNode,
   groupNode: GroupNode,
+};
+
+const DEFAULT_EDGE_OPTIONS = {
+  type: 'smoothstep' as const,
+  animated: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -120,6 +126,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const rulerVisible = useUIStore((s) => s.rulerVisible);
   const setIsEditingNode = useUIStore((s) => s.setIsEditingNode);
 
+  // Presentation mode
+  const presentationMode = useUIStore((s) => s.presentationMode);
+
   // Style store
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
@@ -182,6 +191,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      if (presentationMode) return;
       const shapeType = event.dataTransfer.getData('application/flowcraft-shape');
       if (!shapeType) return;
       log.debug('onDrop shape', shapeType);
@@ -297,6 +307,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
 
   const onDoubleClick = useCallback(
     (event: React.MouseEvent) => {
+      if (presentationMode) return;
       // Only if we clicked on the pane (not on a node)
       const target = event.target as HTMLElement;
       if (target.closest('.react-flow__node')) return;
@@ -312,6 +323,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       event.preventDefault();
+      if (presentationMode) return;
       // Close any existing menus
       setNodeMenu(null);
       setEdgeMenu(null);
@@ -338,6 +350,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: FlowNode) => {
       event.preventDefault();
+      if (presentationMode) return;
       const selectedNodes = useFlowStore.getState().selectedNodes;
       if (selectedNodes.length > 1 && selectedNodes.includes(node.id)) {
         setSelectionMenu({ x: event.clientX, y: event.clientY, nodeIds: selectedNodes });
@@ -359,6 +372,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const onEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: FlowEdge) => {
       event.preventDefault();
+      if (presentationMode) return;
       setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId: edge.id });
       setCanvasMenu(null);
       setNodeMenu(null);
@@ -764,9 +778,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const onSelectionChange = useCallback(({ nodes: selNodes, edges: selEdges }: { nodes: FlowNode[]; edges: FlowEdge[] }) => {
     setSelectedNodes(selNodes.map((n) => n.id));
     setSelectedEdges(selEdges.map((e) => e.id));
-    // Clear puck selection when its parent node is no longer selected
+    // Clear puck selection only when a different node is actively selected
+    // (not when all nodes are deselected — pane click handler clears pucks separately)
     const puckNode = useUIStore.getState().selectedPuckNodeId;
-    if (puckNode && !selNodes.some((n) => n.id === puckNode)) {
+    if (puckNode && selNodes.length > 0 && !selNodes.some((n) => n.id === puckNode)) {
       useUIStore.getState().clearPuckSelection();
     }
   }, [setSelectedNodes, setSelectedEdges]);
@@ -807,7 +822,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   }, [updateNodeData]);
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full relative" onContextMenu={onWrapperContextMenu} onWheel={onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
+    <div ref={reactFlowWrapper} className={`w-full h-full relative ${presentationMode ? 'presentation-mode' : ''}`} onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: presentationMode ? 'grab' : formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
       {/* Format painter active indicator */}
       {formatPainterActive && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-lg animate-pulse">
@@ -828,43 +843,44 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        onNodesChange={presentationMode ? undefined : onNodesChange}
+        onEdgesChange={presentationMode ? undefined : onEdgesChange}
+        onConnect={presentationMode ? undefined : onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDoubleClick={onDoubleClick}
-        onPaneContextMenu={onPaneContextMenu}
-        onNodeContextMenu={onNodeContextMenu}
-        onEdgeContextMenu={onEdgeContextMenu}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onNodeDragStart={onNodeDragStart}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
-        onNodeMouseEnter={onNodeMouseEnter}
-        onNodeMouseLeave={onNodeMouseLeave}
-        onPaneClick={closeContextMenus}
-        onSelectionChange={onSelectionChange}
+        onDrop={presentationMode ? undefined : onDrop}
+        onDragOver={presentationMode ? undefined : onDragOver}
+        onDoubleClick={presentationMode ? undefined : onDoubleClick}
+        onPaneContextMenu={presentationMode ? undefined : onPaneContextMenu}
+        onNodeContextMenu={presentationMode ? undefined : onNodeContextMenu}
+        onEdgeContextMenu={presentationMode ? undefined : onEdgeContextMenu}
+        onNodeClick={presentationMode ? undefined : onNodeClick}
+        onEdgeClick={presentationMode ? undefined : onEdgeClick}
+        onNodeDragStart={presentationMode ? undefined : onNodeDragStart}
+        onNodeDrag={presentationMode ? undefined : onNodeDrag}
+        onNodeDragStop={presentationMode ? undefined : onNodeDragStop}
+        onNodeMouseEnter={presentationMode ? undefined : onNodeMouseEnter}
+        onNodeMouseLeave={presentationMode ? undefined : onNodeMouseLeave}
+        onPaneClick={presentationMode ? undefined : closeContextMenus}
+        onSelectionChange={presentationMode ? undefined : onSelectionChange}
         onInit={handleReactFlowInit}
         isValidConnection={isValidConnection}
-        snapToGrid={snapEnabled}
+        nodesDraggable={!presentationMode}
+        nodesConnectable={!presentationMode}
+        elementsSelectable={!presentationMode}
+        snapToGrid={presentationMode ? false : snapEnabled}
         snapGrid={[gridSpacing, gridSpacing]}
         selectionOnDrag={false}
         selectionMode={SelectionMode.Partial}
-        selectionKeyCode="Control"
+        selectionKeyCode={presentationMode ? null : "Control"}
         panOnDrag={true}
-        deleteKeyCode="Delete"
-        multiSelectionKeyCode="Shift"
+        deleteKeyCode={presentationMode ? null : "Delete"}
+        multiSelectionKeyCode={presentationMode ? null : "Shift"}
+        elevateNodesOnSelect={false}
         fitView
         attributionPosition="bottom-left"
         className={darkMode ? 'dark' : ''}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          animated: false,
-        }}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       >
         {gridVisible && (
           <Background
@@ -979,6 +995,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           onClose={closeContextMenus}
         />
       )}
+
+      {/* Presentation mode overlay (inside ReactFlowProvider for viewport access) */}
+      <PresentationOverlay />
     </div>
   );
 };

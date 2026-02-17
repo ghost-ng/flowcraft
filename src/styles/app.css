@@ -164,3 +164,61 @@ body,
 [data-tooltip]:hover::after {
   opacity: 1;
 }
+
+/* Tooltip positioned to the right (for side panels like shape palette) */
+[data-tooltip-right] {
+  position: relative;
+}
+
+[data-tooltip-right]::after {
+  content: attr(data-tooltip-right);
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: white;
+  background: var(--color-surface-dark);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+
+[data-tooltip-right]:hover::after {
+  opacity: 1;
+}
+
+/* Presentation mode – disable all node/edge interactivity */
+.presentation-mode .react-flow__handle {
+  display: none !important;
+}
+
+.presentation-mode .react-flow__resize-control {
+  display: none !important;
+}
+
+.presentation-mode .react-flow__node {
+  cursor: inherit !important;
+}
+
+.presentation-mode .react-flow__node:active {
+  cursor: inherit !important;
+}
+
+.presentation-mode .react-flow__edge {
+  pointer-events: none !important;
+}
+
+.presentation-mode .react-flow__pane {
+  cursor: inherit !important;
+}
+
+.presentation-mode .react-flow__controls {
+  display: none !important;
+}

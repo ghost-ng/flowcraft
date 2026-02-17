@@ -198,14 +198,13 @@ const ShapeItem: React.FC<ShapeItemProps> = React.memo(({ shape, isSelected, onS
       draggable
       onDragStart={onDragStart}
       onClick={handleClick}
-      data-tooltip={shape.label}
+      data-tooltip-right={shape.label}
       className={`
         relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg cursor-grab
         transition-all duration-100 group
         hover:bg-primary/10 hover:scale-105 active:scale-95 active:cursor-grabbing
         ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/30' : ''}
       `}
-      title={shape.label}
     >
       <div className={`transition-colors ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-text-muted group-hover:text-primary'}`}>
         {shape.icon}
@@ -258,10 +257,10 @@ const ShapePalette: React.FC = () => {
               <div className="w-full border-t border-border dark:border-slate-600 my-1" />
               <button
                 onClick={() => setIconPickerOpen(true)}
-                className="flex items-center justify-center w-10 min-h-0 flex-1 max-h-8 rounded-lg
+                data-tooltip-right="Icon Library"
+                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-8 rounded-lg
                            transition-all duration-100
                            hover:bg-primary/10 text-text-muted hover:text-primary cursor-pointer"
-                title="Open Icon Library"
               >
                 <Sparkles size={16} />
               </button>
@@ -275,10 +274,10 @@ const ShapePalette: React.FC = () => {
                   e.dataTransfer.setData('application/flowcraft-shape', 'group');
                   e.dataTransfer.effectAllowed = 'move';
                 }}
+                data-tooltip-right="Group"
                 className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg cursor-grab
                            transition-all duration-100 group
                            hover:bg-primary/10 hover:scale-105 active:scale-95 active:cursor-grabbing"
-                title="Group"
               >
                 <div className="text-text-muted group-hover:text-primary transition-colors">
                   <svg width="28" height="28" viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
@@ -303,7 +302,7 @@ const ShapePalette: React.FC = () => {
             : 'bg-surface-alt border-border hover:bg-slate-100 text-text-muted'
           }
         `}
-        title={shapePaletteOpen ? 'Collapse palette' : 'Expand palette'}
+        data-tooltip-right={shapePaletteOpen ? 'Collapse palette' : 'Expand palette'}
       >
         {shapePaletteOpen
           ? <ChevronsLeft size={14} />

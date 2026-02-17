@@ -323,6 +323,7 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
     <div
       className="nodrag nopan"
       onPointerDown={handlePointerDown}
+      onClick={(e) => e.stopPropagation()}
       title="Click to select · Shift+click multi-select · Drag to move · Ctrl+drag to resize"
       style={{
         position: 'absolute',
@@ -555,6 +556,15 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         handleStyle={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'white', border: `1.5px solid ${selectionColor}` }}
         onResize={(_event, params) => {
           updateNodeData(id, { width: params.width, height: params.height });
+          // Propagate resize to all other selected nodes
+          const { selectedNodes } = useFlowStore.getState();
+          if (selectedNodes.length > 1) {
+            for (const nid of selectedNodes) {
+              if (nid !== id) {
+                updateNodeData(nid, { width: params.width, height: params.height });
+              }
+            }
+          }
         }}
       />
 

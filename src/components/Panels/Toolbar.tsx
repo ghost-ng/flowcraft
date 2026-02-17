@@ -50,7 +50,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore } from '../../store/flowStore';
 import { useExportStore } from '../../store/exportStore';
-import { copyImageToClipboard, copySvgToClipboard } from '../../utils/exportUtils';
+import { copyImageToClipboard, copySvgToClipboard, importFromJson, exportAsJson } from '../../utils/exportUtils';
 import { useDependencyStore } from '../../store/dependencyStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
@@ -253,18 +253,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   }, [selectedNodes, removeNode]);
 
   const handleSave = useCallback(() => {
-    const state = useFlowStore.getState();
-    const data = JSON.stringify({
-      nodes: state.nodes,
-      edges: state.edges,
-    }, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'flowcraft-diagram.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    exportAsJson({ includeViewport: true, includeStyles: true, includeMetadata: true, pretty: true });
   }, []);
 
   const handleOpen = useCallback(() => {
@@ -276,16 +265,21 @@ const Toolbar: React.FC<ToolbarProps> = ({
       if (!file) return;
       try {
         const text = await file.text();
-        const data = JSON.parse(text);
-        if (data.nodes) setNodes(data.nodes);
-        if (data.edges) setEdges(data.edges);
+        const result = importFromJson(text);
+        const msg = `Imported ${result.nodeCount} nodes and ${result.edgeCount} edges`;
+        if (result.warnings.length > 0) {
+          log.warn('Import warnings', result.warnings);
+          useUIStore.getState().showToast(`${msg} (${result.warnings.length} warnings — see console)`, 'warning');
+        } else {
+          useUIStore.getState().showToast(msg, 'success');
+        }
       } catch (err) {
         log.error('Failed to load file', err);
-        useUIStore.getState().showToast('Failed to load file. Please check the format.', 'error');
+        useUIStore.getState().showToast(`Failed to load file: ${err instanceof Error ? err.message : 'unknown error'}`, 'error');
       }
     };
     input.click();
-  }, [setNodes, setEdges]);
+  }, []);
 
   const handleAutoArrange = useCallback(() => {
     applyLayout('TB');
@@ -813,7 +807,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <ToolbarButton
         icon={<Monitor size={iconSize} />}
         tooltip="Presentation Mode"
-        onClick={() => useUIStore.getState().setPresentationMode(true)}
+        onClick={() => {
+          useUIStore.getState().setPresentationMode(true);
+          document.documentElement.requestFullscreen?.().catch(() => {});
+        }}
       />
 
       {/* ---- Debug mode toggle ---- */}

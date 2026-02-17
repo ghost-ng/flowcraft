@@ -7,7 +7,6 @@ import { ExportDialog } from './components/Export';
 import { SwimlaneCreationDialog } from './components/Swimlanes';
 import TemplateGallery from './components/Templates/TemplateGallery';
 import KeyboardShortcutsDialog from './components/Panels/KeyboardShortcutsDialog';
-import PresentationOverlay from './components/PresentationMode/PresentationOverlay';
 import { useStyleStore } from './store/styleStore';
 import { useUIStore } from './store/uiStore';
 import { useExportStore } from './store/exportStore';
@@ -547,8 +546,7 @@ const App: React.FC = () => {
         {!presentationMode && <PropertiesPanel />}
       </div>
 
-      {/* Presentation mode overlay */}
-      <PresentationOverlay />
+      {/* Presentation mode overlay rendered inside FlowCanvas (ReactFlowProvider) */}
 
       {/* Swimlane creation dialog (modal) */}
       <SwimlaneCreationDialog />

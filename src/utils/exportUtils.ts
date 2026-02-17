@@ -8,8 +8,13 @@ import jsPDF from 'jspdf';
 import PptxGenJS from 'pptxgenjs';
 type SHAPE_NAME = PptxGenJS.SHAPE_NAME;
 
-import { useFlowStore } from '../store/flowStore';
+import { useFlowStore, newPuckId } from '../store/flowStore';
+import type { FlowNode, FlowEdge, FlowNodeData, StatusIndicator } from '../store/flowStore';
 import { useStyleStore } from '../store/styleStore';
+import { useSwimlaneStore } from '../store/swimlaneStore';
+import type { SwimlaneConfig } from '../store/swimlaneStore';
+import { useLayerStore } from '../store/layerStore';
+import type { Layer } from '../store/layerStore';
 import { log } from './logger';
 import {
   type ExportFormat,
@@ -632,6 +637,8 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
 export function exportAsJson(options: JsonExportOptions): void {
   const state = useFlowStore.getState();
   const styleState = useStyleStore.getState();
+  const swimlaneState = useSwimlaneStore.getState();
+  const layerState = useLayerStore.getState();
 
   const exportData: Record<string, unknown> = {
     version: '1.0',
@@ -652,6 +659,22 @@ export function exportAsJson(options: JsonExportOptions): void {
     };
   }
 
+  // Always include swimlanes and layers if they have content
+  const hasSwimLanes = swimlaneState.config.horizontal.length > 0 || swimlaneState.config.vertical.length > 0;
+  if (hasSwimLanes) {
+    exportData.swimlanes = {
+      orientation: swimlaneState.config.orientation,
+      containerTitle: swimlaneState.config.containerTitle,
+      horizontal: swimlaneState.config.horizontal,
+      vertical: swimlaneState.config.vertical,
+    };
+  }
+
+  const hasLayers = layerState.layers.length > 1 || layerState.layers[0]?.id !== 'default';
+  if (hasLayers) {
+    exportData.layers = layerState.layers;
+  }
+
   if (options.includeMetadata) {
     exportData.metadata = {
       nodeCount: state.nodes.length,
@@ -663,6 +686,336 @@ export function exportAsJson(options: JsonExportOptions): void {
   const jsonString = JSON.stringify(exportData, null, indent);
   const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
   saveAs(blob, getFilename('json'));
+}
+
+// ---------------------------------------------------------------------------
+// JSON Import
+// ---------------------------------------------------------------------------
+
+/** Valid node shape values for validation */
+const VALID_SHAPES = new Set([
+  'rectangle', 'roundedRectangle', 'diamond', 'circle', 'ellipse',
+  'parallelogram', 'hexagon', 'triangle', 'star', 'cloud', 'arrow',
+  'callout', 'document', 'predefinedProcess', 'manualInput', 'preparation',
+  'data', 'database', 'internalStorage', 'display',
+  'blockArrow', 'chevronArrow', 'doubleArrow', 'circularArrow',
+  'group', 'stickyNote',
+]);
+
+/** Valid edge type values */
+const VALID_EDGE_TYPES = new Set([
+  'default', 'straight', 'step', 'smoothstep', 'bezier',
+  'dependency', 'animated',
+]);
+
+/**
+ * Import a FlowCraft JSON file and load it into all stores.
+ *
+ * Accepts either a raw JSON string or an already-parsed object.
+ * Validates and normalises the data, generating missing IDs where needed.
+ *
+ * Returns a summary of what was imported.
+ */
+export function importFromJson(
+  input: string | Record<string, unknown>,
+): { nodeCount: number; edgeCount: number; warnings: string[] } {
+  const warnings: string[] = [];
+
+  // Parse
+  let data: Record<string, unknown>;
+  if (typeof input === 'string') {
+    try {
+      data = JSON.parse(input);
+    } catch {
+      throw new Error('Invalid JSON: could not parse the file');
+    }
+  } else {
+    data = input;
+  }
+
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    throw new Error('Invalid format: expected a JSON object at root level');
+  }
+
+  // ---- Nodes ---------------------------------------------------------------
+  const rawNodes = data.nodes;
+  if (!Array.isArray(rawNodes)) {
+    throw new Error('Missing or invalid "nodes" array');
+  }
+
+  const seenNodeIds = new Set<string>();
+  const nodes: FlowNode[] = [];
+
+  for (let i = 0; i < rawNodes.length; i++) {
+    const raw = rawNodes[i];
+    if (typeof raw !== 'object' || raw === null) {
+      warnings.push(`nodes[${i}]: skipped (not an object)`);
+      continue;
+    }
+    const r = raw as Record<string, unknown>;
+
+    // ID — generate if missing, deduplicate
+    let id = typeof r.id === 'string' && r.id ? r.id : `node_${Date.now()}_${i}`;
+    if (seenNodeIds.has(id)) {
+      id = `${id}_dup_${i}`;
+      warnings.push(`nodes[${i}]: duplicate id, renamed to "${id}"`);
+    }
+    seenNodeIds.add(id);
+
+    // Position — required
+    const pos = r.position as Record<string, unknown> | undefined;
+    const x = typeof pos?.x === 'number' ? pos.x : 0;
+    const y = typeof pos?.y === 'number' ? pos.y : 0;
+
+    // Data — normalise
+    const rawData = (r.data || {}) as Record<string, unknown>;
+    const label = typeof rawData.label === 'string' ? rawData.label : `Node ${i + 1}`;
+    let shape = typeof rawData.shape === 'string' ? rawData.shape : 'rectangle';
+    if (!VALID_SHAPES.has(shape)) {
+      warnings.push(`nodes[${i}]: unknown shape "${shape}", defaulting to "rectangle"`);
+      shape = 'rectangle';
+    }
+
+    // Build normalised data
+    const nodeData: FlowNodeData = {
+      label,
+      shape: shape as FlowNodeData['shape'],
+    };
+
+    // Optional string fields
+    for (const key of ['description', 'color', 'borderColor', 'textColor', 'fontFamily',
+      'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
+      'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId'] as const) {
+      if (typeof rawData[key] === 'string') {
+        (nodeData as Record<string, unknown>)[key] = rawData[key];
+      }
+    }
+
+    // Optional number fields
+    for (const key of ['fontSize', 'fontWeight', 'iconBorderWidth', 'iconSize',
+      'width', 'height', 'opacity', 'borderWidth', 'borderRadius'] as const) {
+      if (typeof rawData[key] === 'number') {
+        (nodeData as Record<string, unknown>)[key] = rawData[key];
+      }
+    }
+
+    // Optional boolean fields
+    if (typeof rawData.iconOnly === 'boolean') nodeData.iconOnly = rawData.iconOnly;
+
+    // Dependencies
+    if (Array.isArray(rawData.dependsOn)) {
+      nodeData.dependsOn = rawData.dependsOn.filter((v: unknown) => typeof v === 'string');
+    }
+    if (Array.isArray(rawData.blockedBy)) {
+      nodeData.blockedBy = rawData.blockedBy.filter((v: unknown) => typeof v === 'string');
+    }
+
+    // Status pucks
+    if (Array.isArray(rawData.statusIndicators)) {
+      nodeData.statusIndicators = (rawData.statusIndicators as Record<string, unknown>[])
+        .filter((p) => typeof p === 'object' && p !== null)
+        .map((p) => ({
+          id: typeof p.id === 'string' ? p.id : newPuckId(),
+          status: typeof p.status === 'string' ? p.status as StatusIndicator['status'] : 'none',
+          color: typeof p.color === 'string' ? p.color : undefined,
+          size: typeof p.size === 'number' ? p.size : undefined,
+          position: typeof p.position === 'string' ? p.position as StatusIndicator['position'] : undefined,
+          borderColor: typeof p.borderColor === 'string' ? p.borderColor : undefined,
+          borderWidth: typeof p.borderWidth === 'number' ? p.borderWidth : undefined,
+          borderStyle: typeof p.borderStyle === 'string' ? p.borderStyle as StatusIndicator['borderStyle'] : undefined,
+          icon: typeof p.icon === 'string' ? p.icon : undefined,
+        }));
+    }
+
+    // Determine node type
+    let type = typeof r.type === 'string' ? r.type : 'shapeNode';
+    if (shape === 'group') type = 'groupNode';
+
+    nodes.push({
+      id,
+      type,
+      position: { x, y },
+      data: nodeData,
+      ...(r.parentId && typeof r.parentId === 'string' ? { parentId: r.parentId } : {}),
+      ...(r.extent === 'parent' ? { extent: 'parent' as const } : {}),
+    });
+  }
+
+  // ---- Edges ---------------------------------------------------------------
+  const rawEdges = data.edges;
+  const edges: FlowEdge[] = [];
+
+  if (Array.isArray(rawEdges)) {
+    const seenEdgeIds = new Set<string>();
+
+    for (let i = 0; i < rawEdges.length; i++) {
+      const raw = rawEdges[i];
+      if (typeof raw !== 'object' || raw === null) {
+        warnings.push(`edges[${i}]: skipped (not an object)`);
+        continue;
+      }
+      const r = raw as Record<string, unknown>;
+
+      let id = typeof r.id === 'string' && r.id ? r.id : `edge_${Date.now()}_${i}`;
+      if (seenEdgeIds.has(id)) {
+        id = `${id}_dup_${i}`;
+      }
+      seenEdgeIds.add(id);
+
+      const source = typeof r.source === 'string' ? r.source : '';
+      const target = typeof r.target === 'string' ? r.target : '';
+
+      if (!source || !target) {
+        warnings.push(`edges[${i}]: skipped (missing source or target)`);
+        continue;
+      }
+
+      // Validate source/target exist
+      if (!seenNodeIds.has(source)) {
+        warnings.push(`edges[${i}]: source "${source}" not found in nodes`);
+      }
+      if (!seenNodeIds.has(target)) {
+        warnings.push(`edges[${i}]: target "${target}" not found in nodes`);
+      }
+
+      let type = typeof r.type === 'string' ? r.type : undefined;
+      if (type && !VALID_EDGE_TYPES.has(type)) {
+        warnings.push(`edges[${i}]: unknown type "${type}", using default`);
+        type = undefined;
+      }
+
+      const rawData = (r.data || {}) as Record<string, unknown>;
+      const edgeData: Record<string, unknown> = {};
+
+      if (typeof rawData.label === 'string') edgeData.label = rawData.label;
+      if (typeof rawData.color === 'string') edgeData.color = rawData.color;
+      if (typeof rawData.thickness === 'number') edgeData.thickness = rawData.thickness;
+      if (typeof rawData.animated === 'boolean') edgeData.animated = rawData.animated;
+      if (typeof rawData.opacity === 'number') edgeData.opacity = rawData.opacity;
+      if (typeof rawData.labelColor === 'string') edgeData.labelColor = rawData.labelColor;
+      if (typeof rawData.dependencyType === 'string') edgeData.dependencyType = rawData.dependencyType;
+
+      edges.push({
+        id,
+        source,
+        target,
+        ...(type ? { type } : {}),
+        ...(Object.keys(edgeData).length > 0 ? { data: edgeData } : {}),
+        ...(typeof r.sourceHandle === 'string' ? { sourceHandle: r.sourceHandle } : {}),
+        ...(typeof r.targetHandle === 'string' ? { targetHandle: r.targetHandle } : {}),
+      } as FlowEdge);
+    }
+  }
+
+  // ---- Apply to stores -----------------------------------------------------
+
+  // Flow state
+  useFlowStore.getState().setNodes(nodes);
+  useFlowStore.getState().setEdges(edges);
+
+  // Viewport
+  if (data.viewport && typeof data.viewport === 'object') {
+    const vp = data.viewport as Record<string, unknown>;
+    if (typeof vp.x === 'number' && typeof vp.y === 'number' && typeof vp.zoom === 'number') {
+      useFlowStore.getState().setViewport({ x: vp.x, y: vp.y, zoom: vp.zoom });
+    }
+  }
+
+  // Styles
+  if (data.styles && typeof data.styles === 'object') {
+    const s = data.styles as Record<string, unknown>;
+    if (typeof s.activeStyleId === 'string') useStyleStore.getState().setStyle(s.activeStyleId);
+    if (typeof s.activePaletteId === 'string') useStyleStore.getState().setPalette(s.activePaletteId);
+    if (typeof s.darkMode === 'boolean') useStyleStore.getState().setDarkMode(s.darkMode);
+  }
+
+  // Swimlanes
+  if (data.swimlanes && typeof data.swimlanes === 'object') {
+    const sw = data.swimlanes as Record<string, unknown>;
+    const store = useSwimlaneStore.getState();
+    if (typeof sw.orientation === 'string') {
+      store.setOrientation(sw.orientation as SwimlaneConfig['orientation']);
+    }
+    if (typeof sw.containerTitle === 'string') {
+      store.setContainerTitle(sw.containerTitle);
+    }
+    // Clear existing and add imported lanes
+    const existingH = store.config.horizontal.map((l) => l.id);
+    for (const id of existingH) store.removeLane('horizontal', id);
+    const existingV = store.config.vertical.map((l) => l.id);
+    for (const id of existingV) store.removeLane('vertical', id);
+
+    if (Array.isArray(sw.horizontal)) {
+      for (const lane of sw.horizontal) {
+        if (typeof lane === 'object' && lane !== null) {
+          const l = lane as Record<string, unknown>;
+          store.addLane('horizontal', {
+            id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            label: typeof l.label === 'string' ? l.label : 'Lane',
+            color: typeof l.color === 'string' ? l.color : '#e2e8f0',
+            collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
+            size: typeof l.size === 'number' ? l.size : 200,
+            order: typeof l.order === 'number' ? l.order : 0,
+          });
+        }
+      }
+    }
+    if (Array.isArray(sw.vertical)) {
+      for (const lane of sw.vertical) {
+        if (typeof lane === 'object' && lane !== null) {
+          const l = lane as Record<string, unknown>;
+          store.addLane('vertical', {
+            id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            label: typeof l.label === 'string' ? l.label : 'Lane',
+            color: typeof l.color === 'string' ? l.color : '#e2e8f0',
+            collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
+            size: typeof l.size === 'number' ? l.size : 200,
+            order: typeof l.order === 'number' ? l.order : 0,
+          });
+        }
+      }
+    }
+  }
+
+  // Layers
+  if (Array.isArray(data.layers)) {
+    const layerStore = useLayerStore.getState();
+    // Remove all except default, then add imported
+    const existingIds = layerStore.layers.map((l) => l.id);
+    for (const id of existingIds) {
+      if (id !== 'default' && layerStore.layers.length > 1) layerStore.removeLayer(id);
+    }
+
+    for (const raw of data.layers) {
+      if (typeof raw !== 'object' || raw === null) continue;
+      const l = raw as Record<string, unknown>;
+      const layerObj: Layer = {
+        id: typeof l.id === 'string' ? l.id : `layer_${Date.now()}`,
+        name: typeof l.name === 'string' ? l.name : 'Layer',
+        visible: typeof l.visible === 'boolean' ? l.visible : true,
+        locked: typeof l.locked === 'boolean' ? l.locked : false,
+        opacity: typeof l.opacity === 'number' ? l.opacity : 1,
+        color: typeof l.color === 'string' ? l.color : '#6366f1',
+        order: typeof l.order === 'number' ? l.order : 0,
+      };
+
+      if (layerObj.id === 'default') {
+        // Update existing default layer
+        layerStore.updateLayer('default', {
+          name: layerObj.name,
+          visible: layerObj.visible,
+          locked: layerObj.locked,
+          opacity: layerObj.opacity,
+          color: layerObj.color,
+        });
+      } else {
+        layerStore.addLayer(layerObj);
+      }
+    }
+  }
+
+  log.info(`Import complete: ${nodes.length} nodes, ${edges.length} edges, ${warnings.length} warnings`);
+  return { nodeCount: nodes.length, edgeCount: edges.length, warnings };
 }
 
 // ---------------------------------------------------------------------------
