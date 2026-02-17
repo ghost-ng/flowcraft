@@ -833,6 +833,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         open={stylePickerOpen}
         onClose={() => setStylePickerOpen(false)}
       />
+
+      <ToolbarDivider />
+
+      {/* ---- Version badge ---- */}
+      <span className="text-[10px] font-mono text-text-muted select-none px-1">
+        v{__APP_VERSION__}
+      </span>
     </div>
   );
 };
