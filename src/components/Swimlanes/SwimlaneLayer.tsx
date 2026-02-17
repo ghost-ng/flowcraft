@@ -55,6 +55,8 @@ interface LaneResizeHandleProps {
   span: number;
   /** Current viewport zoom for converting screen→flow deltas */
   zoom: number;
+  /** If true, dragging resizes in the reverse direction (for first lane's leading edge) */
+  reverse?: boolean;
 }
 
 const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
@@ -63,22 +65,23 @@ const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
   dividerOffset,
   span,
   zoom,
+  reverse,
 }) => {
-  const startRef = useRef<{ clientPos: number; startSize: number } | null>(null);
+  const startRef = useRef<{ clientPos: number; startSize: number; startOffset: { x: number; y: number } } | null>(null);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
 
-      const lane = useSwimlaneStore
-        .getState()
+      const store = useSwimlaneStore.getState();
+      const lane = store
         .config[orientation === 'horizontal' ? 'horizontal' : 'vertical']
         .find((l) => l.id === laneId);
       if (!lane) return;
 
       const clientPos = orientation === 'horizontal' ? e.clientY : e.clientX;
-      startRef.current = { clientPos, startSize: lane.size };
+      startRef.current = { clientPos, startSize: lane.size, startOffset: { ...store.containerOffset } };
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         if (!startRef.current) return;
@@ -86,8 +89,24 @@ const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
           orientation === 'horizontal' ? moveEvent.clientY : moveEvent.clientX;
         const deltaScreen = currentPos - startRef.current.clientPos;
         const deltaFlow = deltaScreen / zoom;
-        const newSize = Math.max(MIN_LANE_SIZE, startRef.current.startSize + deltaFlow);
-        useSwimlaneStore.getState().updateLane(orientation, laneId, { size: newSize });
+
+        if (reverse) {
+          // Reverse: drag left/up = grow, drag right/down = shrink
+          const newSize = Math.max(MIN_LANE_SIZE, startRef.current.startSize - deltaFlow);
+          const actualDelta = startRef.current.startSize - newSize;
+          useSwimlaneStore.getState().updateLane(orientation, laneId, { size: newSize });
+          // Shift container offset to compensate so other lanes stay in place
+          const newOffset = { ...startRef.current.startOffset };
+          if (orientation === 'horizontal') {
+            newOffset.y = startRef.current.startOffset.y + actualDelta;
+          } else {
+            newOffset.x = startRef.current.startOffset.x + actualDelta;
+          }
+          useSwimlaneStore.getState().setContainerOffset(newOffset);
+        } else {
+          const newSize = Math.max(MIN_LANE_SIZE, startRef.current.startSize + deltaFlow);
+          useSwimlaneStore.getState().updateLane(orientation, laneId, { size: newSize });
+        }
       };
 
       const onMouseUp = () => {
@@ -104,7 +123,7 @@ const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
     },
-    [orientation, laneId, zoom],
+    [orientation, laneId, zoom, reverse],
   );
 
   const isH = orientation === 'horizontal';
@@ -413,6 +432,18 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           height: totalHeight,
         }}
       >
+        {/* Handle at the top edge of the first horizontal lane */}
+        {hasHLanes && hBounds.length > 0 && !hBounds[0].lane.collapsed && (
+          <LaneResizeHandle
+            key={`resize-h-first-${hBounds[0].lane.id}`}
+            orientation="horizontal"
+            laneId={hBounds[0].lane.id}
+            dividerOffset={hBounds[0].offset}
+            span={totalWidth}
+            zoom={viewport.zoom}
+            reverse
+          />
+        )}
         {/* Horizontal lane resize handles (between lanes) */}
         {hasHLanes &&
           hBounds.map(({ lane, offset }, idx) => {
@@ -446,6 +477,18 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           );
         })()}
 
+        {/* Handle at the left edge of the first vertical lane */}
+        {hasVLanes && vBounds.length > 0 && !vBounds[0].lane.collapsed && (
+          <LaneResizeHandle
+            key={`resize-v-first-${vBounds[0].lane.id}`}
+            orientation="vertical"
+            laneId={vBounds[0].lane.id}
+            dividerOffset={vBounds[0].offset}
+            span={totalHeight}
+            zoom={viewport.zoom}
+            reverse
+          />
+        )}
         {/* Vertical lane resize handles (between lanes) */}
         {hasVLanes &&
           vBounds.map(({ lane, offset }, idx) => {

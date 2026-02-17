@@ -2,6 +2,8 @@
 
 > **Purpose:** This document is a complete specification for AI models to generate valid FlowCraft JSON files that can be imported and auto-build diagrams.
 
+> **CRITICAL: The output MUST be strict JSON.** No comments (`//`, `/* */`), no trailing commas, no unquoted keys. JSON does not support comments — the parser will reject the entire file if comments are present. If you need to annotate sections, use a `"_comment"` key inside an object (it will be silently ignored by the importer).
+
 ## 1. File Structure
 
 A FlowCraft JSON file is a single object with these top-level keys:
@@ -102,7 +104,7 @@ Each node represents a shape on the canvas.
 |----------|-------------|-------------------|
 | `rectangle` | Standard rectangle | 160×60 |
 | `roundedRectangle` | Rectangle with rounded corners | 160×60 |
-| `diamond` | Decision/conditional diamond | 100×100 |
+| `diamond` | Decision/conditional diamond (⚠️ see note below) | 100×100 |
 | `circle` | Circle | 100×100 |
 | `ellipse` | Ellipse (alias for circle) | 100×100 |
 | `parallelogram` | Input/output parallelogram | 160×60 |
@@ -137,6 +139,12 @@ Each node represents a shape on the canvas.
 | Shape ID | Description | Default Size |
 |----------|-------------|-------------|
 | `group` | Group container (use `type: "groupNode"`) | 300×200 |
+
+> **⚠️ Diamond Shape Warning:** Diamonds render text inside a rotated square, so the usable text area is roughly **50% of the bounding box**. A 100×100 diamond can only fit ~5-6 characters per line. **Rules:**
+> - Labels MUST be 1-2 words max (e.g., `"Valid?"`, `"Approve"`, `"Gate"`)
+> - For 2-word labels, set `width: 120, height: 120` and `fontSize: 12`
+> - NEVER put a 3+ word label in a diamond — use `rectangle` or `hexagon` instead
+> - Example of what NOT to do: `"Formalize Governance Board"` in a diamond will produce broken, unreadable text
 
 ### 2.4 Default Shape Colors
 
@@ -644,6 +652,8 @@ Each node has 4 connection handles:
 For top-to-bottom flows, connect `"bottom"` → `"top"`.
 For left-to-right flows, connect `"right"` → `"left"`.
 
+**IMPORTANT:** Always set `sourceHandle` and `targetHandle` explicitly based on the relative positions of the two nodes. If the source is to the left of the target, use `"right"` → `"left"`. If the source is above the target, use `"bottom"` → `"top"`. Omitting handles causes React Flow to guess, often producing awkward diagonal or overlapping edge routes — especially for cross-lane connections in swimlane diagrams.
+
 ---
 
 ## 11. Complete Examples
@@ -882,14 +892,15 @@ The importer applies these rules automatically:
 
 ### 13.1 Block Sizing for Labels
 
-Blocks (nodes) should be large enough to present their text/labels clearly without truncation or overflow. Follow these rules:
+Blocks (nodes) should be large enough to present their text/labels clearly without truncation or overflow. **You MUST set explicit `width` and `height` on any node whose label exceeds 2 words.** Follow these rules:
 
-- **Short labels (1-3 words):** Default size is fine (160×60 for rectangles, 100×100 for diamonds/circles).
-- **Medium labels (4-8 words):** Increase `width` to 200-250px or reduce `fontSize` to 12.
-- **Long labels (9+ words or multi-line):** Use `width: 280-360` and `height: 80-100` so text wraps comfortably.
+- **Short labels (1-2 words):** Default size is fine (160×60 for rectangles, 100×100 for diamonds/circles).
+- **Medium labels (3-5 words):** Set `width: 200-250` explicitly. Example: `"Build Strategic Pipeline"` → `"width": 220`.
+- **Long labels (6+ words):** Set `width: 280-360` and `height: 80-100`. Example: `"Launch Mentorship & Certification Validation"` → `"width": 320, "height": 80`.
 - **With icons:** Add ~24px to the width to accommodate the icon beside the label.
-- **Diamond shapes:** Keep labels under 3 words (diamonds have limited interior space). Use 120×120 if the label is 2 words.
+- **Diamond shapes:** Keep labels to **1-2 words MAX** (diamonds have very limited interior space). Use `width: 120, height: 120` if the label is 2 words. Never put a long label in a diamond — use a `rectangle` or `hexagon` instead.
 - **General rule:** When in doubt, make the block wider rather than taller — horizontal text is easier to read.
+- **Rough formula:** `width ≈ (character count × 8) + 40` for default font size. So a 30-character label needs `width: 280`.
 
 ### 13.2 Status Puck Sizing and Placement
 
@@ -946,22 +957,28 @@ Before finalizing a diagram JSON, verify:
 
 ## 14. Tips for AI Generation
 
-1. **Use unique, descriptive IDs** — e.g., `"node_auth_check"` not `"node_1"`. Makes edges easier to define and debug.
+1. **NO COMMENTS in JSON** — `//` and `/* */` are NOT valid JSON syntax. The parser will reject the entire file. Use `"_comment": "text"` inside objects if you must annotate.
 
-2. **Start with nodes, then edges** — Define all nodes first, then connect them. Reference node IDs in edge `source`/`target`.
+2. **Use unique, descriptive IDs** — e.g., `"node_auth_check"` not `"node_1"`. Makes edges easier to define and debug.
 
-3. **Consistent flow direction** — Pick either top-to-bottom or left-to-right and be consistent with `sourceHandle`/`targetHandle`.
+3. **Start with nodes, then edges** — Define all nodes first, then connect them. Reference node IDs in edge `source`/`target`.
 
-4. **Use status indicators sparingly** — Only add them when the diagram tracks task status.
+4. **Always set explicit `sourceHandle` and `targetHandle`** — Determine the relative positions of source and target nodes, then set handles accordingly: left-to-right → `"right"/"left"`, top-to-bottom → `"bottom"/"top"`. Omitting handles causes ugly auto-routed edges.
 
-5. **Color coding** — Use consistent colors for node categories (e.g., green for success states, red for errors, blue for processing).
+5. **Always set explicit `width`/`height` for non-trivial labels** — Any label over 2 words MUST have explicit dimensions. Use the formula: `width ≈ (character count × 8) + 40`. A diamond with "Formalize Governance Board" will be unreadable — use a `rectangle` or `hexagon` instead.
 
-6. **Group related nodes** — Use `group` nodes with `parentId`/`extent: "parent"` for visual grouping, or `linkGroupId` for move-together behavior.
+6. **Consistent flow direction** — Pick either top-to-bottom or left-to-right and be consistent throughout.
 
-7. **Edge labels** — Use short labels on edges (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"SQL"`).
+7. **Use status indicators sparingly** — Only add them when the diagram tracks task status.
 
-8. **Icons enhance readability** — Add icons for common concepts: `Database`, `Server`, `Globe`, `Lock`, `User`, etc.
+8. **Color coding** — Use consistent colors for node categories (e.g., green for success states, red for errors, blue for processing).
 
-9. **Spacing matters** — Well-spaced diagrams are more readable. Use 100-200px between nodes.
+9. **Group related nodes** — Use `group` nodes with `parentId`/`extent: "parent"` for visual grouping, or `linkGroupId` for move-together behavior.
 
-10. **Don't over-style** — Let the diagram style handle visual consistency. Only override colors/fonts when semantically meaningful.
+10. **Edge labels** — Use short labels on edges (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"SQL"`).
+
+11. **Icons enhance readability** — Add icons for common concepts: `Database`, `Server`, `Globe`, `Lock`, `User`, etc.
+
+12. **Spacing matters** — Well-spaced diagrams are more readable. Use 100-200px between nodes.
+
+13. **Don't over-style** — Let the diagram style handle visual consistency. Only override colors/fonts when semantically meaningful.

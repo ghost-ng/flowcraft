@@ -894,7 +894,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {!isVertical && (
           <>
             <Sep />
-            <span className="text-[10px] font-mono text-text-muted select-none px-1">
+            <span className="text-[9px] text-text-muted/60 italic select-none px-1 tracking-wide">
               v{__APP_VERSION__}
             </span>
             <a
