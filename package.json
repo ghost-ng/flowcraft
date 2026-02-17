@@ -1,7 +1,7 @@
 {
   "name": "flowcraft",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A browser-based diagramming application for creating flowcharts, system architecture diagrams, and more",
   "license": "MIT",
   "type": "module",
