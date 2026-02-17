@@ -45,7 +45,9 @@ export type NodeShape =
   | 'chevronArrow'
   | 'doubleArrow'
   | 'circularArrow'
-  | 'group';
+  | 'group'
+  | 'stickyNote'
+  | 'textbox';
 
 /** Status indicator for tracking node progress */
 export interface StatusIndicator {

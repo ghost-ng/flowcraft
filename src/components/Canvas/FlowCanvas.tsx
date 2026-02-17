@@ -25,6 +25,8 @@ import GroupNode from './GroupNode';
 import Ruler, { RulerCorner } from './Ruler';
 import { edgeTypes } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
+import { LegendOverlay } from '../Legend';
+import { useLegendStore } from '../../store/legendStore';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
@@ -144,6 +146,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const hasLanes = hLanes.length > 0 || vLanes.length > 0;
   const setIsCreatingSwimlanes = useSwimlaneStore((s) => s.setIsCreating);
 
+  // Legend
+  const legendVisible = useLegendStore((s) => s.config.visible && s.config.items.length > 0);
+
   // Hovered node tracking (for Ctrl+Wheel border-width adjustment)
   const hoveredNodeRef = useRef<string | null>(null);
 
@@ -166,14 +171,22 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const createNodeAtPosition = useCallback(
     (x: number, y: number, shapeType: string = 'rectangle') => {
       const position = screenToFlowPosition({ x, y });
+      const data: Record<string, unknown> = {
+        label: shapeType === 'textbox' ? 'Text' : 'New Node',
+        shape: shapeType as FlowNodeData['shape'],
+      };
+      // Textbox: transparent fill, dashed border, auto-sized
+      if (shapeType === 'textbox') {
+        data.fillColor = 'transparent';
+        data.borderStyle = 'dashed';
+        data.borderColor = '#94a3b8';
+        data.borderWidth = 1;
+      }
       const newNode: FlowNode = {
         id: nextId(),
         type: 'shapeNode',
         position,
-        data: {
-          label: 'New Node',
-          shape: shapeType as FlowNodeData['shape'],
-        },
+        data: data as FlowNodeData,
       };
       addNode(newNode);
       return newNode.id;
@@ -595,6 +608,42 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
     useFlowStore.getState().setEdges(currentEdges.filter((e) => e.id !== edgeMenu.edgeId));
   }, [edgeMenu]);
 
+  const handleEdgeStraighten = useCallback(() => {
+    if (!edgeMenu) return;
+    const store = useFlowStore.getState();
+    const edge = store.getEdge(edgeMenu.edgeId);
+    if (!edge) return;
+    const sourceNode = store.getNode(edge.source);
+    const targetNode = store.getNode(edge.target);
+    if (!sourceNode || !targetNode) return;
+
+    const srcW = (sourceNode.data as Record<string, unknown>).width as number || 160;
+    const srcH = (sourceNode.data as Record<string, unknown>).height as number || 60;
+    const tgtW = (targetNode.data as Record<string, unknown>).width as number || 160;
+    const tgtH = (targetNode.data as Record<string, unknown>).height as number || 60;
+
+    // Determine direction from handle positions
+    const sh = edge.sourceHandle || '';
+    const th = edge.targetHandle || '';
+    const isVertical = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+
+    if (isVertical) {
+      // Align target X center to source X center
+      const srcCenterX = sourceNode.position.x + srcW / 2;
+      store.updateNodePosition(targetNode.id, {
+        x: srcCenterX - tgtW / 2,
+        y: targetNode.position.y,
+      });
+    } else {
+      // Align target Y center to source Y center
+      const srcCenterY = sourceNode.position.y + srcH / 2;
+      store.updateNodePosition(targetNode.id, {
+        x: targetNode.position.x,
+        y: srcCenterY - tgtH / 2,
+      });
+    }
+  }, [edgeMenu]);
+
   /** Check if the right-clicked node is a group node */
   const isNodeMenuGroupNode = nodeMenu
     ? nodes.find((n) => n.id === nodeMenu.nodeId)?.type === 'groupNode'
@@ -840,6 +889,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
       {/* Swimlane layer rendered behind the flow canvas */}
       {hasLanes && <SwimlaneLayer />}
 
+      {/* Legend overlay rendered behind the flow canvas */}
+      {legendVisible && <LegendOverlay />}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -985,6 +1037,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           onChangeType={handleEdgeChangeType}
           onChangeColor={handleEdgeChangeColor}
           onEditLabel={handleEdgeEditLabel}
+          onStraighten={handleEdgeStraighten}
           onDelete={handleEdgeDelete}
         />
       )}

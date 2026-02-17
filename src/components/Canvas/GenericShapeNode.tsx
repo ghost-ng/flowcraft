@@ -99,6 +99,7 @@ const shapeStyles: Record<string, React.CSSProperties> = {
   document: { borderRadius: 4 },
   cloud: { borderRadius: 24 },
   stickyNote: { borderRadius: 2 },
+  textbox: { borderRadius: 2 },
 };
 
 const shapeColors: Record<string, string> = {
@@ -111,6 +112,7 @@ const shapeColors: Record<string, string> = {
   document: '#ec4899',
   cloud: '#6366f1',
   stickyNote: '#fbbf24',
+  textbox: '#64748b',
   blockArrow: '#3b82f6',
   chevronArrow: '#8b5cf6',
   doubleArrow: '#f59e0b',

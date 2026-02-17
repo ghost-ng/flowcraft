@@ -16,6 +16,10 @@ interface LaneHeaderProps {
   /** Size in pixels (width for vertical header, height for horizontal header) */
   size: number;
   darkMode: boolean;
+  /** Font size for label text (default 10) */
+  fontSize?: number;
+  /** Label rotation in degrees (-90 to 90, step 15). 0 = default for lane type */
+  rotation?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -30,7 +34,20 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   offset,
   size,
   darkMode,
+  fontSize: fontSizeProp,
+  rotation: rotationProp,
 }) => {
+  const fs = fontSizeProp ?? 10;
+  const rotDeg = rotationProp ?? 0;
+  const isHorizontal = orientation === 'horizontal';
+
+  // For horizontal lanes: default (0) = vertical text via writingMode.
+  // Any non-zero rotation = use CSS transform: rotate() instead.
+  const useWritingMode = isHorizontal && rotDeg === 0;
+  const rotateAngle = isHorizontal
+    ? (rotDeg === 0 ? 0 : rotDeg)  // non-zero: apply the angle directly
+    : rotDeg;                        // vertical lanes: apply angle directly
+
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,8 +119,6 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
     document.addEventListener('mouseup', onMouseUp);
   }, []);
 
-  const isHorizontal = orientation === 'horizontal';
-
   // For horizontal lanes: header on the left side, positioned vertically
   // For vertical lanes: header on top, positioned horizontally
   const style: React.CSSProperties = isHorizontal
@@ -120,6 +135,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         borderRight: `2px solid ${color}`,
         backgroundColor: darkMode ? 'rgba(30,41,59,0.9)' : 'rgba(255,255,255,0.9)',
         zIndex: 5,
+        overflow: 'hidden',
       }
     : {
         position: 'absolute',
@@ -134,9 +150,69 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         borderBottom: `2px solid ${color}`,
         backgroundColor: darkMode ? 'rgba(30,41,59,0.9)' : 'rgba(255,255,255,0.9)',
         zIndex: 5,
+        overflow: 'hidden',
       };
 
   const textColor = darkMode ? '#f1f5f9' : '#0f172a';
+
+  // Text styling depending on writing mode vs rotation
+  const textStyle: React.CSSProperties = useWritingMode
+    ? {
+        fontSize: fs,
+        fontWeight: 600,
+        color: textColor,
+        writingMode: 'vertical-rl',
+        textOrientation: 'mixed',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'normal',
+        maxWidth: 32,
+        maxHeight: size - 20,
+        lineHeight: 1.2,
+        textAlign: 'center',
+        userSelect: 'none' as const,
+      }
+    : {
+        fontSize: fs,
+        fontWeight: 600,
+        color: textColor,
+        transform: rotateAngle !== 0 ? `rotate(${rotateAngle}deg)` : undefined,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        maxWidth: isHorizontal ? size - 10 : size - 50,
+        userSelect: 'none' as const,
+        lineHeight: 1.2,
+      };
+
+  const editStyle: React.CSSProperties = useWritingMode
+    ? {
+        width: 36,
+        fontSize: fs,
+        fontWeight: 600,
+        textAlign: 'center' as const,
+        color: textColor,
+        backgroundColor: 'transparent',
+        border: `1px solid ${color}`,
+        borderRadius: 2,
+        outline: 'none',
+        padding: '1px 2px',
+        writingMode: 'vertical-rl',
+        textOrientation: 'mixed',
+      }
+    : {
+        width: isHorizontal ? 36 : Math.max(60, size - 60),
+        fontSize: fs,
+        fontWeight: 600,
+        textAlign: 'center' as const,
+        color: textColor,
+        backgroundColor: 'transparent',
+        border: `1px solid ${color}`,
+        borderRadius: 2,
+        outline: 'none',
+        padding: '1px 2px',
+        transform: rotateAngle !== 0 ? `rotate(${rotateAngle}deg)` : undefined,
+      };
 
   return (
     <div style={style} onDoubleClick={handleDoubleClick} title="Double-click to edit">
@@ -177,39 +253,10 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={handleKeyDown}
-          style={{
-            width: isHorizontal ? 36 : Math.max(60, size - 60),
-            fontSize: 10,
-            fontWeight: 600,
-            textAlign: 'center',
-            color: textColor,
-            backgroundColor: 'transparent',
-            border: `1px solid ${color}`,
-            borderRadius: 2,
-            outline: 'none',
-            padding: '1px 2px',
-            writingMode: isHorizontal ? 'vertical-rl' : undefined,
-            textOrientation: isHorizontal ? 'mixed' : undefined,
-          }}
+          style={editStyle}
         />
       ) : (
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: textColor,
-            writingMode: isHorizontal ? 'vertical-rl' : undefined,
-            textOrientation: isHorizontal ? 'mixed' : undefined,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: isHorizontal ? 'normal' : 'nowrap',
-            maxWidth: isHorizontal ? 32 : size - 50,
-            maxHeight: isHorizontal ? size - 20 : undefined,
-            lineHeight: isHorizontal ? 1.2 : undefined,
-            textAlign: isHorizontal ? 'center' : undefined,
-            userSelect: 'none',
-          }}
-        >
+        <span style={textStyle}>
           {label}
         </span>
       )}

@@ -26,7 +26,9 @@ import {
   useSwimlaneStore,
   type SwimlaneOrientation,
   type SwimlaneItem,
+  type BorderStyleType,
 } from '../../store/swimlaneStore';
+import { useLegendStore } from '../../store/legendStore';
 import { generateId } from '../../utils/idGenerator';
 import { log } from '../../utils/logger';
 
@@ -1118,6 +1120,13 @@ const LANE_PALETTE = [
 // SwimlanePanel (replaces placeholder)
 // ---------------------------------------------------------------------------
 
+const BORDER_STYLE_OPTIONS: { value: BorderStyleType; label: string }[] = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'dashed', label: 'Dashed' },
+  { value: 'dotted', label: 'Dotted' },
+  { value: 'none', label: 'None' },
+];
+
 const SwimlanePanel: React.FC = React.memo(() => {
   const config = useSwimlaneStore((s) => s.config);
   const addLane = useSwimlaneStore((s) => s.addLane);
@@ -1126,6 +1135,9 @@ const SwimlanePanel: React.FC = React.memo(() => {
   const setOrientation = useSwimlaneStore((s) => s.setOrientation);
   const setContainerTitle = useSwimlaneStore((s) => s.setContainerTitle);
   const setIsCreating = useSwimlaneStore((s) => s.setIsCreating);
+  const updateContainerBorder = useSwimlaneStore((s) => s.updateContainerBorder);
+  const updateDividerStyle = useSwimlaneStore((s) => s.updateDividerStyle);
+  const updateLabelConfig = useSwimlaneStore((s) => s.updateLabelConfig);
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;
@@ -1364,11 +1376,278 @@ const SwimlanePanel: React.FC = React.memo(() => {
           {renderLaneList(vLanes, 'vertical')}
         </Field>
       )}
+
+      {/* ---- Label Settings ---- */}
+      {hasAnyLanes && (
+        <>
+          <div className="border-t border-border pt-3 mt-1" />
+          <Field label="Label Font Size">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={8}
+                max={18}
+                step={1}
+                value={config.labelFontSize ?? 10}
+                onChange={(e) => updateLabelConfig({ labelFontSize: Number(e.target.value) })}
+                className="flex-1"
+              />
+              <span className="text-xs text-text-muted w-6 text-right">{config.labelFontSize ?? 10}</span>
+            </div>
+          </Field>
+          <Field label="Label Rotation">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={-90}
+                max={90}
+                step={15}
+                value={config.labelRotation ?? 0}
+                onChange={(e) => updateLabelConfig({ labelRotation: Number(e.target.value) })}
+                className="flex-1"
+              />
+              <span className="text-xs text-text-muted w-8 text-right">{config.labelRotation ?? 0}°</span>
+            </div>
+          </Field>
+        </>
+      )}
+
+      {/* ---- Border Settings ---- */}
+      {hasAnyLanes && (
+        <>
+          <div className="border-t border-border pt-3 mt-1" />
+          <Field label="Container Border">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={config.containerBorder?.color ?? '#94a3b8'}
+                  onChange={(e) => updateContainerBorder({ color: e.target.value })}
+                  className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
+                />
+                <select
+                  value={config.containerBorder?.style ?? 'solid'}
+                  onChange={(e) => updateContainerBorder({ style: e.target.value as BorderStyleType })}
+                  className="flex-1 px-1.5 py-1 text-xs rounded border border-border bg-white focus:outline-none"
+                >
+                  {BORDER_STYLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-text-muted w-10">Width</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={config.containerBorder?.width ?? 1}
+                  onChange={(e) => updateContainerBorder({ width: Number(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-xs text-text-muted w-4 text-right">{config.containerBorder?.width ?? 1}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-text-muted w-10">Radius</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={12}
+                  step={1}
+                  value={config.containerBorder?.radius ?? 4}
+                  onChange={(e) => updateContainerBorder({ radius: Number(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-xs text-text-muted w-4 text-right">{config.containerBorder?.radius ?? 4}</span>
+              </div>
+            </div>
+          </Field>
+          <Field label="Divider Lines">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={config.dividerStyle?.color || '#94a3b8'}
+                  onChange={(e) => updateDividerStyle({ color: e.target.value })}
+                  className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
+                />
+                <select
+                  value={config.dividerStyle?.style ?? 'solid'}
+                  onChange={(e) => updateDividerStyle({ style: e.target.value as BorderStyleType })}
+                  className="flex-1 px-1.5 py-1 text-xs rounded border border-border bg-white focus:outline-none"
+                >
+                  {BORDER_STYLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-text-muted w-10">Width</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={config.dividerStyle?.width ?? 1}
+                  onChange={(e) => updateDividerStyle({ width: Number(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-xs text-text-muted w-4 text-right">{config.dividerStyle?.width ?? 1}</span>
+              </div>
+            </div>
+          </Field>
+        </>
+      )}
+
     </div>
   );
 });
 
 SwimlanePanel.displayName = 'SwimlanePanel';
+
+// ---------------------------------------------------------------------------
+// LegendPanel (separate from swimlanes)
+// ---------------------------------------------------------------------------
+
+const LegendPanel: React.FC = React.memo(() => {
+  const legendConfig = useLegendStore((s) => s.config);
+  const addLegendItem = useLegendStore((s) => s.addItem);
+  const removeLegendItem = useLegendStore((s) => s.removeItem);
+  const updateLegendItem = useLegendStore((s) => s.updateItem);
+  const setLegendTitle = useLegendStore((s) => s.setTitle);
+  const setLegendVisible = useLegendStore((s) => s.setVisible);
+  const updateLegendStyle = useLegendStore((s) => s.updateStyle);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+          <input
+            type="checkbox"
+            checked={legendConfig.visible}
+            onChange={(e) => setLegendVisible(e.target.checked)}
+            className="rounded"
+          />
+          Show Legend
+        </label>
+      </div>
+      <Field label="Title">
+        <input
+          type="text"
+          value={legendConfig.title}
+          onChange={(e) => setLegendTitle(e.target.value)}
+          placeholder="Legend title"
+          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+        />
+      </Field>
+      {/* Legend items */}
+      <Field label={`Items (${legendConfig.items.length})`}>
+        <div className="flex flex-col gap-1.5">
+          {[...legendConfig.items].sort((a, b) => a.order - b.order).map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-white/50"
+            >
+              <input
+                type="color"
+                value={item.color}
+                onChange={(e) => updateLegendItem(item.id, { color: e.target.value })}
+                className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
+              />
+              <input
+                type="text"
+                value={item.label}
+                onChange={(e) => updateLegendItem(item.id, { label: e.target.value })}
+                className="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded border border-transparent
+                           hover:border-border focus:border-primary focus:outline-none bg-transparent"
+              />
+              <button
+                onClick={() => removeLegendItem(item.id)}
+                className="p-0.5 rounded text-text-muted hover:text-danger hover:bg-danger/10
+                           transition-colors cursor-pointer shrink-0"
+                title="Remove item"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+              addLegendItem({
+                id: generateId('legend'),
+                label: `Item ${legendConfig.items.length + 1}`,
+                color: colors[legendConfig.items.length % colors.length],
+                order: legendConfig.items.length,
+              });
+            }}
+            className="flex items-center justify-center gap-1 py-1.5 text-[11px] font-medium
+                       text-primary hover:bg-primary/5 rounded-md border border-dashed border-primary/30
+                       transition-colors cursor-pointer"
+          >
+            <Plus size={12} />
+            Add Item
+          </button>
+        </div>
+      </Field>
+      {/* Legend style controls */}
+      {legendConfig.items.length > 0 && (
+        <>
+          <Field label="Style">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-text-muted w-10">BG</span>
+                <input
+                  type="color"
+                  value={legendConfig.style.bgColor}
+                  onChange={(e) => updateLegendStyle({ bgColor: e.target.value })}
+                  className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
+                />
+                <span className="text-[10px] text-text-muted w-10 ml-2">Border</span>
+                <input
+                  type="color"
+                  value={legendConfig.style.borderColor}
+                  onChange={(e) => updateLegendStyle({ borderColor: e.target.value })}
+                  className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-text-muted w-10">Font</span>
+                <input
+                  type="range"
+                  min={8}
+                  max={16}
+                  step={1}
+                  value={legendConfig.style.fontSize}
+                  onChange={(e) => updateLegendStyle({ fontSize: Number(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-xs text-text-muted w-4 text-right">{legendConfig.style.fontSize}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-text-muted w-10">Width</span>
+                <input
+                  type="range"
+                  min={120}
+                  max={300}
+                  step={10}
+                  value={legendConfig.style.width}
+                  onChange={(e) => updateLegendStyle({ width: Number(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-xs text-text-muted w-4 text-right">{legendConfig.style.width}</span>
+              </div>
+            </div>
+          </Field>
+        </>
+      )}
+    </div>
+  );
+});
+
+LegendPanel.displayName = 'LegendPanel';
 
 // ---------------------------------------------------------------------------
 // Main PropertiesPanel
@@ -1489,7 +1768,13 @@ const PropertiesPanel: React.FC = () => {
             </div>
           )
         ) : activePanelTab === 'lane' ? (
-          <SwimlanePanel />
+          <>
+            <SwimlanePanel />
+            <div className="border-t-2 border-border mt-4 pt-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3">Legend</h3>
+              <LegendPanel />
+            </div>
+          </>
         ) : activePanelTab === 'data' ? (
           selectedNode ? (
             <DataTab

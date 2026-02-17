@@ -17,6 +17,7 @@ A FlowCraft JSON file is a single object with these top-level keys:
   "styles": { ... },
   "swimlanes": { ... },
   "layers": [ ... ],
+  "legend": { ... },
   "metadata": { ... }
 }
 ```
@@ -30,6 +31,7 @@ A FlowCraft JSON file is a single object with these top-level keys:
 | `styles` | No | Visual theme settings |
 | `swimlanes` | No | Swimlane configuration |
 | `layers` | No | Layer management data |
+| `legend` | No | Diagram legend overlay configuration |
 | `metadata` | No | Informational only (node/edge counts) |
 
 ---
@@ -114,6 +116,7 @@ Each node represents a shape on the canvas.
 | `cloud` | Cloud shape | 160×60 |
 | `document` | Document with wavy bottom | 160×60 |
 | `stickyNote` | Sticky note with folded corner | 160×60 |
+| `textbox` | Transparent text box with dashed border (ideal for annotations) | 160×60 |
 
 **Flowchart-specific shapes:**
 | Shape ID | Description | Default Size |
@@ -160,6 +163,7 @@ If `color` is omitted, the shape type determines the fill:
 | `document` | `#ec4899` (pink) |
 | `cloud` | `#6366f1` (indigo) |
 | `stickyNote` | `#fbbf24` (yellow) |
+| `textbox` | transparent (no fill) |
 | `blockArrow` | `#3b82f6` (blue) |
 | `chevronArrow` | `#8b5cf6` (purple) |
 | `doubleArrow` | `#f59e0b` (amber) |
@@ -430,7 +434,20 @@ Organize nodes into horizontal and/or vertical lanes.
         "collapsed": false
       }
     ],
-    "vertical": []
+    "vertical": [],
+    "containerBorder": {
+      "color": "#94a3b8",
+      "width": 1,
+      "style": "solid",
+      "radius": 4
+    },
+    "dividerStyle": {
+      "color": "#cbd5e1",
+      "width": 1,
+      "style": "dashed"
+    },
+    "labelFontSize": 10,
+    "labelRotation": 0
   }
 }
 ```
@@ -443,6 +460,10 @@ Organize nodes into horizontal and/or vertical lanes.
 | `containerTitle` | string | `""` | Title displayed above the swimlane container |
 | `horizontal` | array | `[]` | Array of horizontal lane objects |
 | `vertical` | array | `[]` | Array of vertical lane objects |
+| `containerBorder` | object | — | Border customization for the swimlane container (see below) |
+| `dividerStyle` | object | — | Styling for lane divider lines (see below) |
+| `labelFontSize` | number | `10` | Font size for lane header labels (8-18) |
+| `labelRotation` | number | `0` | Label rotation in degrees (-90 to 90, step 15). `0` = default vertical writing for horizontal lanes |
 
 ### 7.2 Lane Object
 
@@ -454,6 +475,23 @@ Organize nodes into horizontal and/or vertical lanes.
 | `size` | number | `200` | Lane width (vertical) or height (horizontal) in pixels |
 | `order` | number | `0` | Sort order (lower = first) |
 | `collapsed` | boolean | `false` | Whether the lane is collapsed |
+
+### 7.3 Container Border (`containerBorder` object)
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `color` | string (CSS color) | `"#94a3b8"` | Border color |
+| `width` | number | `1` | Border width in pixels (1-5) |
+| `style` | string | `"solid"` | `"solid"`, `"dashed"`, `"dotted"`, or `"none"` |
+| `radius` | number | `4` | Corner radius in pixels (0-12) |
+
+### 7.4 Divider Style (`dividerStyle` object)
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `color` | string (CSS color) | Auto from theme | Divider line color |
+| `width` | number | `1` | Divider line width in pixels (1-5) |
+| `style` | string | `"solid"` | `"solid"`, `"dashed"`, `"dotted"`, or `"none"` |
 
 To assign a node to a swimlane, set `data.swimlaneId` on the node to match a lane's `id`.
 
@@ -504,11 +542,83 @@ To assign a node to a layer, set `data.layerId` on the node to match a layer's `
 
 ---
 
-## 9. Icons
+## 9. Legend
+
+A diagram legend overlay that displays a color-coded key on the canvas.
+
+```json
+{
+  "legend": {
+    "title": "Legend",
+    "visible": true,
+    "position": { "x": 50, "y": 50 },
+    "style": {
+      "bgColor": "#ffffff",
+      "borderColor": "#e2e8f0",
+      "borderWidth": 1,
+      "fontSize": 11,
+      "opacity": 1,
+      "width": 180
+    },
+    "items": [
+      {
+        "id": "leg_1",
+        "label": "Active",
+        "color": "#10b981",
+        "shape": "rectangle",
+        "icon": "Check",
+        "order": 0
+      },
+      {
+        "id": "leg_2",
+        "label": "Deprecated",
+        "color": "#ef4444",
+        "order": 1
+      }
+    ]
+  }
+}
+```
+
+### 9.1 Legend Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `title` | string | `"Legend"` | Title displayed at the top of the legend |
+| `visible` | boolean | `true` | Whether the legend is visible on the canvas |
+| `position` | `{ x: number, y: number }` | `{ x: 50, y: 50 }` | Position in flow coordinates |
+| `style` | object | — | Visual style settings (see below) |
+| `items` | array | `[]` | Array of legend item objects (see below) |
+
+### 9.2 Legend Style
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `bgColor` | string (CSS color) | `"#ffffff"` | Background color |
+| `borderColor` | string (CSS color) | `"#e2e8f0"` | Border color |
+| `borderWidth` | number | `1` | Border width in pixels |
+| `fontSize` | number | `11` | Font size in pixels |
+| `opacity` | number | `1` | Opacity (0-1) |
+| `width` | number | `180` | Legend panel width in pixels (120-300) |
+
+### 9.3 Legend Item
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique item identifier |
+| `label` | string | Yes | Display label text |
+| `color` | string (CSS color) | Yes | Color swatch shown beside the label |
+| `shape` | string | No | Shape name (renders a small shape icon) |
+| `icon` | string | No | Lucide icon name (renders inside the swatch) |
+| `order` | number | No | Display order (lower = first) |
+
+---
+
+## 10. Icons
 
 FlowCraft uses [Lucide icons](https://lucide.dev/icons/). When specifying an icon name, use the **PascalCase** component name from lucide-react.
 
-### 9.1 Icon Properties on Nodes
+### 10.1 Icon Properties on Nodes
 
 Icons are configured via fields in the node `data` object:
 
@@ -523,7 +633,7 @@ Icons are configured via fields in the node `data` object:
 | `iconBorderWidth` | number | `0` | Border width around the icon wrapper |
 | `iconOnly` | boolean | `false` | Renders only the icon with no shape background |
 
-### 9.2 Icon Examples
+### 10.2 Icon Examples
 
 **Node with icon next to label:**
 ```json
@@ -568,7 +678,7 @@ Icons are configured via fields in the node `data` object:
 }
 ```
 
-### 9.3 Common Icon Names
+### 10.3 Common Icon Names
 
 | Icon Name | Visual | Use Case |
 |-----------|--------|----------|
@@ -622,15 +732,15 @@ The full icon list is at https://lucide.dev/icons/
 
 ---
 
-## 10. Layout Guidelines
+## 11. Layout Guidelines
 
-### 10.1 Coordinate System
+### 11.1 Coordinate System
 - `(0, 0)` is the top-left of the canvas
 - X increases to the right
 - Y increases downward
 - Nodes should be spaced at least 40px apart (typically 80-150px)
 
-### 10.2 Recommended Spacing
+### 11.2 Recommended Spacing
 
 For a top-to-bottom flow:
 - **Horizontal spacing:** 200px between side-by-side nodes
@@ -641,7 +751,7 @@ For a left-to-right flow:
 - **Horizontal spacing:** 250px between sequential nodes
 - **Vertical spacing:** 120px between parallel nodes
 
-### 10.3 Connection Points
+### 11.3 Connection Points
 
 Each node has 4 connection handles:
 - `"top"` — center top
@@ -656,9 +766,9 @@ For left-to-right flows, connect `"right"` → `"left"`.
 
 ---
 
-## 11. Complete Examples
+## 12. Complete Examples
 
-### 11.1 Simple Flowchart
+### 12.1 Simple Flowchart
 
 ```json
 {
@@ -726,7 +836,7 @@ For left-to-right flows, connect `"right"` → `"left"`.
 }
 ```
 
-### 11.2 System Architecture Diagram
+### 12.2 System Architecture Diagram
 
 ```json
 {
@@ -818,7 +928,7 @@ For left-to-right flows, connect `"right"` → `"left"`.
 }
 ```
 
-### 11.3 Project Kanban with Swimlanes
+### 12.3 Project Kanban with Swimlanes
 
 ```json
 {
@@ -871,7 +981,7 @@ For left-to-right flows, connect `"right"` → `"left"`.
 
 ---
 
-## 12. Validation Rules
+## 13. Validation Rules
 
 The importer applies these rules automatically:
 
@@ -888,9 +998,9 @@ The importer applies these rules automatically:
 
 ---
 
-## 13. Sizing and Readability Guidelines
+## 14. Sizing and Readability Guidelines
 
-### 13.1 Block Sizing for Labels
+### 14.1 Block Sizing for Labels
 
 Blocks (nodes) should be large enough to present their text/labels clearly without truncation or overflow. **You MUST set explicit `width` and `height` on any node whose label exceeds 2 words.** Follow these rules:
 
@@ -902,7 +1012,7 @@ Blocks (nodes) should be large enough to present their text/labels clearly witho
 - **General rule:** When in doubt, make the block wider rather than taller — horizontal text is easier to read.
 - **Rough formula:** `width ≈ (character count × 8) + 40` for default font size. So a 30-character label needs `width: 280`.
 
-### 13.2 Status Puck Sizing and Placement
+### 14.2 Status Puck Sizing and Placement
 
 When using status indicators (`statusIndicators`), consider the node size:
 
@@ -912,7 +1022,7 @@ When using status indicators (`statusIndicators`), consider the node size:
 - **Multiple pucks:** Place them in different corners to avoid overlap. For 2 pucks, use `top-right` and `top-left`. For 3-4, use all four corners.
 - **Diamond shapes:** Pucks are automatically positioned at the diamond edge midpoints (not at bounding box corners), so all four positions work well.
 
-### 13.3 Connector Labels and Short Edges
+### 14.3 Connector Labels and Short Edges
 
 Edge labels can overlap or look cluttered on short connectors. Follow these guidelines:
 
@@ -923,7 +1033,7 @@ Edge labels can overlap or look cluttered on short connectors. Follow these guid
 - **Keep labels short:** 1-3 words is ideal (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"async"`). Long labels on edges look cluttered.
 - **Dependency edges ("DEPENDS ON" pill):** The `dependency` edge type renders a pill badge ("DEPENDS ON", "BLOCKS", etc.) PLUS an optional custom label below it. This takes ~24px of vertical space at the edge midpoint. Ensure nodes connected by dependency edges are at least **180px apart** vertically, or use `labelPosition` to shift both labels away from nodes.
 
-### 13.4 Node Overlap Prevention
+### 14.4 Node Overlap Prevention
 
 Nodes must NEVER have overlapping bounding boxes. Calculate positions carefully:
 
@@ -932,7 +1042,7 @@ Nodes must NEVER have overlapping bounding boxes. Calculate positions carefully:
 - **With edge labels:** If there is a labeled edge between two nodes, add extra spacing (at least **60px** beyond the label text height) to prevent the label from overlapping either node.
 - **Common mistake:** Placing a node at `y: 200` with default height 60 means it occupies y 200-260. The next node below should start no earlier than `y: 320` (260 + 60px gap).
 
-### 13.5 Swimlane Layout Guidelines
+### 14.5 Swimlane Layout Guidelines
 
 Swimlane headers have limited space for labels. Follow these rules:
 
@@ -942,7 +1052,7 @@ Swimlane headers have limited space for labels. Follow these rules:
 - **Node positions in lanes:** When using swimlanes, position nodes within the lane's visual bounds. For horizontal lanes, nodes should be offset rightward by at least **60px** from the left edge (to clear the lane header).
 - **Lane order:** Set `order` values sequentially (0, 1, 2...) to control which lane appears first.
 
-### 13.6 Overall Layout Quality Checklist
+### 14.6 Overall Layout Quality Checklist
 
 Before finalizing a diagram JSON, verify:
 
@@ -955,7 +1065,7 @@ Before finalizing a diagram JSON, verify:
 
 ---
 
-## 14. Tips for AI Generation
+## 15. Tips for AI Generation
 
 1. **NO COMMENTS in JSON** — `//` and `/* */` are NOT valid JSON syntax. The parser will reject the entire file. Use `"_comment": "text"` inside objects if you must annotate.
 

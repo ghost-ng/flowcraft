@@ -14,7 +14,10 @@ FlowCraft is a browser-based diagramming application for creating flowcharts, sy
 - Multiple status pucks per node with drag-to-corner snapping
 - Smart connectors with customizable edge styles (bezier, step, smoothstep, straight)
 - 14 diagram styles and 10 color palettes
-- Swimlane / matrix layout system
+- Swimlane / matrix layout system with customizable borders and dividers
+- Diagram legend overlay with draggable positioning
+- Straighten connector: right-click to align connected nodes
+- Text box shape for annotations
 - Dependency tracking and chain highlighting
 - Format painter for quick style copying
 - Presentation mode with annotation tools (pen, highlighter, eraser)

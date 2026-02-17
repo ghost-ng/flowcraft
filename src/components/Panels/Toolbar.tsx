@@ -51,6 +51,7 @@ import {
   GripVertical,
   PanelTop,
   PanelLeft,
+  ListOrdered,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -59,6 +60,7 @@ import { useFlowStore } from '../../store/flowStore';
 import { useExportStore } from '../../store/exportStore';
 import { copyImageToClipboard, copySvgToClipboard, copySvgForPaste, importFromJson, exportAsJson } from '../../utils/exportUtils';
 import { useDependencyStore } from '../../store/dependencyStore';
+import { useLegendStore } from '../../store/legendStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
 import * as alignment from '../../utils/alignmentUtils';
@@ -774,6 +776,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           )}
         </div>
+
+        <ToolbarButton
+          icon={<ListOrdered size={iconSize} />}
+          tooltip="Toggle Legend"
+          onClick={() => {
+            const store = useLegendStore.getState();
+            store.setVisible(!store.config.visible);
+          }}
+          active={useLegendStore.getState().config.visible && useLegendStore.getState().config.items.length > 0}
+        />
 
         <ToolbarButton
           icon={<Monitor size={iconSize} />}

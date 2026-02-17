@@ -12,9 +12,10 @@ import { useFlowStore, newPuckId } from '../store/flowStore';
 import type { FlowNode, FlowEdge, FlowNodeData, StatusIndicator } from '../store/flowStore';
 import { useStyleStore } from '../store/styleStore';
 import { useSwimlaneStore } from '../store/swimlaneStore';
-import type { SwimlaneConfig } from '../store/swimlaneStore';
+import type { SwimlaneConfig, BorderStyleType } from '../store/swimlaneStore';
 import { useLayerStore } from '../store/layerStore';
 import type { Layer } from '../store/layerStore';
+import { useLegendStore } from '../store/legendStore';
 import { log } from './logger';
 import {
   type ExportFormat,
@@ -673,12 +674,32 @@ export function exportAsJson(options: JsonExportOptions): void {
     if (offset.x !== 0 || offset.y !== 0) {
       swimlaneExport.containerOffset = offset;
     }
+    // Include border config if customized
+    if (swimlaneState.config.containerBorder) {
+      swimlaneExport.containerBorder = swimlaneState.config.containerBorder;
+    }
+    if (swimlaneState.config.dividerStyle) {
+      swimlaneExport.dividerStyle = swimlaneState.config.dividerStyle;
+    }
+    // Include label config if customized
+    if (typeof swimlaneState.config.labelFontSize === 'number') {
+      swimlaneExport.labelFontSize = swimlaneState.config.labelFontSize;
+    }
+    if (typeof swimlaneState.config.labelRotation === 'number') {
+      swimlaneExport.labelRotation = swimlaneState.config.labelRotation;
+    }
     exportData.swimlanes = swimlaneExport;
   }
 
   const hasLayers = layerState.layers.length > 1 || layerState.layers[0]?.id !== 'default';
   if (hasLayers) {
     exportData.layers = layerState.layers;
+  }
+
+  // Legend
+  const legendState = useLegendStore.getState();
+  if (legendState.config.items.length > 0) {
+    exportData.legend = legendState.config;
   }
 
   if (options.includeMetadata) {
@@ -705,7 +726,7 @@ const VALID_SHAPES = new Set([
   'callout', 'document', 'predefinedProcess', 'manualInput', 'preparation',
   'data', 'database', 'internalStorage', 'display',
   'blockArrow', 'chevronArrow', 'doubleArrow', 'circularArrow',
-  'group', 'stickyNote',
+  'group', 'stickyNote', 'textbox',
 ]);
 
 /** Valid edge type values */
@@ -1052,6 +1073,31 @@ export function importFromJson(
           store.setContainerOffset({ x: co.x, y: co.y });
         }
       }
+      // Restore border config
+      if (sw.containerBorder && typeof sw.containerBorder === 'object') {
+        const cb = sw.containerBorder as Record<string, unknown>;
+        store.updateContainerBorder({
+          ...(typeof cb.color === 'string' ? { color: cb.color } : {}),
+          ...(typeof cb.width === 'number' ? { width: cb.width } : {}),
+          ...(typeof cb.style === 'string' ? { style: cb.style as BorderStyleType } : {}),
+          ...(typeof cb.radius === 'number' ? { radius: cb.radius } : {}),
+        });
+      }
+      if (sw.dividerStyle && typeof sw.dividerStyle === 'object') {
+        const ds = sw.dividerStyle as Record<string, unknown>;
+        store.updateDividerStyle({
+          ...(typeof ds.color === 'string' ? { color: ds.color } : {}),
+          ...(typeof ds.width === 'number' ? { width: ds.width } : {}),
+          ...(typeof ds.style === 'string' ? { style: ds.style as BorderStyleType } : {}),
+        });
+      }
+      // Restore label config
+      if (typeof sw.labelFontSize === 'number') {
+        store.updateLabelConfig({ labelFontSize: sw.labelFontSize });
+      }
+      if (typeof sw.labelRotation === 'number') {
+        store.updateLabelConfig({ labelRotation: sw.labelRotation });
+      }
     }
   }
 
@@ -1089,6 +1135,48 @@ export function importFromJson(
           });
         } else {
           layerStore.addLayer(layerObj);
+        }
+      }
+    }
+  }
+
+  // Legend — clear existing, then apply imported
+  {
+    const lgStore = useLegendStore.getState();
+    lgStore.resetLegend();
+    if (data.legend && typeof data.legend === 'object') {
+      const lg = data.legend as Record<string, unknown>;
+      if (typeof lg.title === 'string') lgStore.setTitle(lg.title);
+      if (typeof lg.visible === 'boolean') lgStore.setVisible(lg.visible);
+      if (lg.position && typeof lg.position === 'object') {
+        const pos = lg.position as Record<string, unknown>;
+        if (typeof pos.x === 'number' && typeof pos.y === 'number') {
+          lgStore.setPosition({ x: pos.x, y: pos.y });
+        }
+      }
+      if (lg.style && typeof lg.style === 'object') {
+        const s = lg.style as Record<string, unknown>;
+        lgStore.updateStyle({
+          ...(typeof s.bgColor === 'string' ? { bgColor: s.bgColor } : {}),
+          ...(typeof s.borderColor === 'string' ? { borderColor: s.borderColor } : {}),
+          ...(typeof s.borderWidth === 'number' ? { borderWidth: s.borderWidth } : {}),
+          ...(typeof s.fontSize === 'number' ? { fontSize: s.fontSize } : {}),
+          ...(typeof s.opacity === 'number' ? { opacity: s.opacity } : {}),
+          ...(typeof s.width === 'number' ? { width: s.width } : {}),
+        });
+      }
+      if (Array.isArray(lg.items)) {
+        for (const raw of lg.items) {
+          if (typeof raw !== 'object' || raw === null) continue;
+          const item = raw as Record<string, unknown>;
+          lgStore.addItem({
+            id: typeof item.id === 'string' ? item.id : `legend_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            label: typeof item.label === 'string' ? item.label : 'Item',
+            color: typeof item.color === 'string' ? item.color : '#3b82f6',
+            shape: typeof item.shape === 'string' ? item.shape : undefined,
+            icon: typeof item.icon === 'string' ? item.icon : undefined,
+            order: typeof item.order === 'number' ? item.order : 0,
+          });
         }
       }
     }

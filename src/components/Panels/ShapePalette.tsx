@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { Sparkles, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Sparkles, ChevronsLeft, ChevronsRight, Rows3 } from 'lucide-react';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
+import { useSwimlaneStore } from '../../store/swimlaneStore';
 import FloatingIconPicker from './FloatingIconPicker';
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,16 @@ const shapes: ShapeDefinition[] = [
       <>
         <rect x="4" y="4" width="24" height="24" rx="1" stroke="currentColor" strokeWidth="1.5" fill="#fbbf24" fillOpacity="0.3" />
         <path d="M20 28 L28 20 L20 20 Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1" />
+      </>,
+    ),
+  },
+  {
+    type: 'textbox',
+    label: 'Text Box',
+    icon: mkIcon(
+      <>
+        <rect x="4" y="8" width="24" height="16" rx="1" stroke="currentColor" strokeWidth="1" strokeDasharray="3 2" fill="none" />
+        <text x="16" y="19" textAnchor="middle" fontSize="9" fill="currentColor" fontFamily="sans-serif">Aa</text>
       </>,
     ),
   },
@@ -285,6 +296,27 @@ const ShapePalette: React.FC = () => {
                   </svg>
                 </div>
               </div>
+
+              {/* Swimlanes button */}
+              <button
+                onClick={() => {
+                  const store = useSwimlaneStore.getState();
+                  const hasLanes = store.config.horizontal.length > 0 || store.config.vertical.length > 0;
+                  if (!hasLanes) {
+                    store.setIsCreating(true);
+                  }
+                  useUIStore.getState().setActivePanelTab('lane');
+                  if (!useUIStore.getState().propertiesPanelOpen) {
+                    useUIStore.getState().togglePropertiesPanel();
+                  }
+                }}
+                data-tooltip-right="Swimlanes"
+                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-8 rounded-lg
+                           transition-all duration-100
+                           hover:bg-primary/10 text-text-muted hover:text-primary cursor-pointer"
+              >
+                <Rows3 size={16} />
+              </button>
             </div>
           </div>
         </div>

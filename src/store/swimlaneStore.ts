@@ -6,6 +6,7 @@ import { immer } from 'zustand/middleware/immer';
 // ---------------------------------------------------------------------------
 
 export type SwimlaneOrientation = 'horizontal' | 'vertical';
+export type BorderStyleType = 'solid' | 'dashed' | 'dotted' | 'none';
 
 export interface SwimlaneItem {
   id: string;
@@ -17,11 +18,28 @@ export interface SwimlaneItem {
   order: number;
 }
 
+export interface BorderConfig {
+  color: string;
+  width: number;
+  style: BorderStyleType;
+  radius: number;
+}
+
+export interface DividerConfig {
+  color: string;
+  width: number;
+  style: BorderStyleType;
+}
+
 export interface SwimlaneConfig {
   orientation: SwimlaneOrientation;
   containerTitle: string;
   horizontal: SwimlaneItem[];
   vertical: SwimlaneItem[];
+  containerBorder?: BorderConfig;
+  dividerStyle?: DividerConfig;
+  labelFontSize?: number;
+  labelRotation?: number;
 }
 
 export interface SwimlaneState {
@@ -44,6 +62,10 @@ export interface SwimlaneState {
   setContainerTitle: (title: string) => void;
   toggleCollapsed: (orientation: SwimlaneOrientation, laneId: string) => void;
   setContainerOffset: (offset: { x: number; y: number }) => void;
+
+  updateContainerBorder: (patch: Partial<BorderConfig>) => void;
+  updateDividerStyle: (patch: Partial<DividerConfig>) => void;
+  updateLabelConfig: (patch: { labelFontSize?: number; labelRotation?: number }) => void;
 
   setIsCreating: (creating: boolean) => void;
   setEditingLaneId: (laneId: string | null) => void;
@@ -167,6 +189,40 @@ export const useSwimlaneStore = create<SwimlaneState>()(
     setContainerOffset: (offset) => {
       set((state) => {
         state.containerOffset = offset;
+      });
+    },
+
+    updateContainerBorder: (patch) => {
+      set((state) => {
+        state.config.containerBorder = {
+          color: state.config.containerBorder?.color ?? '#94a3b8',
+          width: state.config.containerBorder?.width ?? 1,
+          style: state.config.containerBorder?.style ?? 'solid',
+          radius: state.config.containerBorder?.radius ?? 4,
+          ...patch,
+        };
+      });
+    },
+
+    updateDividerStyle: (patch) => {
+      set((state) => {
+        state.config.dividerStyle = {
+          color: state.config.dividerStyle?.color ?? '',
+          width: state.config.dividerStyle?.width ?? 1,
+          style: state.config.dividerStyle?.style ?? 'solid',
+          ...patch,
+        };
+      });
+    },
+
+    updateLabelConfig: (patch) => {
+      set((state) => {
+        if (patch.labelFontSize !== undefined) {
+          state.config.labelFontSize = patch.labelFontSize;
+        }
+        if (patch.labelRotation !== undefined) {
+          state.config.labelRotation = patch.labelRotation;
+        }
       });
     },
 

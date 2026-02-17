@@ -4,6 +4,7 @@ import {
   Trash2,
   Palette,
   Spline,
+  MoveHorizontal,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -20,6 +21,7 @@ export interface EdgeContextMenuProps {
   onChangeType: (type: string) => void;
   onChangeColor: (color: string) => void;
   onEditLabel: () => void;
+  onStraighten: () => void;
   onDelete: () => void;
 }
 
@@ -94,7 +96,7 @@ const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
 // ---------------------------------------------------------------------------
 
 const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
-  x, y, onClose, onChangeType, onChangeColor, onEditLabel, onDelete,
+  x, y, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -164,6 +166,12 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
           icon={<Pencil size={14} />}
           label="Edit Label"
           onClick={() => { onEditLabel(); onClose(); }}
+          darkMode={darkMode}
+        />
+        <MenuItem
+          icon={<MoveHorizontal size={14} />}
+          label="Straighten"
+          onClick={() => { onStraighten(); onClose(); }}
           darkMode={darkMode}
         />
 

@@ -234,77 +234,85 @@ const SwimlaneLayer: React.FC = () => {
 
         {/* ---- Horizontal lane backgrounds and dividers ---- */}
         {hasHLanes &&
-          hBounds.map(({ lane, offset, size }, idx) => (
-            <React.Fragment key={`h-${lane.id}`}>
-              {/* Background band */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: hasVLanes ? H_HEADER_WIDTH : H_HEADER_WIDTH,
-                  top: offset,
-                  width: totalWidth - (hasVLanes ? H_HEADER_WIDTH : H_HEADER_WIDTH),
-                  height: size,
-                  backgroundColor: lane.color,
-                  opacity: darkMode ? 0.12 : 0.15,
-                  pointerEvents: 'none',
-                }}
-              />
-              {/* Divider line (between lanes, not before the first) */}
-              {idx > 0 && (
+          hBounds.map(({ lane, offset, size }, idx) => {
+            const ds = config.dividerStyle;
+            const divColor = ds?.color || (darkMode ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)');
+            const divWidth = ds?.width ?? 1;
+            const divStyle = ds?.style ?? 'solid';
+            return (
+              <React.Fragment key={`h-${lane.id}`}>
+                {/* Background band */}
                 <div
                   style={{
                     position: 'absolute',
-                    left: 0,
+                    left: hasVLanes ? H_HEADER_WIDTH : H_HEADER_WIDTH,
                     top: offset,
-                    width: totalWidth,
-                    height: 1,
-                    backgroundColor: darkMode
-                      ? 'rgba(148,163,184,0.3)'
-                      : 'rgba(100,116,139,0.25)',
+                    width: totalWidth - (hasVLanes ? H_HEADER_WIDTH : H_HEADER_WIDTH),
+                    height: size,
+                    backgroundColor: lane.color,
+                    opacity: darkMode ? 0.12 : 0.15,
                     pointerEvents: 'none',
                   }}
                 />
-              )}
-            </React.Fragment>
-          ))}
+                {/* Divider line (between lanes, not before the first) */}
+                {idx > 0 && divStyle !== 'none' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: offset - Math.floor(divWidth / 2),
+                      width: totalWidth,
+                      height: 0,
+                      borderTop: `${divWidth}px ${divStyle} ${divColor}`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
 
         {/* Resize handles are rendered by SwimlaneResizeOverlay (above ReactFlow) */}
 
         {/* ---- Vertical lane backgrounds and dividers ---- */}
         {hasVLanes &&
-          vBounds.map(({ lane, offset, size }, idx) => (
-            <React.Fragment key={`v-${lane.id}`}>
-              {/* Background band */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: offset,
-                  top: hasHLanes ? V_HEADER_HEIGHT : V_HEADER_HEIGHT,
-                  width: size,
-                  height: totalHeight - (hasHLanes ? V_HEADER_HEIGHT : V_HEADER_HEIGHT),
-                  backgroundColor: lane.color,
-                  opacity: darkMode ? 0.1 : 0.12,
-                  pointerEvents: 'none',
-                }}
-              />
-              {/* Divider line */}
-              {idx > 0 && (
+          vBounds.map(({ lane, offset, size }, idx) => {
+            const ds = config.dividerStyle;
+            const divColor = ds?.color || (darkMode ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)');
+            const divWidth = ds?.width ?? 1;
+            const divStyle = ds?.style ?? 'solid';
+            return (
+              <React.Fragment key={`v-${lane.id}`}>
+                {/* Background band */}
                 <div
                   style={{
                     position: 'absolute',
                     left: offset,
-                    top: 0,
-                    width: 1,
-                    height: totalHeight,
-                    backgroundColor: darkMode
-                      ? 'rgba(148,163,184,0.3)'
-                      : 'rgba(100,116,139,0.25)',
+                    top: hasHLanes ? V_HEADER_HEIGHT : V_HEADER_HEIGHT,
+                    width: size,
+                    height: totalHeight - (hasHLanes ? V_HEADER_HEIGHT : V_HEADER_HEIGHT),
+                    backgroundColor: lane.color,
+                    opacity: darkMode ? 0.1 : 0.12,
                     pointerEvents: 'none',
                   }}
                 />
-              )}
-            </React.Fragment>
-          ))}
+                {/* Divider line */}
+                {idx > 0 && divStyle !== 'none' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: offset - Math.floor(divWidth / 2),
+                      top: 0,
+                      width: 0,
+                      height: totalHeight,
+                      borderLeft: `${divWidth}px ${divStyle} ${divColor}`,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
 
         {/* Resize handles are rendered by SwimlaneResizeOverlay (above ReactFlow) */}
 
@@ -343,6 +351,8 @@ const SwimlaneLayer: React.FC = () => {
               offset={offset}
               size={size}
               darkMode={darkMode}
+              fontSize={config.labelFontSize}
+              rotation={config.labelRotation}
             />
           ))}
 
@@ -358,24 +368,34 @@ const SwimlaneLayer: React.FC = () => {
               offset={offset}
               size={size}
               darkMode={darkMode}
+              fontSize={config.labelFontSize}
+              rotation={config.labelRotation}
             />
           ))}
 
         {/* ---- Outer border ---- */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: totalWidth,
-            height: totalHeight,
-            border: `1px solid ${
-              darkMode ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.2)'
-            }`,
-            borderRadius: 4,
-            pointerEvents: 'none',
-          }}
-        />
+        {(() => {
+          const cb = config.containerBorder;
+          const cbColor = cb?.color || (darkMode ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.2)');
+          const cbWidth = cb?.width ?? 1;
+          const cbStyle = cb?.style ?? 'solid';
+          const cbRadius = cb?.radius ?? 4;
+          if (cbStyle === 'none') return null;
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: totalWidth,
+                height: totalHeight,
+                border: `${cbWidth}px ${cbStyle} ${cbColor}`,
+                borderRadius: cbRadius,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })()}
       </div>
     </div>
   );

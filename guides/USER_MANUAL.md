@@ -12,16 +12,17 @@
 8. [Icon Styling](#icon-styling)
 9. [Alignment & Transforms](#alignment--transforms)
 10. [Swimlanes](#swimlanes)
-11. [Dependencies](#dependencies)
-12. [Format Painter](#format-painter)
-13. [Templates](#templates)
-14. [Diagram Styles & Themes](#diagram-styles--themes)
-15. [Exporting](#exporting)
-16. [Saving & Loading](#saving--loading)
-17. [Importing JSON](#importing-json)
-18. [Keyboard Shortcuts](#keyboard-shortcuts)
-19. [Toolbar Reference](#toolbar-reference)
-20. [Context Menus](#context-menus)
+11. [Diagram Legend](#diagram-legend)
+12. [Dependencies](#dependencies)
+13. [Format Painter](#format-painter)
+14. [Templates](#templates)
+15. [Diagram Styles & Themes](#diagram-styles--themes)
+16. [Exporting](#exporting)
+17. [Saving & Loading](#saving--loading)
+18. [Importing JSON](#importing-json)
+19. [Keyboard Shortcuts](#keyboard-shortcuts)
+20. [Toolbar Reference](#toolbar-reference)
+21. [Context Menus](#context-menus)
 
 ---
 
@@ -78,8 +79,14 @@ Drag any shape from the left palette onto the canvas. Available shapes:
 **Arrow Shapes:**
 - Block Arrow, Chevron Arrow, Double Arrow, Circular Arrow
 
+**Annotation:**
+- Text Box (transparent node with dashed border, ideal for annotations and labels)
+
 **Containers:**
 - Group (drag to create a visual container)
+
+**Quick Access:**
+- A **Swimlanes** button is also available at the bottom of the Shape Palette, providing quick access to enable and configure swimlanes without navigating to the Properties Panel.
 
 ### Adding Nodes Quickly
 - Press **N** to add a new node at the center of the canvas
@@ -111,6 +118,9 @@ Drag any shape from the left palette onto the canvas. Available shapes:
 - **Straight** - direct line
 - **Dependency** - styled for dependency visualization
 - **Animated** - animated dashed path
+
+### Straighten Connector
+Right-click any edge and select **Straighten** to align the target node so that its center matches the source node's center along the connection axis. This works for both horizontal and vertical connections, producing a clean, perfectly straight connector path.
 
 ### Arrowheads
 Over 25 arrowhead styles including:
@@ -326,6 +336,54 @@ Use the Swimlane tab in the Properties Panel, or access templates that include s
 
 ### Container Title
 Set an optional title that appears above the swimlane grid.
+
+### Container Border Customization
+Customize the appearance of the outer swimlane container border via the Lane tab in the Properties Panel:
+- **Color** - border color (any CSS color)
+- **Width** - border thickness (1-5px)
+- **Style** - solid, dashed, dotted, or none
+- **Corner Radius** - rounded corners (0-12px)
+
+### Divider Line Styling
+Customize the lines that separate individual lanes:
+- **Color** - divider line color
+- **Width** - divider line thickness (1-5px)
+- **Style** - solid, dashed, dotted, or none
+
+These settings are available in the Lane tab of the Properties Panel.
+
+### Label Font & Rotation
+Fine-tune how lane header labels are displayed:
+- **Label Font Size** - slider to adjust font size (8-18px)
+- **Label Rotation** - slider to rotate labels from -90 degrees to 90 degrees in 15 degree increments. The default (0 degrees) uses vertical writing mode for horizontal lanes.
+
+---
+
+## Diagram Legend
+
+FlowCraft includes a draggable legend overlay that can be placed on the canvas to provide a color-coded key for your diagram.
+
+### Creating a Legend
+- Toggle legend visibility via the **Legend** button in the toolbar, or use the checkbox in the Lane tab of the Properties Panel
+- The legend appears as a floating panel on the canvas that can be dragged to any position
+
+### Legend Items
+- Click **Add Item** to create a new legend entry
+- Each item has a **color swatch** and a **label**
+- Remove items with the delete button on each entry
+- Drag items to reorder them
+
+### Customizing the Legend
+In the Properties Panel (Lane tab), you can configure:
+- **Title** - the heading displayed at the top of the legend (default: "Legend")
+- **Background Color** - the legend panel's background
+- **Border Color** - the legend panel's border
+- **Font Size** - text size for legend labels
+- **Width** - panel width (120-300px)
+- **Opacity** - transparency level (0-100%)
+
+### Legend in Exports
+The legend is included in **PNG**, **SVG**, and **PDF** exports when visible, appearing in the same position as on the canvas.
 
 ---
 
@@ -627,6 +685,10 @@ The toolbar runs along the top (or left side) of the application, organized into
 - **Color** - quick color swatches
 - **Select Same Shape** - select all nodes with this shape type
 - **Send to Back** / **Bring to Front** - layer ordering
+
+### Edge Context Menu (right-click an edge)
+- **Delete** - remove the edge
+- **Straighten** - aligns the target node's center to match the source node's center, producing a perfectly straight connector
 
 ### Selection Context Menu (right-click with multiple selected)
 - **Delete** - remove all selected
