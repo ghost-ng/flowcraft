@@ -453,10 +453,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const groups: Record<string, React.ReactNode> = {
     file: (
       <>
-        <ToolbarButton icon={<FilePlus size={iconSize} />} tooltip="New Diagram" label="New" onClick={handleNew} />
+        <ToolbarButton icon={<FilePlus size={iconSize} />} tooltip="New Diagram" label={toolbarOrientation === 'horizontal' ? 'New' : undefined} onClick={handleNew} />
         <ToolbarButton icon={<FolderOpen size={iconSize} />} tooltip="Open File" onClick={handleOpen} />
         <ToolbarButton icon={<Save size={iconSize} />} tooltip="Save (JSON)" onClick={handleSave} />
-        <ToolbarButton icon={<LayoutTemplate size={iconSize} />} tooltip="Templates" label="Templates" onClick={onOpenTemplates} />
+        <ToolbarButton icon={<LayoutTemplate size={iconSize} />} tooltip="Templates" label={toolbarOrientation === 'horizontal' ? 'Templates' : undefined} onClick={onOpenTemplates} />
       </>
     ),
 
@@ -814,7 +814,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       className={`
         relative select-none shrink-0
         ${isVertical
-          ? 'flex flex-col items-center w-11 border-r py-1 overflow-y-auto overflow-x-hidden'
+          ? 'toolbar-vertical flex flex-col items-center w-11 border-r py-1 overflow-y-auto overflow-x-hidden'
           : 'flex items-center min-h-11 px-3 border-b flex-wrap gap-y-1 py-1'
         }
         ${darkMode

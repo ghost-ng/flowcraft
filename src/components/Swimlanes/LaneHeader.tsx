@@ -111,7 +111,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         position: 'absolute',
         left: 0,
         top: offset,
-        width: 40,
+        width: 48,
         height: size,
         display: 'flex',
         flexDirection: 'column',
@@ -178,7 +178,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
           onBlur={commitEdit}
           onKeyDown={handleKeyDown}
           style={{
-            width: isHorizontal ? 28 : Math.max(60, size - 60),
+            width: isHorizontal ? 36 : Math.max(60, size - 60),
             fontSize: 10,
             fontWeight: 600,
             textAlign: 'center',
@@ -202,9 +202,11 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             textOrientation: isHorizontal ? 'mixed' : undefined,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            maxWidth: isHorizontal ? undefined : size - 50,
-            maxHeight: isHorizontal ? size - 30 : undefined,
+            whiteSpace: isHorizontal ? 'normal' : 'nowrap',
+            maxWidth: isHorizontal ? 32 : size - 50,
+            maxHeight: isHorizontal ? size - 20 : undefined,
+            lineHeight: isHorizontal ? 1.2 : undefined,
+            textAlign: isHorizontal ? 'center' : undefined,
             userSelect: 'none',
           }}
         >

@@ -910,6 +910,37 @@ Edge labels can overlap or look cluttered on short connectors. Follow these guid
 - **Long edges (> 250px):** Labels are very readable; consider placing them near the source (`0.2`) or target (`0.8`) for clarity.
 - **When labels overlap nodes:** Use `labelPosition: 0.3` or `0.7` to nudge the label away from the node.
 - **Keep labels short:** 1-3 words is ideal (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"async"`). Long labels on edges look cluttered.
+- **Dependency edges ("DEPENDS ON" pill):** The `dependency` edge type renders a pill badge ("DEPENDS ON", "BLOCKS", etc.) PLUS an optional custom label below it. This takes ~24px of vertical space at the edge midpoint. Ensure nodes connected by dependency edges are at least **180px apart** vertically, or use `labelPosition` to shift both labels away from nodes.
+
+### 13.4 Node Overlap Prevention
+
+Nodes must NEVER have overlapping bounding boxes. Calculate positions carefully:
+
+- **Bounding box** = `(x, y)` to `(x + width, y + height)` using the node's actual or default dimensions.
+- **Minimum gap:** Leave at least **40px** between the edges of adjacent node bounding boxes. 80-100px is preferred.
+- **With edge labels:** If there is a labeled edge between two nodes, add extra spacing (at least **60px** beyond the label text height) to prevent the label from overlapping either node.
+- **Common mistake:** Placing a node at `y: 200` with default height 60 means it occupies y 200-260. The next node below should start no earlier than `y: 320` (260 + 60px gap).
+
+### 13.5 Swimlane Layout Guidelines
+
+Swimlane headers have limited space for labels. Follow these rules:
+
+- **Horizontal lane labels:** Rendered as vertical text in a 48px-wide left column. Keep labels to **2-3 words max** (~20 characters). Use abbreviations if needed (e.g., "Gov & Auth" not "Governance & Authorization").
+- **Vertical lane labels:** Rendered horizontally in a 32px-tall top row. Keep labels to **3-4 words max**.
+- **Lane sizing:** Set `size` large enough to contain all nodes assigned to that lane. A lane with 3 stacked nodes needs at least `size: 400` (3 nodes × ~60px height + 2 × ~100px spacing + margins).
+- **Node positions in lanes:** When using swimlanes, position nodes within the lane's visual bounds. For horizontal lanes, nodes should be offset rightward by at least **60px** from the left edge (to clear the lane header).
+- **Lane order:** Set `order` values sequentially (0, 1, 2...) to control which lane appears first.
+
+### 13.6 Overall Layout Quality Checklist
+
+Before finalizing a diagram JSON, verify:
+
+1. **No overlapping nodes** — Every node's bounding box is clear of all others.
+2. **Edge labels don't collide with nodes** — Labels on short edges are shifted or omitted.
+3. **Swimlane labels are short** — Under 20 characters for horizontal, under 30 for vertical.
+4. **Consistent spacing** — Nodes in the same row/column are evenly spaced.
+5. **Enough room for connectors** — Adjacent nodes have at least 100px between them vertically for edges/labels to render cleanly.
+6. **Nodes fit their content** — `width`/`height` accommodate the label text, icon, and any status pucks.
 
 ---
 

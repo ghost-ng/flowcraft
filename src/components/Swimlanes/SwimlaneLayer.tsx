@@ -13,7 +13,7 @@ import LaneHeader from './LaneHeader';
 // Constants
 // ---------------------------------------------------------------------------
 
-const H_HEADER_WIDTH = 40; // px - width of horizontal lane headers (left column)
+const H_HEADER_WIDTH = 48; // px - width of horizontal lane headers (left column)
 const V_HEADER_HEIGHT = 32; // px - height of vertical lane headers (top row)
 const TITLE_HEIGHT = 28; // px - container title bar height
 const MIN_LANE_SIZE = 60; // px - minimum lane size when resizing
