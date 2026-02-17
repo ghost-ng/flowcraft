@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   FilePlus,
   FolderOpen,
@@ -46,19 +46,25 @@ import {
   Monitor,
   ClipboardPaste,
   Github,
+  Lock,
+  Unlock,
+  GripVertical,
+  PanelTop,
+  PanelLeft,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore } from '../../store/flowStore';
 import { useExportStore } from '../../store/exportStore';
-import { copyImageToClipboard, copySvgToClipboard, importFromJson, exportAsJson } from '../../utils/exportUtils';
+import { copyImageToClipboard, copySvgToClipboard, copySvgForPaste, importFromJson, exportAsJson } from '../../utils/exportUtils';
 import { useDependencyStore } from '../../store/dependencyStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
 import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
 import DiagramStylePicker from '../StylePicker/DiagramStylePicker';
+import ImportJsonDialog from '../Import/ImportJsonDialog';
 import { log } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -100,13 +106,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = React.memo(
 
 ToolbarButton.displayName = 'ToolbarButton';
 
-// ---------------------------------------------------------------------------
-// Divider
-// ---------------------------------------------------------------------------
-
-const ToolbarDivider: React.FC = () => (
-  <div className="w-px h-5 bg-border mx-1" />
-);
+// (Separators are rendered inline via the orientation-aware Sep component)
 
 // ---------------------------------------------------------------------------
 // Props
@@ -171,6 +171,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // Settings store
   const debugMode = useSettingsStore((s) => s.debugMode);
   const toggleDebugMode = useSettingsStore((s) => s.toggleDebugMode);
+  const toolbarGroupOrder = useSettingsStore((s) => s.toolbarGroupOrder);
+  const setToolbarGroupOrder = useSettingsStore((s) => s.setToolbarGroupOrder);
+  const toolbarLocked = useSettingsStore((s) => s.toolbarLocked);
+  const toggleToolbarLocked = useSettingsStore((s) => s.toggleToolbarLocked);
+  const toolbarOrientation = useSettingsStore((s) => s.toolbarOrientation);
+  const toggleToolbarOrientation = useSettingsStore((s) => s.toggleToolbarOrientation);
 
   // Flow store
   const selectedNodes = useFlowStore((s) => s.selectedNodes);
@@ -213,6 +219,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // Selection color picker state
   const [selectionColorOpen, setSelectionColorOpen] = useState(false);
 
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  // SVG copy dropdown state
+  const [svgCopyOpen, setSvgCopyOpen] = useState(false);
+
+  // Drag-and-drop state
+  const dragRef = useRef<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+
   const multiSelected = selectedNodes.length >= 2;
 
   // ---- Actions ------------------------------------------------------------
@@ -222,6 +238,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
       await copyImageToClipboard();
     } catch (e) {
       log.error('Copy image to clipboard failed', e);
+    }
+  }, []);
+
+  const handleCopySvgForPaste = useCallback(async () => {
+    try {
+      await copySvgForPaste();
+    } catch (e) {
+      log.error('Copy SVG for paste failed', e);
     }
   }, []);
 
@@ -281,27 +305,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
       }
     };
     input.click();
-  }, []);
-
-  const handlePasteJson = useCallback(async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (!text.trim()) {
-        useUIStore.getState().showToast('Clipboard is empty', 'warning');
-        return;
-      }
-      const result = importFromJson(text);
-      const msg = `Imported ${result.nodeCount} nodes and ${result.edgeCount} edges`;
-      if (result.warnings.length > 0) {
-        log.warn('Import warnings', result.warnings);
-        useUIStore.getState().showToast(`${msg} (${result.warnings.length} warnings — see console)`, 'warning');
-      } else {
-        useUIStore.getState().showToast(msg, 'success');
-      }
-    } catch (err) {
-      log.error('Paste JSON failed', err);
-      useUIStore.getState().showToast(`Paste failed: ${err instanceof Error ? err.message : 'unknown error'}`, 'error');
-    }
   }, []);
 
   const handleAutoArrange = useCallback(() => {
@@ -402,113 +405,77 @@ const Toolbar: React.FC<ToolbarProps> = ({
     setRotateDropdownOpen(false);
   }, [getSelectedFlowNodes, applyPositions]);
 
+  // ---- Drag-and-drop handlers ---------------------------------------------
+
+  const handleDragStart = useCallback((e: React.DragEvent, groupId: string) => {
+    dragRef.current = groupId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', groupId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, groupId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragRef.current !== groupId) {
+      setDragOver(groupId);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOver(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetGroupId: string) => {
+    e.preventDefault();
+    setDragOver(null);
+    const sourceId = dragRef.current;
+    if (!sourceId || sourceId === targetGroupId) return;
+    const next = [...toolbarGroupOrder];
+    const fromIdx = next.indexOf(sourceId);
+    const toIdx = next.indexOf(targetGroupId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, sourceId);
+    setToolbarGroupOrder(next);
+    dragRef.current = null;
+  }, [toolbarGroupOrder, setToolbarGroupOrder]);
+
+  const handleDragEnd = useCallback(() => {
+    dragRef.current = null;
+    setDragOver(null);
+  }, []);
+
   const hasSelection = selectedNodes.length > 0 || selectedEdges.length > 0;
   const iconSize = 16;
 
-  return (
-    <div
-      className={`
-        relative flex items-center h-11 px-3 border-b shrink-0 select-none
-        ${darkMode
-          ? 'bg-surface-alt-dark border-border-dark'
-          : 'bg-surface-alt border-border'
-        }
-      `}
-    >
-      {/* ---- Logo ---- */}
-      <div className="flex items-center gap-2 mr-4">
-        <Workflow size={20} className="text-primary" />
-        <span className="font-display font-semibold text-sm tracking-tight">
-          FlowCraft
-        </span>
-      </div>
+  // ---- Group content lookup -----------------------------------------------
 
-      <ToolbarDivider />
+  const groups: Record<string, React.ReactNode> = {
+    file: (
+      <>
+        <ToolbarButton icon={<FilePlus size={iconSize} />} tooltip="New Diagram" label="New" onClick={handleNew} />
+        <ToolbarButton icon={<FolderOpen size={iconSize} />} tooltip="Open File" onClick={handleOpen} />
+        <ToolbarButton icon={<Save size={iconSize} />} tooltip="Save (JSON)" onClick={handleSave} />
+        <ToolbarButton icon={<LayoutTemplate size={iconSize} />} tooltip="Templates" label="Templates" onClick={onOpenTemplates} />
+      </>
+    ),
 
-      {/* ---- File group ---- */}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          icon={<FilePlus size={iconSize} />}
-          tooltip="New Diagram"
-          label="New"
-          onClick={handleNew}
-        />
-        <ToolbarButton
-          icon={<FolderOpen size={iconSize} />}
-          tooltip="Open File"
-          onClick={handleOpen}
-        />
-        <ToolbarButton
-          icon={<Save size={iconSize} />}
-          tooltip="Save (JSON)"
-          onClick={handleSave}
-        />
-        <ToolbarButton
-          icon={<LayoutTemplate size={iconSize} />}
-          tooltip="Templates"
-          label="Templates"
-          onClick={onOpenTemplates}
-        />
-      </div>
+    edit: (
+      <>
+        <ToolbarButton icon={<Undo2 size={iconSize} />} tooltip="Undo (Ctrl+Z)" onClick={onUndo} disabled={!canUndo} />
+        <ToolbarButton icon={<Redo2 size={iconSize} />} tooltip="Redo (Ctrl+Shift+Z)" onClick={onRedo} disabled={!canRedo} />
+        <ToolbarButton icon={<Copy size={iconSize} />} tooltip="Copy" disabled={!hasSelection} />
+        <ToolbarButton icon={<Clipboard size={iconSize} />} tooltip="Paste" disabled />
+        <ToolbarButton icon={<Trash2 size={iconSize} />} tooltip="Delete Selected" onClick={handleDelete} disabled={!hasSelection} />
+      </>
+    ),
 
-      <ToolbarDivider />
-
-      {/* ---- Edit group ---- */}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          icon={<Undo2 size={iconSize} />}
-          tooltip="Undo (Ctrl+Z)"
-          onClick={onUndo}
-          disabled={!canUndo}
-        />
-        <ToolbarButton
-          icon={<Redo2 size={iconSize} />}
-          tooltip="Redo (Ctrl+Shift+Z)"
-          onClick={onRedo}
-          disabled={!canRedo}
-        />
-        <ToolbarButton
-          icon={<Copy size={iconSize} />}
-          tooltip="Copy"
-          disabled={!hasSelection}
-        />
-        <ToolbarButton
-          icon={<Clipboard size={iconSize} />}
-          tooltip="Paste"
-          disabled
-        />
-        <ToolbarButton
-          icon={<Trash2 size={iconSize} />}
-          tooltip="Delete Selected"
-          onClick={handleDelete}
-          disabled={!hasSelection}
-        />
-      </div>
-
-      <ToolbarDivider />
-
-      {/* ---- View group ---- */}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          icon={<MousePointer2 size={iconSize} />}
-          tooltip="Select (drag to box-select)"
-          active={true}
-        />
-        <ToolbarButton
-          icon={<ZoomIn size={iconSize} />}
-          tooltip="Zoom In"
-          onClick={onZoomIn}
-        />
-        <ToolbarButton
-          icon={<ZoomOut size={iconSize} />}
-          tooltip="Zoom Out"
-          onClick={onZoomOut}
-        />
-        <ToolbarButton
-          icon={<Maximize size={iconSize} />}
-          tooltip="Fit View"
-          onClick={onFitView}
-        />
+    view: (
+      <>
+        <ToolbarButton icon={<MousePointer2 size={iconSize} />} tooltip="Select (drag to box-select)" active={true} />
+        <ToolbarButton icon={<ZoomIn size={iconSize} />} tooltip="Zoom In" onClick={onZoomIn} />
+        <ToolbarButton icon={<ZoomOut size={iconSize} />} tooltip="Zoom Out" onClick={onZoomOut} />
+        <ToolbarButton icon={<Maximize size={iconSize} />} tooltip="Fit View" onClick={onFitView} />
 
         {/* Grid Options dropdown */}
         <div className="relative">
@@ -520,7 +487,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           />
           {gridOptionsOpen && (
             <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-3 z-50 w-48">
-              {/* Grid visibility toggle */}
               <button
                 onClick={toggleGrid}
                 className={`w-full text-left text-xs px-2 py-1.5 rounded mb-2 transition-colors ${
@@ -573,59 +539,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
           )}
         </div>
 
-        {/* Ruler toggle */}
-        <ToolbarButton
-          icon={<Ruler size={iconSize} />}
-          tooltip="Toggle Rulers"
-          onClick={toggleRuler}
-          active={rulerVisible}
-        />
+        <ToolbarButton icon={<Ruler size={iconSize} />} tooltip="Toggle Rulers" onClick={toggleRuler} active={rulerVisible} />
+        <ToolbarButton icon={<Map size={iconSize} />} tooltip="Toggle Minimap" onClick={toggleMinimap} active={minimapVisible} />
+        <ToolbarButton icon={<Magnet size={iconSize} />} tooltip="Toggle Snap" onClick={toggleSnap} active={snapEnabled} />
+        <ToolbarButton icon={<GitBranch size={iconSize} />} tooltip="Toggle Dependency Badges" onClick={toggleBadges} active={showBadges} />
+      </>
+    ),
 
-        <ToolbarButton
-          icon={<Map size={iconSize} />}
-          tooltip="Toggle Minimap"
-          onClick={toggleMinimap}
-          active={minimapVisible}
-        />
-        <ToolbarButton
-          icon={<Magnet size={iconSize} />}
-          tooltip="Toggle Snap"
-          onClick={toggleSnap}
-          active={snapEnabled}
-        />
-        <ToolbarButton
-          icon={<GitBranch size={iconSize} />}
-          tooltip="Toggle Dependency Badges"
-          onClick={toggleBadges}
-          active={showBadges}
-        />
-      </div>
+    layout: (
+      <>
+        <ToolbarButton icon={<LayoutDashboard size={iconSize} />} tooltip="Auto Arrange" onClick={handleAutoArrange} />
+        <ToolbarButton icon={<ArrowDownUp size={iconSize} />} tooltip="Vertical Layout" onClick={handleVerticalLayout} />
+        <ToolbarButton icon={<ArrowLeftRight size={iconSize} />} tooltip="Horizontal Layout" onClick={handleHorizontalLayout} />
+      </>
+    ),
 
-      <ToolbarDivider />
-
-      {/* ---- Layout group ---- */}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          icon={<LayoutDashboard size={iconSize} />}
-          tooltip="Auto Arrange"
-          onClick={handleAutoArrange}
-        />
-        <ToolbarButton
-          icon={<ArrowDownUp size={iconSize} />}
-          tooltip="Vertical Layout"
-          onClick={handleVerticalLayout}
-        />
-        <ToolbarButton
-          icon={<ArrowLeftRight size={iconSize} />}
-          tooltip="Horizontal Layout"
-          onClick={handleHorizontalLayout}
-        />
-      </div>
-
-      <ToolbarDivider />
-
-      {/* ---- Transform group (Align / Mirror / Rotate) ---- */}
-      <div className="flex items-center gap-0.5">
+    transform: (
+      <>
         {/* Align dropdown */}
         <div className="relative">
           <ToolbarButton
@@ -717,12 +647,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </>
+    ),
 
-      <ToolbarDivider />
-
-      {/* ---- Panels group ---- */}
-      <div className="flex items-center gap-0.5">
+    panels: (
+      <>
         <ToolbarButton
           icon={<Palette size={iconSize} />}
           tooltip="Properties Panel"
@@ -741,7 +670,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           tooltip="Select Same Type"
           onClick={() => {
             const { nodes, setSelectedNodes } = useFlowStore.getState();
-            // Find the first selected node (check node.selected directly for reliability)
             const sourceNode = nodes.find((n) => n.selected);
             if (!sourceNode || !sourceNode.data.shape) return;
             const sourceShape = sourceNode.data.shape;
@@ -758,125 +686,236 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onClick={() => setStylePickerOpen((o) => !o)}
           active={stylePickerOpen}
         />
-      </div>
+      </>
+    ),
 
-      {/* ---- Spacer ---- */}
-      <div className="flex-1" />
+    export: (
+      <>
+        <ToolbarButton icon={<Image size={iconSize} />} tooltip="Copy as Image" onClick={handleCopyImage} />
 
-      {/* ---- Export group ---- */}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          icon={<Image size={iconSize} />}
-          tooltip="Copy as Image"
-          onClick={handleCopyImage}
-        />
-        <ToolbarButton
-          icon={<Code size={iconSize} />}
-          tooltip="Copy as SVG"
-          onClick={handleCopySvg}
-        />
-        <ToolbarButton
-          icon={<Download size={iconSize} />}
-          tooltip="Export (Ctrl+E)"
-          onClick={handleOpenExport}
-        />
-        <ToolbarButton
-          icon={<ClipboardPaste size={iconSize} />}
-          tooltip="Import from Clipboard"
-          onClick={handlePasteJson}
-        />
-      </div>
-
-      <ToolbarDivider />
-
-      {/* ---- Keyboard Shortcuts ---- */}
-      <ToolbarButton
-        icon={<Keyboard size={iconSize} />}
-        tooltip="Shortcuts (Ctrl+/)"
-        onClick={onOpenShortcuts || (() => {})}
-      />
-
-      {/* ---- Selection color picker ---- */}
-      <div className="relative">
-        <button
-          data-tooltip="Selection Highlight Color"
-          onClick={() => setSelectionColorOpen((o) => !o)}
-          className="relative flex items-center gap-1 px-1.5 py-1 rounded text-xs cursor-pointer transition-colors duration-100 text-text-muted hover:bg-slate-100 hover:text-text dark:hover:bg-slate-700 dark:hover:text-white"
-        >
-          <MousePointer2 size={iconSize} />
-          <span
-            className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-[3px] rounded-full"
-            style={{ width: 14, backgroundColor: selectionColor }}
+        {/* SVG copy dropdown */}
+        <div className="relative">
+          <ToolbarButton
+            icon={<Code size={iconSize} />}
+            tooltip="Copy SVG"
+            onClick={() => setSvgCopyOpen(!svgCopyOpen)}
+            active={svgCopyOpen}
           />
-        </button>
-
-        {selectionColorOpen && (
-          <div className="absolute right-0 top-full mt-1 z-50 p-3 rounded-lg shadow-xl border bg-white dark:bg-slate-800 dark:border-slate-700" style={{ minWidth: 160 }}>
-            <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Selection Color</div>
-            <div className="grid grid-cols-5 gap-2">
-              {['#d946ef', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#6b7280'].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => { setSelectionColor(c); setSelectionColorOpen(false); }}
-                  className="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-125"
-                  style={{
-                    backgroundColor: c,
-                    border: c === selectionColor ? '2px solid #fff' : '2px solid transparent',
-                    boxShadow: c === selectionColor ? `0 0 0 2px ${c}` : 'none',
-                  }}
-                />
-              ))}
+          {svgCopyOpen && (
+            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg p-1 z-50 min-w-[170px]">
+              <button
+                onClick={() => {
+                  handleCopySvg();
+                  setSvgCopyOpen(false);
+                  useUIStore.getState().showToast('SVG code copied to clipboard', 'success');
+                }}
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+              >
+                <Code size={13} className="text-slate-400" /> Copy Raw Code
+              </button>
+              <button
+                onClick={() => {
+                  handleCopySvgForPaste();
+                  setSvgCopyOpen(false);
+                  useUIStore.getState().showToast('SVG copied — paste into PPT/Slides', 'success');
+                }}
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+              >
+                <Image size={13} className="text-slate-400" /> Copy for PPT
+              </button>
             </div>
-          </div>
+          )}
+        </div>
+
+        <ToolbarButton icon={<Download size={iconSize} />} tooltip="Export (Ctrl+E)" onClick={handleOpenExport} />
+        <ToolbarButton icon={<ClipboardPaste size={iconSize} />} tooltip="Import JSON" onClick={() => setImportDialogOpen(true)} />
+      </>
+    ),
+
+    utils: (
+      <>
+        <ToolbarButton
+          icon={<Keyboard size={iconSize} />}
+          tooltip="Shortcuts (Ctrl+/)"
+          onClick={onOpenShortcuts || (() => {})}
+        />
+
+        {/* Selection color picker */}
+        <div className="relative">
+          <button
+            data-tooltip="Selection Highlight Color"
+            onClick={() => setSelectionColorOpen((o) => !o)}
+            className="relative flex items-center gap-1 px-1.5 py-1 rounded text-xs cursor-pointer transition-colors duration-100 text-text-muted hover:bg-slate-100 hover:text-text dark:hover:bg-slate-700 dark:hover:text-white"
+          >
+            <MousePointer2 size={iconSize} />
+            <span
+              className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-[3px] rounded-full"
+              style={{ width: 14, backgroundColor: selectionColor }}
+            />
+          </button>
+
+          {selectionColorOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 p-3 rounded-lg shadow-xl border bg-white dark:bg-slate-800 dark:border-slate-700" style={{ minWidth: 160 }}>
+              <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Selection Color</div>
+              <div className="grid grid-cols-5 gap-2">
+                {['#d946ef', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#6b7280'].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => { setSelectionColor(c); setSelectionColorOpen(false); }}
+                    className="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-125"
+                    style={{
+                      backgroundColor: c,
+                      border: c === selectionColor ? '2px solid #fff' : '2px solid transparent',
+                      boxShadow: c === selectionColor ? `0 0 0 2px ${c}` : 'none',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <ToolbarButton
+          icon={<Monitor size={iconSize} />}
+          tooltip="Presentation Mode"
+          onClick={() => {
+            useUIStore.getState().setPresentationMode(true);
+            document.documentElement.requestFullscreen?.().catch(() => {});
+          }}
+        />
+
+        <ToolbarButton
+          icon={<Bug size={iconSize} />}
+          tooltip={debugMode ? 'Disable Debug Logging' : 'Enable Debug Logging'}
+          onClick={toggleDebugMode}
+          active={debugMode}
+        />
+
+        <ToolbarButton
+          icon={darkMode ? <Sun size={iconSize} /> : <Moon size={iconSize} />}
+          tooltip={darkMode ? 'Light Mode' : 'Dark Mode'}
+          onClick={toggleDarkMode}
+        />
+      </>
+    ),
+  };
+
+  // ---- Render -------------------------------------------------------------
+
+  const isVertical = toolbarOrientation === 'vertical';
+
+  // Orientation-aware separator
+  const Sep = isVertical
+    ? () => <div className="h-px w-full bg-border my-0.5 shrink-0" />
+    : () => <div className="w-px h-5 bg-border mx-1 shrink-0" />;
+
+  return (
+    <div
+      className={`
+        relative select-none shrink-0
+        ${isVertical
+          ? 'flex flex-col items-center w-11 border-r py-1 overflow-y-auto overflow-x-hidden'
+          : 'flex items-center min-h-11 px-3 border-b flex-wrap gap-y-1 py-1'
+        }
+        ${darkMode
+          ? 'bg-surface-alt-dark border-border-dark'
+          : 'bg-surface-alt border-border'
+        }
+      `}
+    >
+      {/* ---- Logo (pinned first) ---- */}
+      <div className={`flex items-center shrink-0 ${isVertical ? 'py-1' : 'gap-2 mr-1'}`}>
+        <Workflow size={20} className="text-primary" />
+        {!isVertical && (
+          <span className="font-display font-semibold text-sm tracking-tight">
+            FlowCraft
+          </span>
         )}
       </div>
 
-      {/* ---- Presentation mode ---- */}
-      <ToolbarButton
-        icon={<Monitor size={iconSize} />}
-        tooltip="Presentation Mode"
-        onClick={() => {
-          useUIStore.getState().setPresentationMode(true);
-          document.documentElement.requestFullscreen?.().catch(() => {});
-        }}
-      />
+      <Sep />
 
-      {/* ---- Debug mode toggle ---- */}
-      <ToolbarButton
-        icon={<Bug size={iconSize} />}
-        tooltip={debugMode ? 'Disable Debug Logging' : 'Enable Debug Logging'}
-        onClick={toggleDebugMode}
-        active={debugMode}
-      />
+      {/* ---- Reorderable groups ---- */}
+      {toolbarGroupOrder.map((groupId, idx) => {
+        const content = groups[groupId];
+        if (!content) return null;
+        return (
+          <React.Fragment key={groupId}>
+            <div
+              onDragOver={toolbarLocked ? undefined : (e) => handleDragOver(e, groupId)}
+              onDragLeave={toolbarLocked ? undefined : handleDragLeave}
+              onDrop={toolbarLocked ? undefined : (e) => handleDrop(e, groupId)}
+              className={`
+                flex gap-0.5 rounded transition-all duration-150 shrink-0
+                ${isVertical ? 'flex-col items-center px-0.5 py-0.5 w-full' : 'items-center px-0.5'}
+                ${dragOver === groupId
+                  ? 'ring-2 ring-blue-400/60 bg-blue-50/50 dark:bg-blue-900/20'
+                  : ''
+                }
+              `}
+            >
+              {/* Drag handle — only visible when toolbar is unlocked */}
+              {!toolbarLocked && (
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, groupId)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center justify-center rounded cursor-grab hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors shrink-0
+                    ${isVertical ? 'w-6 h-3' : 'w-4 h-6'}`}
+                  title={`Drag to reorder "${groupId}" group`}
+                >
+                  <GripVertical size={11} className={`text-slate-400 dark:text-slate-500 ${isVertical ? 'rotate-90' : ''}`} />
+                </div>
+              )}
+              {content}
+            </div>
+            {idx < toolbarGroupOrder.length - 1 && <Sep />}
+          </React.Fragment>
+        );
+      })}
 
-      {/* ---- Dark mode toggle ---- */}
-      <ToolbarButton
-        icon={darkMode ? <Sun size={iconSize} /> : <Moon size={iconSize} />}
-        tooltip={darkMode ? 'Light Mode' : 'Dark Mode'}
-        onClick={toggleDarkMode}
-      />
+      {/* ---- Spacer ---- */}
+      <div className={isVertical ? 'flex-1 min-h-2' : 'flex-1 min-w-2'} />
 
-      {/* ---- Style Picker dropdown ---- */}
+      {/* ---- Lock toggle + Meta (pinned last) ---- */}
+      <div className={`flex items-center shrink-0 ${isVertical ? 'flex-col gap-0.5 pb-1' : ''}`}>
+        <Sep />
+        <ToolbarButton
+          icon={toolbarLocked ? <Lock size={14} /> : <Unlock size={14} />}
+          tooltip={toolbarLocked ? 'Unlock Toolbar (allow reordering)' : 'Lock Toolbar'}
+          onClick={toggleToolbarLocked}
+          active={!toolbarLocked}
+        />
+        <ToolbarButton
+          icon={isVertical ? <PanelTop size={14} /> : <PanelLeft size={14} />}
+          tooltip={isVertical ? 'Switch to Horizontal Toolbar' : 'Switch to Vertical Toolbar'}
+          onClick={toggleToolbarOrientation}
+        />
+        {!isVertical && (
+          <>
+            <Sep />
+            <span className="text-[10px] font-mono text-text-muted select-none px-1">
+              v{__APP_VERSION__}
+            </span>
+            <a
+              href="https://github.com/ghost-ng/flowcraft"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 rounded text-text-muted hover:text-text transition-colors"
+              data-tooltip="GitHub"
+            >
+              <Github size={14} />
+            </a>
+          </>
+        )}
+      </div>
+
+      {/* ---- Floating dialogs/dropdowns ---- */}
+      <ImportJsonDialog open={importDialogOpen} onClose={() => setImportDialogOpen(false)} />
       <DiagramStylePicker
         open={stylePickerOpen}
         onClose={() => setStylePickerOpen(false)}
       />
-
-      <ToolbarDivider />
-
-      {/* ---- Version + GitHub ---- */}
-      <span className="text-[10px] font-mono text-text-muted select-none px-1">
-        v{__APP_VERSION__}
-      </span>
-      <a
-        href="https://github.com/ghost-ng/flowcraft"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-1 rounded text-text-muted hover:text-text transition-colors"
-        data-tooltip="GitHub"
-      >
-        <Github size={14} />
-      </a>
     </div>
   );
 };

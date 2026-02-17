@@ -133,12 +133,13 @@ interface StatusBadgeProps {
   statusIndicator?: StatusIndicator;
   nodeId?: string;
   puckId: string;
+  shape?: string;
   onUpdatePosition?: (position: string) => void;
 }
 
 const CLICK_THRESHOLD = 4; // px – movement below this is treated as a click, not a drag
 
-const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, onUpdatePosition, onUpdateSize }) => {
+const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, onUpdatePosition, onUpdateSize }) => {
   const isSelected = useUIStore((s) => s.selectedPuckIds.includes(puckId));
   const selectionColor = useUIStore((s) => s.selectionColor);
 
@@ -155,16 +156,28 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const bStyle = statusIndicator.borderStyle ?? 'solid';
   const borderStr = bStyle === 'none' ? 'none' : `${bWidth}px ${bStyle} ${bColor}`;
 
+  // For diamonds, position pucks at the midpoint of each diamond edge
+  // instead of at the bounding box corners (which are outside the shape).
+  const isDiamondShape = shape === 'diamond';
   const positionStyle: React.CSSProperties = {};
-  if (position === 'top-right' || position === 'bottom-right') {
-    positionStyle.right = offset;
+  if (isDiamondShape) {
+    // Diamond edge midpoints: TL→(25%,25%), TR→(75%,25%), BL→(25%,75%), BR→(75%,75%)
+    positionStyle.transform = 'translate(-50%, -50%)';
+    if (position === 'top-right')        { positionStyle.left = '75%'; positionStyle.top = '25%'; }
+    else if (position === 'top-left')    { positionStyle.left = '25%'; positionStyle.top = '25%'; }
+    else if (position === 'bottom-right'){ positionStyle.left = '75%'; positionStyle.top = '75%'; }
+    else                                 { positionStyle.left = '25%'; positionStyle.top = '75%'; }
   } else {
-    positionStyle.left = offset;
-  }
-  if (position === 'top-right' || position === 'top-left') {
-    positionStyle.top = offset;
-  } else {
-    positionStyle.bottom = offset;
+    if (position === 'top-right' || position === 'bottom-right') {
+      positionStyle.right = offset;
+    } else {
+      positionStyle.left = offset;
+    }
+    if (position === 'top-right' || position === 'top-left') {
+      positionStyle.top = offset;
+    } else {
+      positionStyle.bottom = offset;
+    }
   }
 
   // Helper: compute which corner the cursor is closest to
@@ -576,6 +589,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           statusIndicator={puck}
           nodeId={id}
           puckId={puck.id!}
+          shape={shape}
           onUpdatePosition={(pos) => {
             useFlowStore.getState().updateStatusPuck(id, puck.id!, { position: pos as any });
           }}

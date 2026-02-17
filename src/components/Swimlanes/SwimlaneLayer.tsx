@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useViewport } from '@xyflow/react';
 
 import {
   useSwimlaneStore,
   type SwimlaneItem,
+  type SwimlaneOrientation,
 } from '../../store/swimlaneStore';
 import { useStyleStore } from '../../store/styleStore';
 import LaneHeader from './LaneHeader';
@@ -15,6 +16,8 @@ import LaneHeader from './LaneHeader';
 const H_HEADER_WIDTH = 40; // px - width of horizontal lane headers (left column)
 const V_HEADER_HEIGHT = 32; // px - height of vertical lane headers (top row)
 const TITLE_HEIGHT = 28; // px - container title bar height
+const MIN_LANE_SIZE = 60; // px - minimum lane size when resizing
+const RESIZE_HIT_AREA = 8; // px - width of the resize grab zone
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,6 +41,98 @@ function computeBounds(
 
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// LaneResizeHandle
+// ---------------------------------------------------------------------------
+
+interface LaneResizeHandleProps {
+  orientation: SwimlaneOrientation;
+  laneId: string;
+  /** Position of the divider line in flow coordinates */
+  dividerOffset: number;
+  /** Total span perpendicular to the divider */
+  span: number;
+  /** Current viewport zoom for converting screen→flow deltas */
+  zoom: number;
+}
+
+const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
+  orientation,
+  laneId,
+  dividerOffset,
+  span,
+  zoom,
+}) => {
+  const startRef = useRef<{ clientPos: number; startSize: number } | null>(null);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const lane = useSwimlaneStore
+        .getState()
+        .config[orientation === 'horizontal' ? 'horizontal' : 'vertical']
+        .find((l) => l.id === laneId);
+      if (!lane) return;
+
+      const clientPos = orientation === 'horizontal' ? e.clientY : e.clientX;
+      startRef.current = { clientPos, startSize: lane.size };
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!startRef.current) return;
+        const currentPos =
+          orientation === 'horizontal' ? moveEvent.clientY : moveEvent.clientX;
+        const deltaScreen = currentPos - startRef.current.clientPos;
+        const deltaFlow = deltaScreen / zoom;
+        const newSize = Math.max(MIN_LANE_SIZE, startRef.current.startSize + deltaFlow);
+        useSwimlaneStore.getState().updateLane(orientation, laneId, { size: newSize });
+      };
+
+      const onMouseUp = () => {
+        startRef.current = null;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.body.style.cursor =
+        orientation === 'horizontal' ? 'row-resize' : 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [orientation, laneId, zoom],
+  );
+
+  const isH = orientation === 'horizontal';
+
+  const style: React.CSSProperties = isH
+    ? {
+        position: 'absolute',
+        left: 0,
+        top: dividerOffset - RESIZE_HIT_AREA / 2,
+        width: span,
+        height: RESIZE_HIT_AREA,
+        cursor: 'row-resize',
+        pointerEvents: 'auto',
+        zIndex: 10,
+      }
+    : {
+        position: 'absolute',
+        left: dividerOffset - RESIZE_HIT_AREA / 2,
+        top: 0,
+        width: RESIZE_HIT_AREA,
+        height: span,
+        cursor: 'col-resize',
+        pointerEvents: 'auto',
+        zIndex: 10,
+      };
+
+  return <div style={style} onMouseDown={handleMouseDown} />;
+};
 
 // ---------------------------------------------------------------------------
 // SwimlaneLayer
@@ -154,6 +249,8 @@ const SwimlaneLayer: React.FC = () => {
             </React.Fragment>
           ))}
 
+        {/* Resize handles are rendered by SwimlaneResizeOverlay (above ReactFlow) */}
+
         {/* ---- Vertical lane backgrounds and dividers ---- */}
         {hasVLanes &&
           vBounds.map(({ lane, offset, size }, idx) => (
@@ -189,6 +286,8 @@ const SwimlaneLayer: React.FC = () => {
               )}
             </React.Fragment>
           ))}
+
+        {/* Resize handles are rendered by SwimlaneResizeOverlay (above ReactFlow) */}
 
         {/* ---- Matrix cell borders (when both H and V exist) ---- */}
         {isMatrix &&
@@ -264,3 +363,124 @@ const SwimlaneLayer: React.FC = () => {
 };
 
 export default React.memo(SwimlaneLayer);
+
+// ---------------------------------------------------------------------------
+// SwimlaneResizeOverlay — rendered ABOVE ReactFlow so handles receive events
+// ---------------------------------------------------------------------------
+
+const SwimlaneResizeOverlayInner: React.FC = () => {
+  const config = useSwimlaneStore((s) => s.config);
+  const containerOffset = useSwimlaneStore((s) => s.containerOffset);
+  const viewport = useViewport();
+
+  const hLanes = config.horizontal;
+  const vLanes = config.vertical;
+  const hasHLanes = hLanes.length > 0;
+  const hasVLanes = vLanes.length > 0;
+
+  const hBounds = useMemo(() => {
+    if (!hasHLanes) return [];
+    const headerOffset = hasVLanes ? V_HEADER_HEIGHT : 0;
+    return computeBounds(hLanes, 'horizontal', headerOffset);
+  }, [hLanes, hasVLanes, hasHLanes]);
+
+  const vBounds = useMemo(() => {
+    if (!hasVLanes) return [];
+    const headerOffset = hasHLanes ? H_HEADER_WIDTH : 0;
+    return computeBounds(vLanes, 'vertical', headerOffset);
+  }, [vLanes, hasHLanes, hasVLanes]);
+
+  if (!hasHLanes && !hasVLanes) return null;
+
+  const totalWidth = hasVLanes
+    ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+    : 2000;
+  const totalHeight = hasHLanes
+    ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+    : 2000;
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden"
+      style={{ zIndex: 5 }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          transformOrigin: '0 0',
+          transform: `translate(${viewport.x + containerOffset.x * viewport.zoom}px, ${viewport.y + containerOffset.y * viewport.zoom}px) scale(${viewport.zoom})`,
+          width: totalWidth,
+          height: totalHeight,
+        }}
+      >
+        {/* Horizontal lane resize handles (between lanes) */}
+        {hasHLanes &&
+          hBounds.map(({ lane, offset }, idx) => {
+            if (idx === 0 || lane.collapsed) return null;
+            const prevLane = hBounds[idx - 1];
+            if (prevLane.lane.collapsed) return null;
+            return (
+              <LaneResizeHandle
+                key={`resize-h-${lane.id}`}
+                orientation="horizontal"
+                laneId={prevLane.lane.id}
+                dividerOffset={offset}
+                span={totalWidth}
+                zoom={viewport.zoom}
+              />
+            );
+          })}
+        {/* Handle at the bottom edge of the last horizontal lane */}
+        {hasHLanes && hBounds.length > 0 && (() => {
+          const last = hBounds[hBounds.length - 1];
+          if (last.lane.collapsed) return null;
+          return (
+            <LaneResizeHandle
+              key={`resize-h-last-${last.lane.id}`}
+              orientation="horizontal"
+              laneId={last.lane.id}
+              dividerOffset={last.offset + last.size}
+              span={totalWidth}
+              zoom={viewport.zoom}
+            />
+          );
+        })()}
+
+        {/* Vertical lane resize handles (between lanes) */}
+        {hasVLanes &&
+          vBounds.map(({ lane, offset }, idx) => {
+            if (idx === 0 || lane.collapsed) return null;
+            const prevLane = vBounds[idx - 1];
+            if (prevLane.lane.collapsed) return null;
+            return (
+              <LaneResizeHandle
+                key={`resize-v-${lane.id}`}
+                orientation="vertical"
+                laneId={prevLane.lane.id}
+                dividerOffset={offset}
+                span={totalHeight}
+                zoom={viewport.zoom}
+              />
+            );
+          })}
+        {/* Handle at the right edge of the last vertical lane */}
+        {hasVLanes && vBounds.length > 0 && (() => {
+          const last = vBounds[vBounds.length - 1];
+          if (last.lane.collapsed) return null;
+          return (
+            <LaneResizeHandle
+              key={`resize-v-last-${last.lane.id}`}
+              orientation="vertical"
+              laneId={last.lane.id}
+              dividerOffset={last.offset + last.size}
+              span={totalHeight}
+              zoom={viewport.zoom}
+            />
+          );
+        })()}
+      </div>
+    </div>
+  );
+};
+
+export const SwimlaneResizeOverlay = React.memo(SwimlaneResizeOverlayInner);

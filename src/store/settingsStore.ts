@@ -9,6 +9,7 @@ import { setDebugMode, log } from '../utils/logger';
 export type EdgeType = 'default' | 'straight' | 'step' | 'smoothstep' | 'bezier';
 export type MarkerType = 'none' | 'arrow' | 'arrowclosed';
 export type ConnectionLineType = 'default' | 'straight' | 'step' | 'smoothstep' | 'bezier';
+export type ToolbarOrientation = 'horizontal' | 'vertical';
 
 export interface NodeDefaults {
   shape: string;
@@ -84,8 +85,17 @@ export interface SettingsState {
   // ---- debug --------------------------------------------------
   debugMode: boolean;
 
+  // ---- toolbar ------------------------------------------------
+  toolbarGroupOrder: string[];
+  toolbarLocked: boolean;
+  toolbarOrientation: ToolbarOrientation;
+
   // ---- actions ------------------------------------------------
   toggleDebugMode: () => void;
+  setToolbarGroupOrder: (order: string[]) => void;
+  toggleToolbarLocked: () => void;
+  setToolbarOrientation: (orientation: ToolbarOrientation) => void;
+  toggleToolbarOrientation: () => void;
   updateCanvasSettings: (patch: Partial<CanvasSettings>) => void;
   updateNodeDefaults: (patch: Partial<NodeDefaults>) => void;
   updateEdgeDefaults: (patch: Partial<EdgeDefaults>) => void;
@@ -216,6 +226,17 @@ export const useSettingsStore = create<SettingsState>()(
       autoSave: { ...DEFAULT_AUTOSAVE },
       accessibility: { ...DEFAULT_ACCESSIBILITY },
       debugMode: false,
+      toolbarGroupOrder: ['file', 'edit', 'view', 'layout', 'transform', 'panels', 'export', 'utils'],
+      toolbarLocked: true,
+      toolbarOrientation: 'horizontal' as ToolbarOrientation,
+
+      // -- toolbar group order ------------------------------------
+      setToolbarGroupOrder: (order) => set({ toolbarGroupOrder: order }),
+      toggleToolbarLocked: () => set((s) => ({ toolbarLocked: !s.toolbarLocked })),
+      setToolbarOrientation: (orientation) => set({ toolbarOrientation: orientation }),
+      toggleToolbarOrientation: () => set((s) => ({
+        toolbarOrientation: s.toolbarOrientation === 'horizontal' ? 'vertical' : 'horizontal',
+      })),
 
       // -- debug toggle -------------------------------------------
       toggleDebugMode: () =>
@@ -299,6 +320,9 @@ export const useSettingsStore = create<SettingsState>()(
         autoSave: state.autoSave,
         accessibility: state.accessibility,
         debugMode: state.debugMode,
+        toolbarGroupOrder: state.toolbarGroupOrder,
+        toolbarLocked: state.toolbarLocked,
+        toolbarOrientation: state.toolbarOrientation,
       }),
       // Sync logger debug flag when persisted state is rehydrated
       onRehydrateStorage: () => (state) => {

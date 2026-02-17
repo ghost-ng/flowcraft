@@ -161,7 +161,7 @@ If `color` is omitted, the shape type determines the fill:
 
 ## 3. Edges (Connectors)
 
-Each edge connects two nodes.
+Each edge connects two nodes. Edges support full styling including color, thickness, dash patterns, labels, and arrowhead markers.
 
 ```json
 {
@@ -171,14 +171,19 @@ Each edge connects two nodes.
   "type": "smoothstep",
   "sourceHandle": "bottom",
   "targetHandle": "top",
+  "animated": false,
+  "label": "Yes",
+  "markerEnd": "arrowclosed",
   "data": {
     "label": "Yes",
-    "color": "#10b981"
+    "color": "#10b981",
+    "thickness": 2,
+    "strokeDasharray": "8 4"
   }
 }
 ```
 
-### 3.1 Edge Fields
+### 3.1 Edge Fields (top-level)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -188,21 +193,26 @@ Each edge connects two nodes.
 | `type` | string | `"smoothstep"` | Edge routing type (see below) |
 | `sourceHandle` | string | — | Source connection point: `"top"`, `"bottom"`, `"left"`, `"right"` |
 | `targetHandle` | string | — | Target connection point: `"top"`, `"bottom"`, `"left"`, `"right"` |
-| `data` | object | — | Edge data payload |
+| `animated` | boolean | `false` | Whether to animate the edge (React Flow top-level property) |
+| `label` | string | — | Text label on the edge (alternative to `data.label`) |
+| `markerEnd` | string | `"arrowclosed"` | End arrowhead marker (see markers below) |
+| `markerStart` | string | — | Start arrowhead marker (see markers below) |
+| `style` | object | — | CSS style overrides for the edge path (e.g. `{ "stroke": "#f00" }`) |
+| `data` | object | — | Edge data payload (see below) |
 
 ### 3.2 Valid Edge Types
 
-| Type | Description |
-|------|-------------|
-| `default` | Default bezier curve |
-| `straight` | Straight line |
-| `step` | Right-angle steps |
-| `smoothstep` | Smooth right-angle curves (recommended default) |
-| `bezier` | Smooth bezier curve |
-| `dependency` | Styled dependency connector |
-| `animated` | Animated dashed line |
+| Type | Description | Visual |
+|------|-------------|--------|
+| `default` | Default bezier curve | Smooth curved line |
+| `straight` | Straight line | Direct line between nodes |
+| `step` | Right-angle steps | Sharp 90° turns |
+| `smoothstep` | Smooth right-angle curves (recommended) | Rounded 90° turns |
+| `bezier` | Smooth bezier curve | S-curve line |
+| `dependency` | Styled dependency connector | Colored by dependency type |
+| `animated` | Animated dashed line | Moving dashes |
 
-### 3.3 Edge Data
+### 3.3 Edge Data (`data` object)
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -212,7 +222,44 @@ Each edge connects two nodes.
 | `animated` | boolean | `false` | Whether to animate the edge |
 | `opacity` | number | `1` | Edge opacity (0-1) |
 | `labelColor` | string (hex) | — | Color of the label text |
+| `labelPosition` | number | `0.5` | Position of the label along the edge: `0` = near source, `0.5` = center (default), `1` = near target |
+| `strokeDasharray` | string | — | SVG dash pattern (e.g. `"8 4"` for dashed, `"2 2"` for dotted) |
 | `dependencyType` | string | — | `"depends-on"`, `"blocks"`, or `"related"` |
+
+### 3.4 Arrowhead Markers
+
+| Marker Value | Description |
+|-------------|-------------|
+| `"arrowclosed"` | Filled triangle arrowhead (default for `markerEnd`) |
+| `"arrow"` | Open triangle arrowhead |
+| _(omit)_ | No marker |
+
+### 3.5 Common Connector Patterns
+
+**Dashed connector:**
+```json
+{ "id": "e1", "source": "a", "target": "b", "data": { "color": "#94a3b8", "strokeDasharray": "8 4" } }
+```
+
+**Thick colored connector with label:**
+```json
+{ "id": "e2", "source": "a", "target": "b", "data": { "label": "HTTPS", "color": "#3b82f6", "thickness": 3 } }
+```
+
+**Animated dependency edge:**
+```json
+{ "id": "e3", "source": "a", "target": "b", "type": "dependency", "data": { "dependencyType": "blocks", "color": "#ef4444" } }
+```
+
+**Connector with label near the source:**
+```json
+{ "id": "e4a", "source": "a", "target": "b", "data": { "label": "Out", "labelPosition": 0.15 } }
+```
+
+**Bidirectional arrows:**
+```json
+{ "id": "e4", "source": "a", "target": "b", "markerEnd": "arrowclosed", "markerStart": "arrowclosed" }
+```
 
 ---
 
@@ -451,43 +498,117 @@ To assign a node to a layer, set `data.layerId` on the node to match a layer's `
 
 ## 9. Icons
 
-FlowCraft uses [Lucide icons](https://lucide.dev/icons/). When specifying an icon name, use the **PascalCase** component name from lucide-react:
+FlowCraft uses [Lucide icons](https://lucide.dev/icons/). When specifying an icon name, use the **PascalCase** component name from lucide-react.
 
-**Common examples:**
-| Icon Name | Visual |
-|-----------|--------|
-| `Check` | Checkmark |
-| `X` | X/close |
-| `AlertTriangle` | Warning triangle |
-| `Database` | Database cylinder |
-| `Server` | Server rack |
-| `Cloud` | Cloud |
-| `User` | Person silhouette |
-| `Settings` | Gear |
-| `Lock` | Padlock |
-| `Unlock` | Open padlock |
-| `ArrowRight` | Right arrow |
-| `ArrowDown` | Down arrow |
-| `FileText` | Document with text |
-| `FolderOpen` | Open folder |
-| `Globe` | Globe/world |
-| `Mail` | Email envelope |
-| `Phone` | Telephone |
-| `Search` | Magnifying glass |
-| `Star` | Star |
-| `Heart` | Heart |
-| `Zap` | Lightning bolt |
-| `Shield` | Shield |
-| `Code` | Code brackets |
-| `Terminal` | Terminal window |
-| `Cpu` | CPU chip |
-| `Wifi` | WiFi signal |
-| `Clock` | Clock face |
-| `Calendar` | Calendar |
-| `BarChart3` | Bar chart |
-| `PieChart` | Pie chart |
-| `GitBranch` | Git branch |
-| `Workflow` | Workflow diagram |
+### 9.1 Icon Properties on Nodes
+
+Icons are configured via fields in the node `data` object:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `icon` | string | — | Lucide icon name in PascalCase (e.g. `"Database"`, `"Shield"`) |
+| `iconColor` | string (hex) | text color | Icon color |
+| `iconSize` | number | fontSize + 2 | Icon size in pixels |
+| `iconPosition` | string | `"left"` | `"left"` or `"right"` relative to label |
+| `iconBgColor` | string (hex) | — | Background color behind the icon (creates a colored badge) |
+| `iconBorderColor` | string (hex) | — | Border color around the icon wrapper |
+| `iconBorderWidth` | number | `0` | Border width around the icon wrapper |
+| `iconOnly` | boolean | `false` | Renders only the icon with no shape background |
+
+### 9.2 Icon Examples
+
+**Node with icon next to label:**
+```json
+{
+  "data": {
+    "label": "Database",
+    "shape": "database",
+    "color": "#6366f1",
+    "icon": "Database",
+    "iconColor": "#ffffff",
+    "iconSize": 18
+  }
+}
+```
+
+**Icon with colored background badge:**
+```json
+{
+  "data": {
+    "label": "Secure",
+    "shape": "rectangle",
+    "icon": "Shield",
+    "iconBgColor": "#10b981",
+    "iconColor": "#ffffff",
+    "iconBorderColor": "#059669",
+    "iconBorderWidth": 1
+  }
+}
+```
+
+**Icon-only node (no shape background):**
+```json
+{
+  "data": {
+    "label": "",
+    "shape": "rectangle",
+    "icon": "Cloud",
+    "iconOnly": true,
+    "iconSize": 40,
+    "iconColor": "#6366f1"
+  }
+}
+```
+
+### 9.3 Common Icon Names
+
+| Icon Name | Visual | Use Case |
+|-----------|--------|----------|
+| `Check` | Checkmark | Success/completion |
+| `X` | X/close | Failure/cancel |
+| `AlertTriangle` | Warning triangle | Warnings |
+| `AlertCircle` | Alert circle | Errors |
+| `Database` | Database cylinder | Data stores |
+| `Server` | Server rack | Servers/infrastructure |
+| `Cloud` | Cloud | Cloud services |
+| `User` | Person silhouette | Users/accounts |
+| `Users` | People silhouettes | Teams/groups |
+| `Settings` | Gear | Configuration |
+| `Lock` | Padlock | Security/locked |
+| `Unlock` | Open padlock | Unlocked/public |
+| `Shield` | Shield | Protection/security |
+| `ShieldCheck` | Shield with check | Verified/secure |
+| `Key` | Key | Authentication |
+| `ArrowRight` | Right arrow | Flow direction |
+| `ArrowDown` | Down arrow | Flow direction |
+| `FileText` | Document with text | Documents |
+| `FolderOpen` | Open folder | Folders/categories |
+| `Globe` | Globe/world | Internet/web |
+| `Mail` | Email envelope | Email/messaging |
+| `Phone` | Telephone | Phone/communication |
+| `Search` | Magnifying glass | Search |
+| `Star` | Star | Favorites/important |
+| `Zap` | Lightning bolt | Performance/speed |
+| `Code` | Code brackets | Code/development |
+| `Terminal` | Terminal window | CLI/command line |
+| `Cpu` | CPU chip | Processing/compute |
+| `Wifi` | WiFi signal | Network/connectivity |
+| `Clock` | Clock face | Time/scheduling |
+| `Calendar` | Calendar | Dates/deadlines |
+| `BarChart3` | Bar chart | Analytics/metrics |
+| `PieChart` | Pie chart | Reports |
+| `GitBranch` | Git branch | Version control |
+| `Workflow` | Workflow diagram | Processes |
+| `Bug` | Bug | Issues/debugging |
+| `Eye` | Eye | Visibility/monitoring |
+| `EyeOff` | Eye with slash | Hidden |
+| `RefreshCw` | Circular arrows | Refresh/retry |
+| `Trash2` | Trash can | Delete |
+| `Download` | Download arrow | Downloads |
+| `Upload` | Upload arrow | Uploads |
+| `ExternalLink` | Arrow out of box | External links |
+| `Link` | Chain link | Connections |
+| `Layers` | Stacked layers | Layers/tiers |
 
 The full icon list is at https://lucide.dev/icons/
 
@@ -757,7 +878,42 @@ The importer applies these rules automatically:
 
 ---
 
-## 13. Tips for AI Generation
+## 13. Sizing and Readability Guidelines
+
+### 13.1 Block Sizing for Labels
+
+Blocks (nodes) should be large enough to present their text/labels clearly without truncation or overflow. Follow these rules:
+
+- **Short labels (1-3 words):** Default size is fine (160×60 for rectangles, 100×100 for diamonds/circles).
+- **Medium labels (4-8 words):** Increase `width` to 200-250px or reduce `fontSize` to 12.
+- **Long labels (9+ words or multi-line):** Use `width: 280-360` and `height: 80-100` so text wraps comfortably.
+- **With icons:** Add ~24px to the width to accommodate the icon beside the label.
+- **Diamond shapes:** Keep labels under 3 words (diamonds have limited interior space). Use 120×120 if the label is 2 words.
+- **General rule:** When in doubt, make the block wider rather than taller — horizontal text is easier to read.
+
+### 13.2 Status Puck Sizing and Placement
+
+When using status indicators (`statusIndicators`), consider the node size:
+
+- **Default puck size (12px):** Works well on standard-sized nodes (160×60 and larger).
+- **Small nodes (width < 100 or height < 50):** Use `size: 8` to avoid the puck dominating the node.
+- **Large nodes (width > 250):** Consider `size: 14-16` so the puck remains visible.
+- **Multiple pucks:** Place them in different corners to avoid overlap. For 2 pucks, use `top-right` and `top-left`. For 3-4, use all four corners.
+- **Diamond shapes:** Pucks are automatically positioned at the diamond edge midpoints (not at bounding box corners), so all four positions work well.
+
+### 13.3 Connector Labels and Short Edges
+
+Edge labels can overlap or look cluttered on short connectors. Follow these guidelines:
+
+- **Short edges (nodes < 120px apart):** Avoid labels, or use `labelPosition` to shift the label away from the midpoint (e.g., `0.2` or `0.8`).
+- **Medium edges (120-250px):** Labels work well at the default center position (`0.5`).
+- **Long edges (> 250px):** Labels are very readable; consider placing them near the source (`0.2`) or target (`0.8`) for clarity.
+- **When labels overlap nodes:** Use `labelPosition: 0.3` or `0.7` to nudge the label away from the node.
+- **Keep labels short:** 1-3 words is ideal (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"async"`). Long labels on edges look cluttered.
+
+---
+
+## 14. Tips for AI Generation
 
 1. **Use unique, descriptive IDs** — e.g., `"node_auth_check"` not `"node_1"`. Makes edges easier to define and debug.
 

@@ -24,7 +24,7 @@ import GenericShapeNode from './GenericShapeNode';
 import GroupNode from './GroupNode';
 import Ruler, { RulerCorner } from './Ruler';
 import { edgeTypes } from '../Edges';
-import { SwimlaneLayer } from '../Swimlanes';
+import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
@@ -912,6 +912,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           position="bottom-left"
         />
       </ReactFlow>
+
+      {/* Swimlane resize handles rendered ABOVE ReactFlow so they receive mouse events */}
+      {hasLanes && <SwimlaneResizeOverlay />}
 
       {/* Ruler overlays */}
       {rulerVisible && (

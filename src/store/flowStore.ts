@@ -126,6 +126,8 @@ export interface FlowEdgeData {
   animated?: boolean;
   opacity?: number;
   labelColor?: string;
+  /** Position of the label along the edge (0 = source, 0.5 = center, 1 = target). Default 0.5. */
+  labelPosition?: number;
   dependencyType?: 'depends-on' | 'blocks' | 'related';
   [key: string]: unknown;
 }

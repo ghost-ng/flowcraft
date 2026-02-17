@@ -190,39 +190,49 @@ const DependencyEdge: React.FC<EdgeProps> = ({
         <LightningBoltIcon x={labelX} y={labelY - 14} color={strokeColor} />
       )}
 
-      {/* Dependency type pill badge + optional label */}
-      <EdgeLabelRenderer>
-        {/* Dependency type pill badge */}
-        {DEPENDENCY_LABELS[depType] && (
-          <div
-            className="absolute pointer-events-none rounded-full px-2 py-px text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap border"
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + (showLabel ? -12 : 0)}px)`,
-              color: strokeColor,
-              backgroundColor: `${strokeColor}14`,
-              borderColor: `${strokeColor}40`,
-            }}
-          >
-            {DEPENDENCY_LABELS[depType]}
-          </div>
-        )}
+      {/* Dependency type pill badge + optional label (position adjustable via labelPosition) */}
+      {(() => {
+        const t = (edgeData as Record<string, unknown>)?.labelPosition as number ?? 0.5;
+        let lx = labelX, ly = labelY;
+        if (t !== 0.5) {
+          if (t < 0.5) { const s = t * 2; lx = sourceX + s * (labelX - sourceX); ly = sourceY + s * (labelY - sourceY); }
+          else { const s = (t - 0.5) * 2; lx = labelX + s * (targetX - labelX); ly = labelY + s * (targetY - labelY); }
+        }
+        return (
+          <EdgeLabelRenderer>
+            {/* Dependency type pill badge */}
+            {DEPENDENCY_LABELS[depType] && (
+              <div
+                className="absolute pointer-events-none rounded-full px-2 py-px text-[10px] font-semibold tracking-wide uppercase whitespace-nowrap border"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${lx}px, ${ly + (showLabel ? -12 : 0)}px)`,
+                  color: strokeColor,
+                  backgroundColor: `${strokeColor}14`,
+                  borderColor: `${strokeColor}40`,
+                }}
+              >
+                {DEPENDENCY_LABELS[depType]}
+              </div>
+            )}
 
-        {/* Custom label text */}
-        {showLabel && (
-          <div
-            className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY + (DEPENDENCY_LABELS[depType] ? 8 : 0)}px)`,
-              color: (edgeData as Record<string, unknown>)?.labelColor as string ?? overrides?.labelFontColor ?? '#475569',
-              backgroundColor: overrides?.labelBgColor ?? '#ffffff',
-              borderColor: strokeColor,
-              fontSize: overrides?.labelFontSize ?? 11,
-            }}
-          >
-            {label}
-          </div>
-        )}
-      </EdgeLabelRenderer>
+            {/* Custom label text */}
+            {showLabel && (
+              <div
+                className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${lx}px, ${ly + (DEPENDENCY_LABELS[depType] ? 8 : 0)}px)`,
+                  color: (edgeData as Record<string, unknown>)?.labelColor as string ?? overrides?.labelFontColor ?? '#475569',
+                  backgroundColor: overrides?.labelBgColor ?? '#ffffff',
+                  borderColor: strokeColor,
+                  fontSize: overrides?.labelFontSize ?? 11,
+                }}
+              >
+                {label}
+              </div>
+            )}
+          </EdgeLabelRenderer>
+        );
+      })()}
     </>
   );
 };

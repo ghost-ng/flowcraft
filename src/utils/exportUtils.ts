@@ -709,6 +709,55 @@ const VALID_EDGE_TYPES = new Set([
 ]);
 
 /**
+ * Strip single-line (//) and multi-line comments from a JSON string,
+ * preserving // inside quoted strings (e.g. URLs).
+ */
+function stripJsonComments(json: string): string {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  let i = 0;
+  while (i < json.length) {
+    if (escaped) {
+      result += json[i];
+      escaped = false;
+      i++;
+      continue;
+    }
+    if (json[i] === '\\' && inString) {
+      result += json[i];
+      escaped = true;
+      i++;
+      continue;
+    }
+    if (json[i] === '"') {
+      inString = !inString;
+      result += json[i];
+      i++;
+      continue;
+    }
+    if (!inString) {
+      // Single-line comment
+      if (json[i] === '/' && json[i + 1] === '/') {
+        while (i < json.length && json[i] !== '\n') i++;
+        continue;
+      }
+      // Multi-line comment
+      if (json[i] === '/' && json[i + 1] === '*') {
+        i += 2;
+        while (i < json.length && !(json[i] === '*' && json[i + 1] === '/')) i++;
+        i += 2;
+        continue;
+      }
+    }
+    result += json[i];
+    i++;
+  }
+  // Remove trailing commas before } or ]
+  return result.replace(/,(\s*[}\]])/g, '$1');
+}
+
+/**
  * Import a FlowCraft JSON file and load it into all stores.
  *
  * Accepts either a raw JSON string or an already-parsed object.
@@ -725,7 +774,7 @@ export function importFromJson(
   let data: Record<string, unknown>;
   if (typeof input === 'string') {
     try {
-      data = JSON.parse(input);
+      data = JSON.parse(stripJsonComments(input));
     } catch {
       throw new Error('Invalid JSON: could not parse the file');
     }
@@ -893,7 +942,17 @@ export function importFromJson(
       if (typeof rawData.animated === 'boolean') edgeData.animated = rawData.animated;
       if (typeof rawData.opacity === 'number') edgeData.opacity = rawData.opacity;
       if (typeof rawData.labelColor === 'string') edgeData.labelColor = rawData.labelColor;
+      if (typeof rawData.labelPosition === 'number') edgeData.labelPosition = rawData.labelPosition;
+      if (typeof rawData.strokeDasharray === 'string') edgeData.strokeDasharray = rawData.strokeDasharray;
       if (typeof rawData.dependencyType === 'string') edgeData.dependencyType = rawData.dependencyType;
+
+      // Top-level React Flow edge properties
+      const topLevel: Record<string, unknown> = {};
+      if (typeof r.label === 'string') topLevel.label = r.label;
+      if (typeof r.animated === 'boolean') topLevel.animated = r.animated;
+      if (typeof r.markerEnd === 'string') topLevel.markerEnd = r.markerEnd;
+      if (typeof r.markerStart === 'string') topLevel.markerStart = r.markerStart;
+      if (typeof r.style === 'object' && r.style !== null) topLevel.style = r.style;
 
       edges.push({
         id,
@@ -903,6 +962,7 @@ export function importFromJson(
         ...(Object.keys(edgeData).length > 0 ? { data: edgeData } : {}),
         ...(typeof r.sourceHandle === 'string' ? { sourceHandle: r.sourceHandle } : {}),
         ...(typeof r.targetHandle === 'string' ? { targetHandle: r.targetHandle } : {}),
+        ...topLevel,
       } as FlowEdge);
     }
   }
@@ -1054,6 +1114,30 @@ export async function copySvgToClipboard(): Promise<void> {
   const svgString = decodeURIComponent(dataUrl.split(',')[1]);
   await navigator.clipboard.writeText(svgString);
   log.debug('SVG copied to clipboard');
+}
+
+export async function copySvgForPaste(): Promise<void> {
+  log.debug('Copying SVG as pasteable vector...');
+  const element = getReactFlowElement();
+
+  const svgDataUrl = await toSvg(element, { skipFonts: false });
+  const svgString = decodeURIComponent(svgDataUrl.split(',')[1]);
+
+  // Write SVG as text/html so apps like PPT receive a vector graphic,
+  // plus a PNG fallback for apps that only support raster images.
+  const htmlBlob = new Blob([svgString], { type: 'text/html' });
+
+  const pngDataUrl = await toPng(element, { pixelRatio: 2, backgroundColor: '#ffffff' });
+  const pngResponse = await fetch(pngDataUrl);
+  const pngBlob = await pngResponse.blob();
+
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      'text/html': htmlBlob,
+      'image/png': pngBlob,
+    }),
+  ]);
+  log.debug('SVG vector copied to clipboard');
 }
 
 // ---------------------------------------------------------------------------

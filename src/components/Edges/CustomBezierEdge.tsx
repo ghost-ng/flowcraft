@@ -105,23 +105,31 @@ const CustomBezierEdge: React.FC<EdgeProps> = ({
         />
       )}
 
-      {/* Label at midpoint */}
-      {label && (
-        <EdgeLabelRenderer>
-          <div
-            className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              color: (edgeData as Record<string, unknown>)?.labelColor as string ?? overrides?.labelFontColor ?? '#475569',
-              backgroundColor: overrides?.labelBgColor ?? '#ffffff',
-              borderColor: strokeColor,
-              fontSize: overrides?.labelFontSize ?? 11,
-            }}
-          >
-            {label}
-          </div>
-        </EdgeLabelRenderer>
-      )}
+      {/* Label (position adjustable via labelPosition: 0=source, 0.5=center, 1=target) */}
+      {label && (() => {
+        const t = (edgeData as Record<string, unknown>)?.labelPosition as number ?? 0.5;
+        let lx = labelX, ly = labelY;
+        if (t !== 0.5) {
+          if (t < 0.5) { const s = t * 2; lx = sourceX + s * (labelX - sourceX); ly = sourceY + s * (labelY - sourceY); }
+          else { const s = (t - 0.5) * 2; lx = labelX + s * (targetX - labelX); ly = labelY + s * (targetY - labelY); }
+        }
+        return (
+          <EdgeLabelRenderer>
+            <div
+              className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
+              style={{
+                transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)`,
+                color: (edgeData as Record<string, unknown>)?.labelColor as string ?? overrides?.labelFontColor ?? '#475569',
+                backgroundColor: overrides?.labelBgColor ?? '#ffffff',
+                borderColor: strokeColor,
+                fontSize: overrides?.labelFontSize ?? 11,
+              }}
+            >
+              {label}
+            </div>
+          </EdgeLabelRenderer>
+        );
+      })()}
     </>
   );
 };

@@ -11,6 +11,7 @@ import { useStyleStore } from './store/styleStore';
 import { useUIStore } from './store/uiStore';
 import { useExportStore } from './store/exportStore';
 import { useFlowStore } from './store/flowStore';
+import { useSettingsStore } from './store/settingsStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useAutoLayout } from './hooks/useAutoLayout';
@@ -38,6 +39,7 @@ const App: React.FC = () => {
   const toggleDarkMode = useStyleStore((s) => s.toggleDarkMode);
   const exportDialogOpen = useExportStore((s) => s.dialogOpen);
   const presentationMode = useUIStore((s) => s.presentationMode);
+  const toolbarOrientation = useSettingsStore((s) => s.toolbarOrientation);
 
   // Template gallery state
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
@@ -510,6 +512,22 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const isVerticalToolbar = toolbarOrientation === 'vertical';
+
+  const toolbarEl = !presentationMode && (
+    <Toolbar
+      onZoomIn={() => viewControlsRef.current?.zoomIn()}
+      onZoomOut={() => viewControlsRef.current?.zoomOut()}
+      onFitView={() => viewControlsRef.current?.fitView()}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onOpenTemplates={() => setTemplateGalleryOpen(true)}
+      onOpenShortcuts={() => setShortcutsDialogOpen(true)}
+    />
+  );
+
   return (
     <div
       className={`
@@ -517,23 +535,14 @@ const App: React.FC = () => {
         ${darkMode ? 'dark' : ''}
       `}
     >
-      {/* Top toolbar - hidden in presentation mode */}
-      {!presentationMode && (
-        <Toolbar
-          onZoomIn={() => viewControlsRef.current?.zoomIn()}
-          onZoomOut={() => viewControlsRef.current?.zoomOut()}
-          onFitView={() => viewControlsRef.current?.fitView()}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onOpenTemplates={() => setTemplateGalleryOpen(true)}
-          onOpenShortcuts={() => setShortcutsDialogOpen(true)}
-        />
-      )}
+      {/* Top toolbar (horizontal mode) */}
+      {!isVerticalToolbar && toolbarEl}
 
       {/* Main content area */}
       <div className="flex flex-1 min-h-0">
+        {/* Left: Vertical toolbar (vertical mode) — before shape palette */}
+        {isVerticalToolbar && toolbarEl}
+
         {/* Left: Shape palette - hidden in presentation mode */}
         {!presentationMode && <ShapePalette />}
 
