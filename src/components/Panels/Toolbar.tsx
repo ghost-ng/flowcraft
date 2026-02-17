@@ -44,6 +44,8 @@ import {
   MousePointerClick,
   Bug,
   Monitor,
+  ClipboardPaste,
+  Github,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -279,6 +281,27 @@ const Toolbar: React.FC<ToolbarProps> = ({
       }
     };
     input.click();
+  }, []);
+
+  const handlePasteJson = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        useUIStore.getState().showToast('Clipboard is empty', 'warning');
+        return;
+      }
+      const result = importFromJson(text);
+      const msg = `Imported ${result.nodeCount} nodes and ${result.edgeCount} edges`;
+      if (result.warnings.length > 0) {
+        log.warn('Import warnings', result.warnings);
+        useUIStore.getState().showToast(`${msg} (${result.warnings.length} warnings — see console)`, 'warning');
+      } else {
+        useUIStore.getState().showToast(msg, 'success');
+      }
+    } catch (err) {
+      log.error('Paste JSON failed', err);
+      useUIStore.getState().showToast(`Paste failed: ${err instanceof Error ? err.message : 'unknown error'}`, 'error');
+    }
   }, []);
 
   const handleAutoArrange = useCallback(() => {
@@ -757,6 +780,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
           tooltip="Export (Ctrl+E)"
           onClick={handleOpenExport}
         />
+        <ToolbarButton
+          icon={<ClipboardPaste size={iconSize} />}
+          tooltip="Import from Clipboard"
+          onClick={handlePasteJson}
+        />
       </div>
 
       <ToolbarDivider />
@@ -836,10 +864,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       <ToolbarDivider />
 
-      {/* ---- Version badge ---- */}
+      {/* ---- Version + GitHub ---- */}
       <span className="text-[10px] font-mono text-text-muted select-none px-1">
         v{__APP_VERSION__}
       </span>
+      <a
+        href="https://github.com/ghost-ng/flowcraft"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-1 rounded text-text-muted hover:text-text transition-colors"
+        data-tooltip="GitHub"
+      >
+        <Github size={14} />
+      </a>
     </div>
   );
 };
