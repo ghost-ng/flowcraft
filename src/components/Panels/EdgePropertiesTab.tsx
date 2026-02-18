@@ -180,24 +180,16 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
       [allExpanded, collapsedSections],
     );
 
-    const handleToggleAll = useCallback(() => {
-      setAllExpanded((prev) => {
-        if (prev === false) return true;
-        return false;
-      });
-    }, []);
-
-    // React to toggle-all signal from the parent (button lives in the tab bar)
-    useEffect(() => {
-      if (toggleAllSignal && toggleAllSignal > 0) {
-        handleToggleAll();
-      }
-    }, [toggleAllSignal]); // eslint-disable-line react-hooks/exhaustive-deps
-
     const toggleSection = useCallback((key: string) => {
       setAllExpanded(null);
       setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
     }, []);
+
+    // React to toggle-all signal from the tab bar chevron
+    useEffect(() => {
+      if (toggleAllSignal === undefined || toggleAllSignal === 0) return;
+      setAllExpanded((prev) => (prev === false ? true : false));
+    }, [toggleAllSignal]);
 
     // -----------------------------------------------------------------------
     // Smart defaults on edge change

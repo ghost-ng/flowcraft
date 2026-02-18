@@ -13,7 +13,6 @@ import {
   Columns3,
   Grid3X3,
   Copy,
-  ChevronsUpDown,
   ChevronsLeft,
   ChevronsRight,
   AArrowUp,
@@ -54,9 +53,9 @@ const toHexColor = (c: string | undefined, fallback = '#ffffff'): string => {
 // Panel tab definitions
 // ---------------------------------------------------------------------------
 
-const TABS: { id: PanelTab; label: string }[] = [
-  { id: 'node', label: 'Node' },
-  { id: 'edge', label: 'Connector' },
+const TABS: { id: PanelTab; label: string; collapsible?: boolean }[] = [
+  { id: 'node', label: 'Node', collapsible: true },
+  { id: 'edge', label: 'Connector', collapsible: true },
   { id: 'deps', label: 'Deps' },
   { id: 'lane', label: 'Lane' },
   { id: 'data', label: 'Data' },
@@ -530,11 +529,10 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
     return !!collapsedSections[section];
   }, [allExpanded, collapsedSections]);
 
-  // React to toggle-all signal from the parent (button lives in the tab bar)
+  // React to toggle-all signal from the tab bar chevron
   useEffect(() => {
-    if (toggleAllSignal && toggleAllSignal > 0) {
-      setAllExpanded((prev) => prev === null ? true : prev ? false : true);
-    }
+    if (toggleAllSignal === undefined || toggleAllSignal === 0) return;
+    setAllExpanded((prev) => (prev === false ? true : false));
   }, [toggleAllSignal]);
 
   const update = useCallback(
@@ -1977,12 +1975,12 @@ const PropertiesPanel: React.FC = () => {
     return edges.find((e) => e.id === selectedEdges[0]) ?? null;
   }, [selectedEdges, edges]);
 
-  // Toggle-all signal for collapsible sections (counter increments to trigger)
-  const [toggleAllSignal, setToggleAllSignal] = useState(0);
-  const [edgeToggleAllSignal, setEdgeToggleAllSignal] = useState(0);
-
   // Puck selection state
   const selectedPuckIds = useUIStore((s) => s.selectedPuckIds);
+
+  // Toggle-all-sections signals (counter-based; child components react to changes)
+  const [nodeToggleSignal, setNodeToggleSignal] = useState(0);
+  const [edgeToggleSignal, setEdgeToggleSignal] = useState(0);
 
   // Auto-switch to the Connector tab when an edge is selected
   useEffect(() => {
@@ -2027,48 +2025,34 @@ const PropertiesPanel: React.FC = () => {
     >
       {/* Tab bar */}
       <div className="flex border-b border-inherit shrink-0">
-        {/* Close panel button — always visible */}
-        <button
-          onClick={() => useUIStore.getState().setPropertiesPanelOpen(false)}
-          className="px-1 flex items-center text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
-          data-tooltip="Close panel"
-        >
-          <ChevronsRight size={14} />
-        </button>
         {TABS.map((tab) => {
           const isActive = activePanelTab === tab.id;
-          // Show collapse/expand chevron for tabs that have collapsible sections
-          const showToggle = isActive && (
-            (tab.id === 'node' && !!selectedNode) ||
-            (tab.id === 'edge' && !!selectedEdge)
-          );
           return (
             <button
               key={tab.id}
-              onClick={() => setActivePanelTab(tab.id)}
+              onClick={() => {
+                if (isActive && tab.collapsible) {
+                  if (tab.id === 'node') setNodeToggleSignal((s) => s + 1);
+                  if (tab.id === 'edge') setEdgeToggleSignal((s) => s + 1);
+                } else {
+                  setActivePanelTab(tab.id);
+                }
+              }}
               className={`
                 flex-1 py-2 text-[11px] font-medium tracking-wide uppercase
-                transition-colors cursor-pointer flex items-center justify-center gap-0.5
+                transition-colors cursor-pointer
                 ${isActive
                   ? 'text-primary border-b-2 border-primary'
                   : 'text-text-muted hover:text-text'
                 }
               `}
             >
-              {showToggle && (
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (tab.id === 'edge') setEdgeToggleAllSignal((c) => c + 1);
-                    else setToggleAllSignal((c) => c + 1);
-                  }}
-                  className="hover:bg-primary/20 rounded p-0.5 transition-colors"
-                  data-tooltip="Expand / Collapse all sections"
-                >
-                  <ChevronsUpDown size={12} />
-                </span>
-              )}
-              {tab.label}
+              <span className="flex items-center justify-center gap-1">
+                {isActive && tab.collapsible && (
+                  <ChevronDown size={12} className="transition-transform" />
+                )}
+                {tab.label}
+              </span>
             </button>
           );
         })}
@@ -2091,7 +2075,7 @@ const PropertiesPanel: React.FC = () => {
           <NodePropsTab
             nodeId={selectedNode.id}
             data={selectedNode.data as FlowNodeData}
-            toggleAllSignal={toggleAllSignal}
+            toggleAllSignal={nodeToggleSignal}
           />
         ) : activePanelTab === 'edge' ? (
           selectedEdge ? (
@@ -2100,7 +2084,7 @@ const PropertiesPanel: React.FC = () => {
               edgeData={(selectedEdge.data || {}) as FlowEdgeData}
               edgeType={selectedEdge.type}
               selectedEdgeIds={selectedEdges}
-              toggleAllSignal={edgeToggleAllSignal}
+              toggleAllSignal={edgeToggleSignal}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-12">
