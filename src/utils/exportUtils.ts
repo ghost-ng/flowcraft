@@ -2,11 +2,15 @@
 // exportUtils.ts -- All export functions for FlowCraft
 // ---------------------------------------------------------------------------
 
+import React, { createElement } from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { toPng, toJpeg, toSvg } from 'html-to-image';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import PptxGenJS from 'pptxgenjs';
 type SHAPE_NAME = PptxGenJS.SHAPE_NAME;
+import { icons as lucideIcons } from 'lucide-react';
 
 import { useFlowStore, newPuckId, getStatusIndicators } from '../store/flowStore';
 import type { FlowNode, FlowEdge, FlowNodeData, FlowEdgeData, StatusIndicator } from '../store/flowStore';
@@ -355,13 +359,31 @@ function dashArrayToPptxDash(da?: string): 'solid' | 'dash' | 'sysDot' | 'lgDash
 /** Map React Flow marker strings to PptxGenJS arrow types */
 function toPptxArrowType(marker?: string): 'none' | 'triangle' | 'stealth' | 'arrow' | 'diamond' | 'oval' {
   if (!marker) return 'none';
+  // Match specific marker names before generic keywords to avoid
+  // 'openDiamond' matching 'open' before 'diamond'
+  if (marker.includes('filledTriangle')) return 'triangle';
+  if (marker.includes('openTriangle')) return 'stealth';
+  if (marker.includes('filledDiamond')) return 'diamond';
+  if (marker.includes('openDiamond')) return 'diamond';
+  if (marker.includes('filledCircle')) return 'oval';
+  if (marker.includes('openCircle')) return 'oval';
+  if (marker.includes('tee')) return 'stealth';
+  // Generic fallbacks
   if (marker.includes('closed')) return 'triangle';
   if (marker.includes('open')) return 'stealth';
   if (marker.includes('diamond')) return 'diamond';
   if (marker.includes('circle') || marker.includes('dot')) return 'oval';
-  // Default marker url format: url(#marker-id) → triangle
   if (marker.startsWith('url(')) return 'triangle';
   return 'triangle';
+}
+
+/** Extract marker type string from either string or object form markers */
+function extractMarker(m: unknown): string | undefined {
+  if (typeof m === 'string') return m;
+  if (typeof m === 'object' && m !== null && 'type' in m) {
+    return (m as { type: string }).type;
+  }
+  return undefined;
 }
 
 /** Convert hex color string, stripping # prefix */
@@ -377,6 +399,37 @@ function darkenHex(color: string): string {
   const g = Math.max(0, Math.round(parseInt(c.substring(2, 4), 16) * 0.7));
   const b = Math.max(0, Math.round(parseInt(c.substring(4, 6), 16) * 0.7));
   return [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Render a lucide icon to an SVG data URI for embedding in PPTX.
+ * Returns null if the icon name is not found.
+ */
+function renderLucideIconSvg(iconName: string, color: string, size: number): string | null {
+  const IconComp = (lucideIcons as Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>>)[iconName];
+  if (!IconComp) return null;
+
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(createElement(IconComp, { size, color, strokeWidth: 2 }));
+  });
+
+  const svg = container.querySelector('svg');
+  if (!svg) {
+    root.unmount();
+    return null;
+  }
+
+  // Ensure xmlns for standalone SVG
+  if (!svg.getAttribute('xmlns')) {
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  }
+
+  const svgStr = svg.outerHTML;
+  root.unmount();
+
+  return `data:image/svg+xml;base64,${btoa(svgStr)}`;
 }
 
 /** Get StatusIndicator puck position offsets relative to node dimensions */
@@ -398,9 +451,12 @@ function puckOffset(
 
 export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   const state = useFlowStore.getState();
+  const styleState = useStyleStore.getState();
   const swimlaneState = useSwimlaneStore.getState();
   const legendState = useLegendStore.getState();
   const { nodes, edges } = state;
+  const globalFont = styleState.customFont || 'Arial';
+  const isDarkMode = styleState.darkMode;
 
   const { slideSize, includeNotes, oneSlidePerGroup } = options;
 
@@ -445,6 +501,11 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   // -- diagram slide --------------------------------------------------
   const slide = pptx.addSlide();
 
+  // Dark mode background
+  if (isDarkMode) {
+    slide.background = { color: '1e293b' };
+  }
+
   // Diagram title at the top of the slide
   slide.addText('FlowCraft Diagram', {
     x: 0.3,
@@ -453,7 +514,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     h: 0.35,
     fontSize: 14,
     bold: true,
-    color: '555555',
+    color: isDarkMode ? 'c8d1dc' : '555555',
     align: 'left',
     valign: 'middle',
   });
@@ -533,6 +594,23 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     const containerW = toW(totalW);
     const containerH = toH(totalH);
 
+    // Container title (above the border)
+    if (swimConfig.containerTitle) {
+      const titleH = 0.35;
+      slide.addText(swimConfig.containerTitle, {
+        x: containerX,
+        y: containerY - titleH,
+        w: containerW,
+        h: titleH,
+        fontSize: 12,
+        bold: true,
+        align: 'center',
+        valign: 'middle',
+        fontFace: globalFont,
+        color: isDarkMode ? 'c8d1dc' : '333333',
+      });
+    }
+
     // Container border
     if (border && border.style !== 'none') {
       slide.addShape('rect', {
@@ -546,7 +624,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
           width: border.width || 1,
           dashType: toPptxDashType(border.style),
         },
-        rectRadius: border.radius ? border.radius / 100 : undefined,
+        rectRadius: border.radius ? Math.min(0.5, border.radius * scale) : undefined,
       });
     }
 
@@ -554,8 +632,10 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     let vOffset = 0;
     for (let i = 0; i < vLanes.length; i++) {
       const lane = vLanes[i];
+      if (lane.hidden) { vOffset += lane.size; continue; }
+      const laneSize = lane.collapsed ? 30 : lane.size;
       const laneX = toX(swimOffset.x + vOffset);
-      const laneW = toW(lane.size);
+      const laneW = toW(laneSize);
 
       // Lane background (light fill)
       slide.addShape('rect', {
@@ -579,7 +659,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
           bold: true,
           align: 'center',
           valign: 'middle',
-          fontFace: 'Arial',
+          fontFace: globalFont,
         });
       }
 
@@ -599,15 +679,17 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         });
       }
 
-      vOffset += lane.size;
+      vOffset += laneSize;
     }
 
     // Horizontal lane dividers and backgrounds
     let hOffset = 0;
     for (let i = 0; i < hLanes.length; i++) {
       const lane = hLanes[i];
+      if (lane.hidden) { hOffset += lane.size; continue; }
+      const laneSize = lane.collapsed ? 30 : lane.size;
       const laneY = toY(swimOffset.y + hOffset);
-      const laneH = toH(lane.size);
+      const laneH = toH(laneSize);
 
       // Lane background
       slide.addShape('rect', {
@@ -631,7 +713,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
           bold: true,
           align: 'center',
           valign: 'middle',
-          fontFace: 'Arial',
+          fontFace: globalFont,
           rotate: swimConfig.labelRotation || 0,
         });
       }
@@ -652,7 +734,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         });
       }
 
-      hOffset += lane.size;
+      hOffset += laneSize;
     }
   }
 
@@ -703,42 +785,101 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
 
     const edgeData = edge.data as FlowEdgeData | undefined;
     const edgeStyle = edge.style as Record<string, unknown> | undefined;
-    const edgeColor = hex(
-      edgeData?.color || (edgeStyle?.stroke as string) || undefined,
-      '94a3b8',
-    );
-    const edgeWidth = edgeData?.thickness || (edgeStyle?.strokeWidth as number) || 1.5;
-    const edgeOpacity = edgeData?.opacity ?? 1;
-    const rawDash = (edgeData?.strokeDasharray as string | undefined) ?? (edgeStyle?.strokeDasharray as string | undefined);
-    const edgeDash = dashArrayToPptxDash(rawDash);
+    const overrides = edgeData?.styleOverrides as Record<string, unknown> | undefined;
 
-    // Determine arrow markers
-    const markerEnd = typeof edge.markerEnd === 'string' ? edge.markerEnd : undefined;
-    const markerStart = typeof edge.markerStart === 'string' ? edge.markerStart : undefined;
+    // Dependency type semantic colors
+    const DEP_COLORS: Record<string, string> = {
+      'depends-on': '94a3b8', 'blocks': 'e53e3e', 'related': 'a0aec0',
+      'triggers': '6366f1', 'optional': '94a3b8', 'milestone-gate': 'd69e2e',
+    };
+    const depColor = edgeData?.dependencyType ? DEP_COLORS[edgeData.dependencyType] : undefined;
+
+    const edgeColor = hex(
+      (overrides?.stroke as string) || edgeData?.color || (edgeStyle?.stroke as string) || undefined,
+      depColor || '94a3b8',
+    );
+    const edgeWidth = (overrides?.strokeWidth as number) || edgeData?.thickness || (edgeStyle?.strokeWidth as number) || 1.5;
+    const edgeOpacity = (overrides?.opacity as number) ?? edgeData?.opacity ?? 1;
+    const rawDash = (overrides?.strokeDasharray as string) ?? (edgeData?.strokeDasharray as string | undefined) ?? (edgeStyle?.strokeDasharray as string | undefined);
+    // Animated edges get dashed pattern
+    const edgeDash = edgeData?.animated ? 'lgDash' : dashArrayToPptxDash(rawDash);
+
+    // Determine arrow markers (supports both string and object form)
+    const markerEnd = extractMarker(edge.markerEnd);
+    const markerStart = extractMarker(edge.markerStart);
     const endArrow = toPptxArrowType(markerEnd);
     const beginArrow = toPptxArrowType(markerStart);
 
-    const lineX = Math.min(sx, tx);
-    const lineY = Math.min(sy, ty);
-    const lineW = Math.abs(tx - sx) || 0.01;
-    const lineH = Math.abs(ty - sy) || 0.01;
+    const edgeTransparency = Math.round((1 - edgeOpacity) * 100);
+    const baseLine = { color: edgeColor, width: edgeWidth, dashType: edgeDash, transparency: edgeTransparency };
+    const isStep = edge.type === 'step' || edge.type === 'smoothstep';
 
-    slide.addShape('line', {
-      x: lineX,
-      y: lineY,
-      w: lineW,
-      h: lineH,
-      line: {
-        color: edgeColor,
-        width: edgeWidth,
-        dashType: edgeDash,
-        endArrowType: endArrow !== 'none' ? endArrow : undefined,
-        beginArrowType: beginArrow !== 'none' ? beginArrow : undefined,
-        transparency: Math.round((1 - edgeOpacity) * 100),
-      },
-      flipH: tx < sx,
-      flipV: ty < sy,
-    });
+    if (isStep) {
+      // Render step/smoothstep edges as 3-segment polylines (H-V-H or V-H-V)
+      if (dy >= dx) {
+        // Vertical dominant: H → V → H routing with midpoint at vertical center
+        const midY = (sy + ty) / 2;
+        // Segment 1: source → mid (horizontal)
+        slide.addShape('line', {
+          x: Math.min(sx, sx), y: sy, w: 0.01, h: Math.abs(midY - sy) || 0.01,
+          line: { ...baseLine, beginArrowType: beginArrow !== 'none' ? beginArrow : undefined },
+          flipV: midY < sy,
+        });
+        // Segment 2: vertical to align with target x
+        slide.addShape('line', {
+          x: Math.min(sx, tx), y: midY, w: Math.abs(tx - sx) || 0.01, h: 0.01,
+          line: baseLine,
+          flipH: tx < sx,
+        });
+        // Segment 3: mid → target (vertical)
+        slide.addShape('line', {
+          x: tx, y: Math.min(midY, ty), w: 0.01, h: Math.abs(ty - midY) || 0.01,
+          line: { ...baseLine, endArrowType: endArrow !== 'none' ? endArrow : undefined },
+          flipV: ty < midY,
+        });
+      } else {
+        // Horizontal dominant: V → H → V routing with midpoint at horizontal center
+        const midX = (sx + tx) / 2;
+        // Segment 1: source → mid (horizontal)
+        slide.addShape('line', {
+          x: Math.min(sx, midX), y: sy, w: Math.abs(midX - sx) || 0.01, h: 0.01,
+          line: { ...baseLine, beginArrowType: beginArrow !== 'none' ? beginArrow : undefined },
+          flipH: midX < sx,
+        });
+        // Segment 2: vertical to align with target y
+        slide.addShape('line', {
+          x: midX, y: Math.min(sy, ty), w: 0.01, h: Math.abs(ty - sy) || 0.01,
+          line: baseLine,
+          flipV: ty < sy,
+        });
+        // Segment 3: mid → target (horizontal)
+        slide.addShape('line', {
+          x: Math.min(midX, tx), y: ty, w: Math.abs(tx - midX) || 0.01, h: 0.01,
+          line: { ...baseLine, endArrowType: endArrow !== 'none' ? endArrow : undefined },
+          flipH: tx < midX,
+        });
+      }
+    } else {
+      // Straight / bezier / default: single diagonal line
+      const lineX = Math.min(sx, tx);
+      const lineY = Math.min(sy, ty);
+      const lineW = Math.abs(tx - sx) || 0.01;
+      const lineH = Math.abs(ty - sy) || 0.01;
+
+      slide.addShape('line', {
+        x: lineX,
+        y: lineY,
+        w: lineW,
+        h: lineH,
+        line: {
+          ...baseLine,
+          endArrowType: endArrow !== 'none' ? endArrow : undefined,
+          beginArrowType: beginArrow !== 'none' ? beginArrow : undefined,
+        },
+        flipH: tx < sx,
+        flipV: ty < sy,
+      });
+    }
 
     // Edge label
     if (edgeData?.label) {
@@ -746,6 +887,15 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       const lx = sx + t * (tx - sx);
       const ly = sy + t * (ty - sy);
       const labelColor = hex(edgeData.labelColor || undefined, edgeColor);
+      // Edge label background for readability
+      slide.addShape('rect', {
+        x: lx - 0.5,
+        y: ly - 0.15,
+        w: 1,
+        h: 0.3,
+        fill: { color: isDarkMode ? '1e293b' : 'ffffff', transparency: 20 },
+        line: { type: 'none' } as unknown as PptxGenJS.ShapeLineProps,
+      });
       slide.addText(edgeData.label, {
         x: lx - 0.5,
         y: ly - 0.15,
@@ -755,7 +905,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         color: labelColor,
         align: 'center',
         valign: 'middle',
-        fontFace: 'Arial',
+        fontFace: globalFont,
       });
     }
   }
@@ -783,7 +933,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     const rawFontPt = (d.fontSize || 14) * scale * 72;
     const finalFontSize = Math.min(36, Math.max(6, Math.round(rawFontPt)));
     const isBold = d.fontWeight ? d.fontWeight >= 600 : false;
-    const fontFamily = d.fontFamily || 'Arial';
+    const fontFamily = d.fontFamily || globalFont;
     const textAlign = (d.textAlign as 'left' | 'center' | 'right') || 'center';
 
     // Border properties — always render a border for visual fidelity.
@@ -799,7 +949,14 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     const svgRenderer = SVG_SHAPE_RENDERERS[d.shape];
 
     // Build line opts — always include border for visible outlines
-    const lineOpts = { color: derivedBorderColor, width: borderWidth, dashType: borderDash };
+    // For icon-only nodes, hide shape fill and border
+    const isIconOnly = d.iconOnly && d.icon;
+    const fillOpts = isIconOnly
+      ? { type: 'none' as const }
+      : { color: fillColor, transparency: fillTransparency };
+    const lineOpts = isIconOnly
+      ? ({ type: 'none' } as unknown as { color: string; width: number; dashType: 'solid' | 'dash' | 'sysDot' | 'lgDash' })
+      : { color: derivedBorderColor, width: borderWidth, dashType: borderDash };
 
     // Build text options shared across all rendering paths
     const textOpts = {
@@ -838,7 +995,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         y,
         w: wInch,
         h: hInch,
-        fill: { color: fillColor, transparency: fillTransparency },
+        fill: fillOpts,
         line: lineOpts,
         ...textOpts,
         ...shapeSpecific,
@@ -871,7 +1028,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       slide.addText(label, {
         shape: 'rect' as SHAPE_NAME,
         x, y, w: wInch, h: hInch,
-        fill: { color: fillColor, transparency: fillTransparency },
+        fill: fillOpts,
         line: lineOpts,
         ...textOpts,
         ...fallbackRadius,
@@ -894,59 +1051,104 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         h: puckSize,
         fill: { color: puckColor },
         line: puck.borderWidth
-          ? { color: puckBorderColor, width: puck.borderWidth }
+          ? { color: puckBorderColor, width: puck.borderWidth, dashType: toPptxDashType(puck.borderStyle) }
           : undefined,
       });
     }
 
-    // ---------- Icon on the node (rendered as text symbol) -----------
-    if (d.icon && !d.iconOnly) {
-      const iconSize = toW(d.iconSize || 16);
-      const iconColor = hex(d.iconColor, textColor);
+    // ---------- Icon on the node (rendered as SVG or initial fallback) -
+    if (d.icon) {
+      const iconPxSize = d.iconSize || 16;
+      const iconSize = toW(iconPxSize);
+      const iconColorStr = '#' + hex(d.iconColor, textColor);
 
-      // Render icon name as text in top-left/top-right area
-      // Note: lucide icons don't map to PowerPoint; use the icon name as a label hint
       const iconX = d.iconPosition === 'right'
         ? x + wInch - iconSize - 0.02
         : x + 0.02;
-      const iconY = y + 0.02;
+      const iconY = d.iconOnly ? y + (hInch - iconSize) / 2 : y + 0.02;
 
-      // Create a small SVG circle with the first letter of the icon name
-      const initial = d.icon.charAt(0).toUpperCase();
-      slide.addText(initial, {
-        shape: 'ellipse',
-        x: iconX,
-        y: iconY,
-        w: iconSize,
-        h: iconSize,
-        fill: { color: hex(d.iconBgColor, fillColor) },
-        line: d.iconBorderWidth
-          ? { color: hex(d.iconBorderColor, 'ffffff'), width: d.iconBorderWidth }
-          : undefined,
-        fontSize: Math.max(5, Math.round(iconSize * 72 * 0.5)),
-        color: iconColor,
+      // Try to render the actual lucide icon as SVG
+      const iconDataUri = renderLucideIconSvg(d.icon, iconColorStr, Math.max(24, iconPxSize));
+      if (iconDataUri) {
+        // Icon background circle
+        if (!d.iconOnly) {
+          slide.addShape('ellipse', {
+            x: iconX,
+            y: iconY,
+            w: iconSize,
+            h: iconSize,
+            fill: { color: hex(d.iconBgColor, fillColor) },
+            line: d.iconBorderWidth
+              ? { color: hex(d.iconBorderColor, 'ffffff'), width: d.iconBorderWidth }
+              : undefined,
+          });
+        }
+        // Actual icon SVG image (slightly inset from background)
+        const inset = d.iconOnly ? 0 : iconSize * 0.15;
+        slide.addImage({
+          data: iconDataUri,
+          x: iconX + inset,
+          y: iconY + inset,
+          w: iconSize - inset * 2,
+          h: iconSize - inset * 2,
+        });
+      } else {
+        // Fallback: initial letter in a circle
+        const initial = d.icon.charAt(0).toUpperCase();
+        slide.addText(initial, {
+          shape: 'ellipse',
+          x: iconX,
+          y: iconY,
+          w: iconSize,
+          h: iconSize,
+          fill: d.iconOnly ? ({ type: 'none' } as unknown as PptxGenJS.ShapeFillProps) : { color: hex(d.iconBgColor, fillColor) },
+          line: d.iconBorderWidth
+            ? { color: hex(d.iconBorderColor, 'ffffff'), width: d.iconBorderWidth }
+            : undefined,
+          fontSize: Math.max(5, Math.round(iconSize * 72 * 0.5)),
+          color: hex(d.iconColor, textColor),
+          align: 'center',
+          valign: 'middle',
+          fontFace: globalFont,
+          bold: true,
+        });
+      }
+    }
+
+    // ---------- Description text below the node ----------------------
+    if (d.description) {
+      const descH = 0.25;
+      slide.addText(d.description, {
+        x,
+        y: y + hInch + 0.02,
+        w: wInch,
+        h: descH,
+        fontSize: Math.max(5, finalFontSize - 2),
+        color: isDarkMode ? '94a3b8' : '64748b',
         align: 'center',
-        valign: 'middle',
-        fontFace: 'Arial',
-        bold: true,
+        valign: 'top',
+        fontFace: fontFamily,
       });
     }
   }
 
   // -- render legend overlays (node + swimlane) -------------------------
   const allLegends = [legendState.nodeLegend, legendState.swimlaneLegend];
-  let legendOffset = 0; // stack multiple legends vertically from bottom-right
+  let legendOffsetY = 0; // stack multiple legends vertically from bottom-right
   for (const legendConfig of allLegends) {
-    if (!legendConfig.visible || legendConfig.items.length === 0) continue;
+    // Filter hidden items
+    const visibleItems = legendConfig.items.filter((item) => !item.hidden);
+    if (!legendConfig.visible || visibleItems.length === 0) continue;
     const lgStyle = legendConfig.style;
     const lgW = Math.min(2.5, toW(lgStyle.width || 200));
     const lgItemH = 0.22;
     const lgTitleH = 0.3;
-    const lgH = lgTitleH + legendConfig.items.length * lgItemH + 0.1;
+    const lgH = lgTitleH + visibleItems.length * lgItemH + 0.1;
 
-    const lgX = slideW - lgW - 0.3;
-    const lgY = slideH - lgH - 0.3 - legendOffset;
-    legendOffset += lgH + 0.15;
+    // Use legend position from config if available, otherwise default bottom-right
+    const lgX = legendConfig.position ? toX(legendConfig.position.x) : slideW - lgW - 0.3;
+    const lgY = legendConfig.position ? toY(legendConfig.position.y) : slideH - lgH - 0.3 - legendOffsetY;
+    legendOffsetY += lgH + 0.15;
 
     // Legend background
     slide.addShape('roundRect', {
@@ -954,7 +1156,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       y: lgY,
       w: lgW,
       h: lgH,
-      fill: { color: hex(lgStyle.bgColor, 'ffffff'), transparency: Math.round((1 - lgStyle.opacity) * 100) },
+      fill: { color: hex(isDarkMode ? lgStyle.bgColor || '1e293b' : lgStyle.bgColor, 'ffffff'), transparency: Math.round((1 - lgStyle.opacity) * 100) },
       line: { color: hex(lgStyle.borderColor, 'e2e8f0'), width: lgStyle.borderWidth || 1 },
       rectRadius: 0.05,
     });
@@ -968,27 +1170,65 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         h: lgTitleH,
         fontSize: Math.min(11, lgStyle.fontSize || 11),
         bold: true,
-        color: '333333',
+        color: isDarkMode ? 'c8d1dc' : '333333',
         align: 'left',
         valign: 'middle',
-        fontFace: 'Arial',
+        fontFace: globalFont,
       });
     }
 
-    // Legend items
-    const sortedItems = [...legendConfig.items].sort((a, b) => a.order - b.order);
+    // Legend items — render swatch based on item kind
+    const sortedItems = [...visibleItems].sort((a, b) => a.order - b.order);
     for (let i = 0; i < sortedItems.length; i++) {
       const item = sortedItems[i];
       const itemY = lgY + lgTitleH + i * lgItemH;
+      const swatchX = lgX + 0.15;
+      const swatchY = itemY + 0.04;
+      const swatchW = 0.14;
+      const swatchH = 0.14;
+      const itemColor = hex(item.color, '3b82f6');
 
-      // Color swatch
-      slide.addShape('ellipse', {
-        x: lgX + 0.15,
-        y: itemY + 0.04,
-        w: 0.14,
-        h: 0.14,
-        fill: { color: hex(item.color, '3b82f6') },
-      });
+      const kind = item.kind || 'fill';
+      switch (kind) {
+        case 'border':
+          // Outline-only rectangle with border style
+          slide.addShape('rect', {
+            x: swatchX, y: swatchY, w: swatchW, h: swatchH,
+            fill: { type: 'none' },
+            line: { color: itemColor, width: 1.5, dashType: toPptxDashType(item.borderStyle) },
+          });
+          break;
+        case 'edge':
+          // Horizontal line segment
+          slide.addShape('line', {
+            x: swatchX, y: swatchY + swatchH / 2, w: swatchW, h: 0.01,
+            line: { color: itemColor, width: 1.5 },
+          });
+          break;
+        case 'lane':
+          // Filled rectangle (representing a lane)
+          slide.addShape('rect', {
+            x: swatchX, y: swatchY, w: swatchW, h: swatchH,
+            fill: { color: itemColor, transparency: 50 },
+            line: { color: itemColor, width: 0.5 },
+          });
+          break;
+        case 'puck':
+          // Filled circle (status puck)
+          slide.addShape('ellipse', {
+            x: swatchX, y: swatchY, w: swatchW, h: swatchH,
+            fill: { color: itemColor },
+          });
+          break;
+        case 'fill':
+        default:
+          // Filled ellipse (node fill color)
+          slide.addShape('ellipse', {
+            x: swatchX, y: swatchY, w: swatchW, h: swatchH,
+            fill: { color: itemColor },
+          });
+          break;
+      }
 
       // Label
       slide.addText(item.label, {
@@ -997,10 +1237,10 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         w: lgW - 0.45,
         h: lgItemH,
         fontSize: Math.min(9, lgStyle.fontSize || 9),
-        color: '475569',
+        color: isDarkMode ? '94a3b8' : '475569',
         align: 'left',
         valign: 'middle',
-        fontFace: 'Arial',
+        fontFace: globalFont,
       });
     }
   }
@@ -1017,6 +1257,9 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         ? ` [${pucks.map((p) => p.status).join(', ')}]`
         : '';
       noteLines.push(`• ${n.data.label} (${n.data.shape})${puckStr}`);
+      if (n.data.description) {
+        noteLines.push(`  ${n.data.description}`);
+      }
     }
     slide.addNotes(noteLines.join('\n'));
   }

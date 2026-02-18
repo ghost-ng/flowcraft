@@ -242,7 +242,7 @@ Each edge connects two nodes. Edges support full styling including color, thickn
 | `labelColor` | string (hex) | — | Color of the label text |
 | `labelPosition` | number | `0.5` | Position of the label along the edge: `0` = near source, `0.5` = center (default), `1` = near target |
 | `strokeDasharray` | string | — | SVG dash pattern (e.g. `"8 4"` for dashed, `"2 2"` for dotted) |
-| `dependencyType` | string | — | `"depends-on"`, `"blocks"`, or `"related"` |
+| `dependencyType` | string | — | `"depends-on"`, `"blocks"`, `"related"`, `"triggers"`, `"optional"`, `"milestone-gate"`, or `"none"` |
 
 ### 3.4 Arrowhead Markers
 
@@ -485,6 +485,8 @@ Organize nodes into horizontal and/or vertical lanes.
 | `order` | number | `0` | Sort order (lower = first) |
 | `collapsed` | boolean | `false` | Whether the lane is collapsed |
 | `showLabel` | boolean | `true` | Whether the lane label is visible on the canvas |
+| `showColor` | boolean | `true` | Whether the lane color indicator is visible on the canvas |
+| `hidden` | boolean | `false` | When true, the lane background, header, and assigned nodes are hidden |
 
 ### 7.3 Container Border (`containerBorder` object)
 
@@ -650,6 +652,7 @@ Use `nodeLegend` for node fill colors, borders, status pucks, and edge colors. U
 | `shape` | string | No | Shape name (renders a small shape icon) |
 | `icon` | string | No | Lucide icon name (renders inside the swatch) |
 | `order` | number | No | Display order (lower = first) |
+| `hidden` | boolean | No | When true, item is hidden from the canvas overlay but kept in the editor |
 
 ### 9.4 Backwards Compatibility
 
@@ -1043,7 +1046,29 @@ The importer applies these rules automatically:
 
 ## 14. Sizing and Readability Guidelines
 
-### 14.1 Block Sizing for Labels
+### 14.1 Font Sizing
+
+Font sizes have a dramatic impact on diagram legibility. Get this wrong and the diagram is unreadable.
+
+**Default `fontSize: 14`** works well for nodes sized 160×60 with 1-3 word labels. But you MUST adjust it based on context:
+
+| Scenario | Recommended fontSize | Why |
+|----------|---------------------|-----|
+| Standard node (160×60) | `14` | Default, fits 2-3 words comfortably |
+| Small node (100×50 or less) | `10-12` | Prevents text overflow |
+| Large node (250×80+) | `16-18` | Fills space proportionally |
+| Diamond (100×100) | `11-12` | Usable text area is ~50% of bounding box |
+| Textbox/annotation | `11-13` | Annotations should be subtler than main nodes |
+| Title/header node | `18-24` | Use sparingly for section headers |
+
+**Font size scaling rule:** `fontSize` is in CSS pixels. For every 100px of node width, you can comfortably fit ~12 characters at `fontSize: 14`. So:
+- 160px wide → ~19 characters at size 14
+- 200px wide → ~24 characters at size 14
+- 280px wide → ~33 characters at size 14
+
+**NEVER leave `fontSize` at 14 for small shapes (diamonds, circles under 100px).** The text will overflow and look broken.
+
+### 14.2 Block Sizing for Labels
 
 Blocks (nodes) should be large enough to present their text/labels clearly without truncation or overflow. **You MUST set explicit `width` and `height` on any node whose label exceeds 2 words.** Follow these rules:
 
@@ -1054,6 +1079,18 @@ Blocks (nodes) should be large enough to present their text/labels clearly witho
 - **Diamond shapes:** Keep labels to **1-2 words MAX** (diamonds have very limited interior space). Use `width: 120, height: 120` if the label is 2 words. Never put a long label in a diamond — use a `rectangle` or `hexagon` instead.
 - **General rule:** When in doubt, make the block wider rather than taller — horizontal text is easier to read.
 - **Rough formula:** `width ≈ (character count × 8) + 40` for default font size. So a 30-character label needs `width: 280`.
+- **Multi-line labels:** For very long text, increase `height` proportionally. Each additional line of text at `fontSize: 14` needs ~20px of height.
+
+**Quick reference — minimum node width by character count:**
+
+| Characters | Min Width | Example Label |
+|-----------|-----------|---------------|
+| 5-10 | 120 | "Start", "Gateway" |
+| 11-15 | 160 | "Process Data" |
+| 16-20 | 200 | "Validate User Input" |
+| 21-25 | 240 | "Handle Authentication" |
+| 26-30 | 280 | "Deploy to Production Server" |
+| 31+ | 320+ | Consider abbreviating or splitting |
 
 ### 14.2 Status Puck Sizing and Placement
 
@@ -1065,7 +1102,77 @@ When using status indicators (`statusIndicators`), consider the node size:
 - **Multiple pucks:** Place them in different corners to avoid overlap. For 2 pucks, use `top-right` and `top-left`. For 3-4, use all four corners.
 - **Diamond shapes:** Pucks are automatically positioned at the diamond edge midpoints (not at bounding box corners), so all four positions work well.
 
-### 14.3 Connector Labels and Short Edges
+### 14.3 Shape Selection Guide
+
+Choosing the right shape communicates meaning before the reader even reads the label. **Use shapes consistently across your diagram.**
+
+| Shape | Best Used For | Notes |
+|-------|---------------|-------|
+| `rectangle` | Actions, processes, tasks, generic steps | The workhorse — use this when in doubt |
+| `roundedRectangle` | Start/end points, friendly actions, UI elements | Softer feel than rectangle; great for start/end terminators |
+| `diamond` | Decisions, conditions, gates, yes/no branches | **1-2 word labels ONLY** — usable text area is ~50% of box |
+| `circle` | Events, milestones, single-word concepts | Best at 100×100; keep labels very short |
+| `hexagon` | Preparation steps, complex decisions, categories | Good alternative to diamond when labels are longer |
+| `parallelogram` | Input/output, data flow, external data | Immediately signals data in/out |
+| `database` | Databases, data stores, caches, queues | Recognizable cylinder shape |
+| `cloud` | Cloud services, external systems, APIs | Good for anything "outside your system" |
+| `document` | Documents, reports, files | Wavy bottom signals a document |
+| `stickyNote` | Notes, comments, kanban cards | Yellow by default; informal feel |
+| `textbox` | Annotations, callouts, explanatory text | No fill — just text with dashed border |
+| `callout` | Callouts, speech bubbles, explanations | Has pointer tail |
+| `star` | Important items, highlights, key decisions | Use sparingly for emphasis |
+| `triangle` | Warnings, hierarchy indicators | Often used with `AlertTriangle` icon |
+| `predefinedProcess` | Subroutines, library calls, reusable processes | Double-lined sides signal "defined elsewhere" |
+| `blockArrow` | Direction indicators, flow arrows, migrations | Points right by default |
+
+**Shape consistency rules:**
+- All nodes of the same *type* (e.g., all API endpoints) should use the **same shape**
+- Decisions should ALWAYS be diamonds (or hexagons for long labels)
+- Start/end nodes should ALWAYS be `roundedRectangle`
+- Data stores should ALWAYS be `database` or `cloud`
+- Don't mix rectangle and roundedRectangle for the same category of node
+
+### 14.4 Connector Best Practices
+
+**Every diagram MUST have connectors (edges) unless it is explicitly a static layout like a kanban board.** Connectors are the primary way readers understand flow and relationships.
+
+**CRITICAL: Diagrams without connectors are incomplete.** If nodes have logical relationships (A leads to B, A depends on B, data flows from A to B), you MUST create edge objects connecting them.
+
+**Connector checklist:**
+1. Every node (except pure annotation textboxes) should have at least one incoming or outgoing edge
+2. Start nodes have only outgoing edges; end nodes have only incoming edges
+3. Decision diamonds should have 2-3 outgoing edges (one per branch) with labels ("Yes", "No", "Error")
+4. Always label branching edges to indicate which path they represent
+
+**Connector type selection:**
+
+| Edge Type | When to Use |
+|-----------|-------------|
+| `smoothstep` | **Default for most diagrams** — clean right-angle routes with rounded corners |
+| `step` | Right-angle routes with sharp corners — formal/technical diagrams |
+| `straight` | Direct point-to-point lines — simple diagrams with few crossings |
+| `bezier` | Curved lines — organic or creative diagrams |
+| `default` | Same as bezier |
+| `dependency` | Semantic dependency edges with pill badges |
+| `animated` | Animated dashes — active data flow, real-time connections |
+
+**Connector styling best practices:**
+- **Color connectors by meaning:** success paths in green (`#10b981`), error paths in red (`#ef4444`), data flow in blue (`#3b82f6`), default in gray (`#94a3b8`)
+- **Use `thickness: 2-3`** for primary flow paths, `thickness: 1` for secondary/optional paths
+- **Dashed edges** (`strokeDasharray: "8 4"`) for optional, async, or conditional paths
+- **Bidirectional edges** (`markerEnd` + `markerStart`) only for truly two-way communication
+- **Always set explicit `sourceHandle` and `targetHandle`** — see Section 11.3
+
+**Example — properly connected decision diamond:**
+```json
+[
+  { "id": "e_to_decision", "source": "process", "target": "decision", "sourceHandle": "bottom", "targetHandle": "top" },
+  { "id": "e_yes", "source": "decision", "target": "success", "sourceHandle": "bottom", "targetHandle": "top", "data": { "label": "Yes", "color": "#10b981" } },
+  { "id": "e_no", "source": "decision", "target": "error", "sourceHandle": "right", "targetHandle": "left", "data": { "label": "No", "color": "#ef4444" } }
+]
+```
+
+### 14.5 Connector Labels and Short Edges
 
 Edge labels can overlap or look cluttered on short connectors. Follow these guidelines:
 
@@ -1076,7 +1183,7 @@ Edge labels can overlap or look cluttered on short connectors. Follow these guid
 - **Keep labels short:** 1-3 words is ideal (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"async"`). Long labels on edges look cluttered.
 - **Dependency edges ("DEPENDS ON" pill):** The `dependency` edge type renders a pill badge ("DEPENDS ON", "BLOCKS", etc.) PLUS an optional custom label below it. This takes ~24px of vertical space at the edge midpoint. Ensure nodes connected by dependency edges are at least **180px apart** vertically, or use `labelPosition` to shift both labels away from nodes.
 
-### 14.4 Node Overlap Prevention
+### 14.6 Node Overlap Prevention
 
 Nodes must NEVER have overlapping bounding boxes. Calculate positions carefully:
 
@@ -1085,7 +1192,7 @@ Nodes must NEVER have overlapping bounding boxes. Calculate positions carefully:
 - **With edge labels:** If there is a labeled edge between two nodes, add extra spacing (at least **60px** beyond the label text height) to prevent the label from overlapping either node.
 - **Common mistake:** Placing a node at `y: 200` with default height 60 means it occupies y 200-260. The next node below should start no earlier than `y: 320` (260 + 60px gap).
 
-### 14.5 Swimlane Layout Guidelines
+### 14.7 Swimlane Layout Guidelines
 
 Swimlane headers have limited space for labels. Follow these rules:
 
@@ -1095,43 +1202,143 @@ Swimlane headers have limited space for labels. Follow these rules:
 - **Node positions in lanes:** When using swimlanes, position nodes within the lane's visual bounds. For horizontal lanes, nodes should be offset rightward by at least **60px** from the left edge (to clear the lane header).
 - **Lane order:** Set `order` values sequentially (0, 1, 2...) to control which lane appears first.
 
-### 14.6 Overall Layout Quality Checklist
+### 14.8 Dark Mode and Dark Background Styles
+
+When using dark styles (`darkMode: true` or dark diagram styles like `neonDark`, `retroTerminal`, `darkNeonGlow`, `cyberC2`), you MUST adjust colors for legibility on dark backgrounds.
+
+**Color rules for dark mode:**
+
+| Element | Light Mode Default | Dark Mode Recommendation |
+|---------|-------------------|--------------------------|
+| Node fill | Bright colors (`#3b82f6`) | Same bright colors work fine — they pop on dark bg |
+| Node text | White (`#ffffff`) | White stays readable on colored fills |
+| Node border | Darkened fill color | Lightened fill color or use bright accent (`#60a5fa`) |
+| Edge color | Gray (`#94a3b8`) | Lighter gray (`#cbd5e1`) or bright accent |
+| Edge labels | Gray | Light gray (`#e2e8f0`) or white for visibility |
+| Swimlane labels | Dark text on light header | Light text (`#e2e8f0`) on dark header |
+| Legend background | White (`#ffffff`) | Dark slate (`#1e293b`) |
+| Legend text | Dark gray (`#475569`) | Light gray (`#94a3b8`) |
+| Textbox border | Gray (`#94a3b8`) | Light gray (`#cbd5e1`) |
+| StickyNote fill | Yellow (`#fbbf24`) | Darker yellow (`#d97706`) so it doesn't blind |
+
+**Avoid these dark mode mistakes:**
+- **Dark text on dark background** — If a node has a dark fill (navy, dark gray), ensure `textColor` is white or a light color
+- **Low-contrast edges** — Gray edges on dark backgrounds become invisible. Use `"color": "#cbd5e1"` or brighter
+- **Pastel fills** — Pale colors like `#dbeafe` look washed out on dark backgrounds. Use saturated versions (`#3b82f6`)
+- **Default `textColor: "#ffffff"`** on light-filled nodes — If a node has `"color": "#fbbf24"` (yellow) in dark mode, the white text may lack contrast. Use `"textColor": "#1e293b"` (dark) instead
+
+**Dark-friendly style IDs:** `neonDark`, `retroTerminal`, `darkNeonGlow`, `cyberC2`, `militaryC2`, `glassMorphism`
+
+**Example — dark mode system diagram:**
+```json
+{
+  "styles": { "activeStyleId": "neonDark", "darkMode": true },
+  "nodes": [
+    {
+      "id": "api",
+      "position": { "x": 200, "y": 100 },
+      "data": {
+        "label": "API Gateway",
+        "shape": "hexagon",
+        "color": "#8b5cf6",
+        "textColor": "#ffffff",
+        "borderColor": "#a78bfa",
+        "icon": "Shield",
+        "iconColor": "#ffffff",
+        "width": 180
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "client",
+      "target": "api",
+      "data": { "color": "#60a5fa", "thickness": 2, "label": "HTTPS", "labelColor": "#e2e8f0" }
+    }
+  ]
+}
+```
+
+### 14.9 Overall Layout Quality Checklist
 
 Before finalizing a diagram JSON, verify:
 
 1. **No overlapping nodes** — Every node's bounding box is clear of all others.
-2. **Edge labels don't collide with nodes** — Labels on short edges are shifted or omitted.
-3. **Swimlane labels are short** — Under 20 characters for horizontal, under 30 for vertical.
-4. **Consistent spacing** — Nodes in the same row/column are evenly spaced.
-5. **Enough room for connectors** — Adjacent nodes have at least 100px between them vertically for edges/labels to render cleanly.
-6. **Nodes fit their content** — `width`/`height` accommodate the label text, icon, and any status pucks.
+2. **All nodes are connected** — Every non-annotation node has at least one edge. Orphan nodes indicate a broken diagram.
+3. **Connectors have handles set** — `sourceHandle` and `targetHandle` are explicit on every edge.
+4. **Decision nodes have labeled branches** — Every diamond/hexagon decision has 2+ outgoing edges with labels ("Yes"/"No", "Success"/"Failure").
+5. **Edge labels don't collide with nodes** — Labels on short edges are shifted or omitted.
+6. **Swimlane labels are short** — Under 20 characters for horizontal, under 30 for vertical.
+7. **Consistent spacing** — Nodes in the same row/column are evenly spaced.
+8. **Enough room for connectors** — Adjacent nodes have at least 100px between them vertically for edges/labels to render cleanly.
+9. **Nodes fit their content** — `width`/`height` accommodate the label text, icon, and any status pucks.
+10. **Font sizes are appropriate** — Small shapes (diamonds, circles < 100px) use `fontSize: 10-12`, not the default 14.
+11. **Shapes are consistent** — All nodes of the same category use the same shape.
+12. **Dark mode text is readable** — If `darkMode: true`, verify text colors contrast with both node fills and the dark slide background.
+13. **Edge colors are visible** — Default gray edges (`#94a3b8`) are hard to see on dark backgrounds; use lighter colors.
 
 ---
 
 ## 15. Tips for AI Generation
 
+### 15.1 Critical Rules (must follow)
+
 1. **NO COMMENTS in JSON** — `//` and `/* */` are NOT valid JSON syntax. The parser will reject the entire file. Use `"_comment": "text"` inside objects if you must annotate.
 
-2. **Use unique, descriptive IDs** — e.g., `"node_auth_check"` not `"node_1"`. Makes edges easier to define and debug.
+2. **ALWAYS generate connectors (edges)** — A diagram without edges is incomplete. Every non-annotation node needs at least one connection. If nodes have any logical relationship (flow, dependency, data transfer, sequence), create an edge for it. The only exception is kanban/card layouts where position alone conveys meaning.
 
-3. **Start with nodes, then edges** — Define all nodes first, then connect them. Reference node IDs in edge `source`/`target`.
+3. **ALWAYS set explicit `sourceHandle` and `targetHandle`** — Determine the relative positions of source and target nodes, then set handles accordingly: left-to-right → `"right"/"left"`, top-to-bottom → `"bottom"/"top"`. Omitting handles causes ugly auto-routed edges that cross over nodes.
 
-4. **Always set explicit `sourceHandle` and `targetHandle`** — Determine the relative positions of source and target nodes, then set handles accordingly: left-to-right → `"right"/"left"`, top-to-bottom → `"bottom"/"top"`. Omitting handles causes ugly auto-routed edges.
+4. **ALWAYS set explicit `width`/`height` for non-trivial labels** — Any label over 2 words MUST have explicit dimensions. Use the formula: `width ≈ (character count × 8) + 40`. A diamond with "Formalize Governance Board" will be unreadable — use a `rectangle` or `hexagon` instead.
 
-5. **Always set explicit `width`/`height` for non-trivial labels** — Any label over 2 words MUST have explicit dimensions. Use the formula: `width ≈ (character count × 8) + 40`. A diamond with "Formalize Governance Board" will be unreadable — use a `rectangle` or `hexagon` instead.
+5. **ALWAYS adjust `fontSize` for small shapes** — Diamonds and circles under 100px MUST use `fontSize: 10-12`. The default 14 will overflow.
 
-6. **Consistent flow direction** — Pick either top-to-bottom or left-to-right and be consistent throughout.
+6. **Use shapes consistently** — All nodes of the same category MUST use the same shape. Don't mix `rectangle` and `roundedRectangle` for the same type of node.
 
-7. **Use status indicators sparingly** — Only add them when the diagram tracks task status.
+### 15.2 Best Practices
 
-8. **Color coding** — Use consistent colors for node categories (e.g., green for success states, red for errors, blue for processing).
+7. **Use unique, descriptive IDs** — e.g., `"node_auth_check"` not `"node_1"`. Makes edges easier to define and debug.
 
-9. **Group related nodes** — Use `group` nodes with `parentId`/`extent: "parent"` for visual grouping, or `linkGroupId` for move-together behavior.
+8. **Start with nodes, then edges** — Define all nodes first, then connect them. Reference node IDs in edge `source`/`target`.
 
-10. **Edge labels** — Use short labels on edges (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"SQL"`).
+9. **Consistent flow direction** — Pick either top-to-bottom or left-to-right and be consistent throughout.
 
-11. **Icons enhance readability** — Add icons for common concepts: `Database`, `Server`, `Globe`, `Lock`, `User`, etc.
+10. **Use status indicators sparingly** — Only add them when the diagram tracks task status.
 
-12. **Spacing matters** — Well-spaced diagrams are more readable. Use 100-200px between nodes.
+11. **Color coding** — Use consistent colors for node categories (e.g., green for success states, red for errors, blue for processing). Apply the same color to all nodes in the same category.
 
-13. **Don't over-style** — Let the diagram style handle visual consistency. Only override colors/fonts when semantically meaningful.
+12. **Group related nodes** — Use `group` nodes with `parentId`/`extent: "parent"` for visual grouping, or `linkGroupId` for move-together behavior.
+
+13. **Edge labels** — Use short labels on edges (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"SQL"`). Label ALL branching edges from decisions.
+
+14. **Icons enhance readability** — Add icons for common concepts: `Database`, `Server`, `Globe`, `Lock`, `User`, etc. Icons help readers identify node purpose at a glance.
+
+15. **Spacing matters** — Well-spaced diagrams are more readable. Use 100-200px between nodes. Never crowd nodes together.
+
+16. **Don't over-style** — Let the diagram style handle visual consistency. Only override colors/fonts when semantically meaningful.
+
+### 15.3 Dark Mode Tips
+
+17. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`).
+
+18. **Use saturated fill colors** — Pale/pastel fills look washed out on dark backgrounds. Use full-saturation colors (`#3b82f6` not `#dbeafe`).
+
+19. **Make edges brighter** — Default gray (`#94a3b8`) edges are barely visible on dark backgrounds. Use `"color": "#cbd5e1"` or brighter.
+
+20. **Edge labels need explicit `labelColor`** — Set `"labelColor": "#e2e8f0"` so labels are readable on the dark slide background.
+
+21. **Light text on dark fills** — Ensure `textColor` is `"#ffffff"` or another light color when the node fill is dark.
+
+### 15.4 Common Mistakes to Avoid
+
+| Mistake | Consequence | Fix |
+|---------|-------------|-----|
+| No edges in diagram | Diagram looks like scattered boxes | Always generate edges for every relationship |
+| Missing sourceHandle/targetHandle | Edges route through nodes, overlap | Always set handles explicitly |
+| Default fontSize (14) on diamonds | Text overflows the diamond shape | Use `fontSize: 11` and keep labels to 1-2 words |
+| Long labels without width override | Text truncated or overflows | Set `width` using formula: `(chars × 8) + 40` |
+| Gray edges on dark background | Edges invisible | Use lighter edge colors (`#cbd5e1`) |
+| Mixed shapes for same category | Inconsistent, confusing diagram | Pick one shape per node category |
+| Overlapping nodes | Unreadable, messy | Calculate positions with bounding boxes; minimum 40px gap |
+| No labels on decision branches | Reader can't follow the logic | Label every outgoing edge from a diamond |
