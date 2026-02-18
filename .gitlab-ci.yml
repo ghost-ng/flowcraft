@@ -1,0 +1,38 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  NODE_VERSION: "20"
+
+build:
+  stage: build
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+pages:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm run build
+    # GitLab Pages requires output in 'public/' directory
+    - rm -rf public
+    - mv dist public
+  artifacts:
+    paths:
+      - public/
+  only:
+    - main
+
+# NOTE: vite.config.ts currently has base: '/flowcraft/' for GitHub Pages.
+# For GitLab Pages, if this project is in a repository root at https://gitlab.com/username/flowcraft/,
+# the base path should remain '/flowcraft/'. However, if deployed to a user/group Pages site
+# (like https://username.gitlab.io/), adjust vite.config.ts to base: '/'.
+# Update as needed based on your GitLab Pages deployment URL.
