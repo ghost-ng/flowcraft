@@ -1468,6 +1468,7 @@ export function importFromJson(
               size: typeof l.size === 'number' ? l.size : 200,
               order: typeof l.order === 'number' ? l.order : 0,
               showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
+              showColor: typeof l.showColor === 'boolean' ? l.showColor : undefined,
               hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
             });
           }
@@ -1485,6 +1486,7 @@ export function importFromJson(
               size: typeof l.size === 'number' ? l.size : 200,
               order: typeof l.order === 'number' ? l.order : 0,
               showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
+              showColor: typeof l.showColor === 'boolean' ? l.showColor : undefined,
               hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
             });
           }

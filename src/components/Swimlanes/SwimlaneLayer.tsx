@@ -451,6 +451,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
                 fontSize={config.labelFontSize}
                 rotation={config.labelRotation}
                 showLabel={lane.showLabel}
+                showColor={lane.showColor}
               />
             );
           })}
@@ -469,6 +470,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
                 darkMode={darkMode}
                 fontSize={config.labelFontSize}
                 showLabel={lane.showLabel}
+                showColor={lane.showColor}
               />
             );
           })}

@@ -20,6 +20,8 @@ import {
   ListOrdered,
   Eye,
   EyeClosed,
+  Type,
+  Palette,
   icons,
 } from 'lucide-react';
 
@@ -1386,6 +1388,30 @@ const SwimlanePanel: React.FC = React.memo(() => {
                        hover:border-border focus:border-primary focus:outline-none
                        bg-transparent"
           />
+          {/* Toggle label visibility */}
+          <button
+            onClick={() => updateLane(orientation, lane.id, { showLabel: !(lane.showLabel ?? true) })}
+            className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
+              ${(lane.showLabel ?? true)
+                ? 'text-text-muted hover:text-primary'
+                : 'text-slate-300 hover:text-text-muted'
+              }`}
+            data-tooltip-left={(lane.showLabel ?? true) ? 'Hide label' : 'Show label'}
+          >
+            <Type size={12} />
+          </button>
+          {/* Toggle color indicator visibility */}
+          <button
+            onClick={() => updateLane(orientation, lane.id, { showColor: !(lane.showColor ?? true) })}
+            className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
+              ${(lane.showColor ?? true)
+                ? 'text-text-muted hover:text-primary'
+                : 'text-slate-300 hover:text-text-muted'
+              }`}
+            data-tooltip-left={(lane.showColor ?? true) ? 'Hide color indicator' : 'Show color indicator'}
+          >
+            <Palette size={12} />
+          </button>
           {/* Remove button */}
           <button
             onClick={() => removeLane(orientation, lane.id)}

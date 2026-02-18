@@ -18,6 +18,8 @@ export interface SwimlaneItem {
   order: number;
   /** Whether the lane label is visible on the canvas (default true) */
   showLabel?: boolean;
+  /** Whether the lane color indicator is visible on the canvas (default true) */
+  showColor?: boolean;
   /** When true, the lane background, header, and all nodes/edges in this lane are hidden */
   hidden?: boolean;
 }

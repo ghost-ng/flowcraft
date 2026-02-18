@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GripVertical, Eye, EyeOff, Palette, Pencil, Trash2, EyeClosed } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { GripVertical, Eye, Palette, Pencil, Trash2, EyeClosed, ChevronRight, Check } from 'lucide-react';
 import { useSwimlaneStore, type SwimlaneOrientation } from '../../store/swimlaneStore';
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,8 @@ interface LaneHeaderProps {
   rotation?: number;
   /** Whether the label is visible (default true) */
   showLabel?: boolean;
+  /** Whether the color indicator is visible (default true) */
+  showColor?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,18 +62,14 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
     return lanes.find((l) => l.id === laneId);
   });
   const [showColors, setShowColors] = useState(false);
+  const [showVisibility, setShowVisibility] = useState(false);
 
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
-    };
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleKey);
     return () => {
-      document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKey);
     };
   }, [onClose]);
@@ -78,6 +77,7 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
   if (!lane) return null;
 
   const labelVisible = lane.showLabel ?? true;
+  const colorVisible = lane.showColor ?? true;
   const laneHidden = lane.hidden ?? false;
 
   const menuW = 190;
@@ -93,6 +93,9 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
   const dividerClass = `my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`;
 
   return (
+    <>
+    {/* Invisible backdrop to capture outside clicks */}
+    <div className="fixed inset-0" style={{ zIndex: 9999 }} onMouseDown={onClose} />
     <div
       ref={menuRef}
       className={`fixed min-w-[180px] rounded-lg shadow-xl border p-1 ${
@@ -112,14 +115,28 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
         Rename Lane
       </button>
 
-      {/* Toggle label visibility */}
-      <button className={btnClass} onClick={() => {
-        updateLane(orientation, laneId, { showLabel: !labelVisible });
-        onClose();
-      }}>
-        {labelVisible ? <EyeOff size={14} /> : <Eye size={14} />}
-        {labelVisible ? 'Hide Label' : 'Show Label'}
+      {/* Show submenu — toggle visibility of label and color */}
+      <button className={btnClass} onClick={() => setShowVisibility(!showVisibility)}>
+        <Eye size={14} />
+        <span className="flex-1">Show</span>
+        <ChevronRight size={12} className={`transition-transform ${showVisibility ? 'rotate-90' : ''}`} />
       </button>
+      {showVisibility && (
+        <div className="pl-3">
+          <button className={btnClass} onClick={() => {
+            updateLane(orientation, laneId, { showLabel: !labelVisible });
+          }}>
+            {labelVisible ? <Check size={14} /> : <span className="w-[14px]" />}
+            Label
+          </button>
+          <button className={btnClass} onClick={() => {
+            updateLane(orientation, laneId, { showColor: !colorVisible });
+          }}>
+            {colorVisible ? <Check size={14} /> : <span className="w-[14px]" />}
+            Color
+          </button>
+        </div>
+      )}
 
       {/* Toggle lane visibility (hide lane + contents) */}
       <button className={btnClass} onClick={() => {
@@ -173,6 +190,7 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
         Remove Lane
       </button>
     </div>
+    </>
   );
 };
 
@@ -191,8 +209,10 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   fontSize: fontSizeProp,
   rotation: rotationProp,
   showLabel: showLabelProp,
+  showColor: showColorProp,
 }) => {
   const labelVisible = showLabelProp ?? true;
+  const colorVisible = showColorProp ?? true;
   const fs = fontSizeProp ?? 10;
   const rotDeg = rotationProp ?? 0;
   const isHorizontal = orientation === 'horizontal';
@@ -400,7 +420,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         data-lane-header={laneId}
       >
         {/* Color indicator */}
-        {labelVisible && (
+        {colorVisible && (
           <div
             style={{
               width: isHorizontal ? 24 : 8,
@@ -426,7 +446,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             marginRight: isHorizontal ? 0 : 4,
             transform: isHorizontal ? 'rotate(90deg)' : undefined,
             pointerEvents: 'auto',
-            cursor: 'grab',
+            cursor: 'pointer',
           }}
         />
 
@@ -441,15 +461,15 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             onKeyDown={handleKeyDown}
             style={editStyle}
           />
-        ) : (
+        ) : labelVisible ? (
           <span style={textStyle}>
             {label}
           </span>
-        )}
+        ) : null}
       </div>
 
-      {/* Context menu portal */}
-      {ctxMenu && (
+      {/* Context menu — portaled to document.body to escape transformed parent */}
+      {ctxMenu && createPortal(
         <LaneContextMenu
           x={ctxMenu.x}
           y={ctxMenu.y}
@@ -461,7 +481,8 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             setEditValue(label);
             setIsEditing(true);
           }}
-        />
+        />,
+        document.body,
       )}
     </>
   );
