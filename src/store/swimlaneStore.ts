@@ -16,6 +16,10 @@ export interface SwimlaneItem {
   /** Pixel size (width for vertical lanes, height for horizontal lanes) */
   size: number;
   order: number;
+  /** Whether the lane label is visible on the canvas (default true) */
+  showLabel?: boolean;
+  /** When true, the lane background, header, and all nodes/edges in this lane are hidden */
+  hidden?: boolean;
 }
 
 export interface BorderConfig {

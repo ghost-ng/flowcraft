@@ -5,20 +5,29 @@
 @theme {
   --color-surface: #f8fafc;
   --color-surface-alt: #ffffff;
-  --color-surface-dark: #0f172a;
-  --color-surface-alt-dark: #1e293b;
+  --color-surface-dark: #1c2736;
+  --color-surface-alt-dark: #253345;
   --color-border: #e2e8f0;
-  --color-border-dark: #334155;
+  --color-border-dark: #3a4a5c;
   --color-text: #0f172a;
   --color-text-muted: #64748b;
-  --color-text-dark: #f1f5f9;
-  --color-text-muted-dark: #94a3b8;
+  --color-text-dark: #c8d1dc;
+  --color-text-muted-dark: #8494a7;
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
   --color-accent: #8b5cf6;
   --color-danger: #ef4444;
   --color-success: #10b981;
   --color-warning: #f59e0b;
+  /* Soft dark mode palette — named tokens for Tailwind classes */
+  --color-dk: #1c2736;
+  --color-dk-panel: #253345;
+  --color-dk-hover: #2d3d52;
+  --color-dk-input: #1a2535;
+  --color-dk-border: #3a4a5c;
+  --color-dk-text: #c8d1dc;
+  --color-dk-muted: #8494a7;
+  --color-dk-faint: #6b7a8d;
   --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -60,11 +69,23 @@ body,
 
 /* React Flow overrides */
 .react-flow__node {
-  cursor: grab;
+  cursor: pointer !important;
 }
 
 .react-flow__node:active {
-  cursor: grabbing;
+  cursor: grabbing !important;
+}
+
+.react-flow__edge {
+  cursor: pointer !important;
+}
+
+.react-flow__edge-path {
+  cursor: pointer !important;
+}
+
+.react-flow__edge-interaction {
+  cursor: pointer !important;
 }
 
 .react-flow__handle {
@@ -77,6 +98,7 @@ body,
   transition: opacity 0.15s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 50;
+  cursor: crosshair !important;
 }
 
 .react-flow__node.selected .react-flow__handle {
@@ -97,9 +119,6 @@ body,
   opacity: 1 !important;
 }
 
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke-width: 3;
-}
 
 .react-flow__minimap {
   border-radius: 8px;
@@ -204,6 +223,66 @@ body,
   opacity: 1;
 }
 
+/* Tooltip positioned to the left (for right-side panel elements) */
+[data-tooltip-left] {
+  position: relative;
+}
+
+[data-tooltip-left]::after {
+  content: attr(data-tooltip-left);
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  left: auto;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  margin-right: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: white;
+  background: var(--color-surface-dark);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+
+[data-tooltip-left]:hover::after {
+  opacity: 1;
+}
+
+/* Tooltip positioned above the element */
+[data-tooltip-top] {
+  position: relative;
+}
+
+[data-tooltip-top]::after {
+  content: attr(data-tooltip-top);
+  position: absolute;
+  bottom: 100%;
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: white;
+  background: var(--color-surface-dark);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+
+[data-tooltip-top]:hover::after {
+  opacity: 1;
+}
+
 /* Presentation mode – disable all node/edge interactivity */
 .presentation-mode .react-flow__handle {
   display: none !important;
@@ -217,12 +296,20 @@ body,
   cursor: inherit !important;
 }
 
+.presentation-mode .react-flow__node.selected {
+  box-shadow: none !important;
+}
+
 .presentation-mode .react-flow__node:active {
   cursor: inherit !important;
 }
 
 .presentation-mode .react-flow__edge {
   pointer-events: none !important;
+}
+
+.presentation-mode .react-flow__edge.selected .react-flow__edge-path {
+  stroke-opacity: inherit;
 }
 
 .presentation-mode .react-flow__pane {

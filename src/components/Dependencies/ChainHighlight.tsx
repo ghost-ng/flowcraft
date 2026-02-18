@@ -220,7 +220,7 @@ const ChainHighlight: React.FC = () => {
               : 'hover:bg-slate-100 text-slate-400 hover:text-slate-700'
             }
           `}
-          title="Clear chain highlight (Esc)"
+          data-tooltip="Clear chain highlight (Esc)"
         >
           <X size={14} />
         </button>

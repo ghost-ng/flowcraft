@@ -67,7 +67,7 @@ function TemplateThumbnail({ template }: { template: DiagramTemplate }) {
 
   if (icon) {
     return (
-      <div className="w-full h-28 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-t-lg">
+      <div className="w-full h-28 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-dk-panel dark:to-dk rounded-t-lg">
         {icon}
       </div>
     );
@@ -77,7 +77,7 @@ function TemplateThumbnail({ template }: { template: DiagramTemplate }) {
   const { nodes } = template;
   if (nodes.length === 0) {
     return (
-      <div className="w-full h-28 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-t-lg">
+      <div className="w-full h-28 flex items-center justify-center bg-slate-50 dark:bg-dk-panel rounded-t-lg">
         <span className="text-xs text-gray-400">Empty</span>
       </div>
     );
@@ -91,7 +91,7 @@ function TemplateThumbnail({ template }: { template: DiagramTemplate }) {
   const maxY = Math.max(...ys) + 80;
 
   return (
-    <div className="w-full h-28 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-t-lg overflow-hidden p-2">
+    <div className="w-full h-28 flex items-center justify-center bg-slate-50 dark:bg-dk-panel rounded-t-lg overflow-hidden p-2">
       <svg
         viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
         className="w-full h-full"
@@ -149,7 +149,7 @@ const TemplateCard: React.FC<TemplateCardProps> = React.memo(
         group relative rounded-lg border overflow-hidden cursor-pointer
         transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5
         ${darkMode
-          ? 'bg-slate-800 border-slate-700 hover:border-blue-500'
+          ? 'bg-dk-panel border-dk-border hover:border-blue-500'
           : 'bg-white border-slate-200 hover:border-blue-400'
         }
       `}
@@ -161,7 +161,7 @@ const TemplateCard: React.FC<TemplateCardProps> = React.memo(
         <div className="flex items-center gap-2 mb-1">
           <h3
             className={`text-sm font-semibold truncate ${
-              darkMode ? 'text-slate-100' : 'text-slate-800'
+              darkMode ? 'text-dk-text' : 'text-slate-800'
             }`}
           >
             {template.title}
@@ -169,7 +169,7 @@ const TemplateCard: React.FC<TemplateCardProps> = React.memo(
           <span
             className={`
               shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full
-              ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}
+              ${darkMode ? 'bg-dk-hover text-dk-muted' : 'bg-slate-100 text-slate-600'}
             `}
           >
             {categoryIcons[template.category]}
@@ -178,7 +178,7 @@ const TemplateCard: React.FC<TemplateCardProps> = React.memo(
         </div>
         <p
           className={`text-xs line-clamp-2 ${
-            darkMode ? 'text-slate-400' : 'text-slate-500'
+            darkMode ? 'text-dk-muted' : 'text-slate-500'
           }`}
         >
           {template.description}
@@ -190,7 +190,7 @@ const TemplateCard: React.FC<TemplateCardProps> = React.memo(
         className={`
           absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100
           transition-opacity duration-200
-          ${darkMode ? 'bg-slate-900/60' : 'bg-white/60'}
+          ${darkMode ? 'bg-dk/60' : 'bg-white/60'}
         `}
       >
         <span className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium shadow-lg">
@@ -265,14 +265,14 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({ open, onClose }) => {
       <div
         className={`
           relative w-[90vw] max-w-4xl max-h-[85vh] rounded-xl shadow-2xl flex flex-col
-          ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-800'}
+          ${darkMode ? 'bg-dk text-dk-text' : 'bg-white text-slate-800'}
         `}
       >
         {/* Header */}
         <div
           className={`
             flex items-center justify-between px-6 py-4 border-b shrink-0
-            ${darkMode ? 'border-slate-700' : 'border-slate-200'}
+            ${darkMode ? 'border-dk-border' : 'border-slate-200'}
           `}
         >
           <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({ open, onClose }) => {
             onClick={onClose}
             className={`
               p-1.5 rounded-lg transition-colors cursor-pointer
-              ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}
+              ${darkMode ? 'hover:bg-dk-panel' : 'hover:bg-slate-100'}
             `}
           >
             <X size={18} />
@@ -294,14 +294,14 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({ open, onClose }) => {
         <div
           className={`
             flex flex-col sm:flex-row items-start sm:items-center gap-3 px-6 py-3 border-b shrink-0
-            ${darkMode ? 'border-slate-700' : 'border-slate-200'}
+            ${darkMode ? 'border-dk-border' : 'border-slate-200'}
           `}
         >
           {/* Search */}
           <div
             className={`
               flex items-center gap-2 px-3 py-1.5 rounded-lg flex-1 min-w-0
-              ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}
+              ${darkMode ? 'bg-dk-panel' : 'bg-slate-100'}
             `}
           >
             <Search size={14} className="shrink-0 text-slate-400" />
@@ -312,7 +312,7 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({ open, onClose }) => {
               onChange={(e) => setSearch(e.target.value)}
               className={`
                 bg-transparent outline-none text-sm w-full
-                ${darkMode ? 'text-slate-200 placeholder:text-slate-500' : 'text-slate-700 placeholder:text-slate-400'}
+                ${darkMode ? 'text-dk-text placeholder:text-dk-faint' : 'text-slate-700 placeholder:text-slate-400'}
               `}
             />
           </div>
@@ -328,7 +328,7 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({ open, onClose }) => {
                   ${activeCategory === cat
                     ? 'bg-blue-500 text-white'
                     : darkMode
-                      ? 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-dk-panel text-dk-muted hover:text-dk-text'
                       : 'bg-slate-100 text-slate-500 hover:text-slate-700'
                   }
                 `}

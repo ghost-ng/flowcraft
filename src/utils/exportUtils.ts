@@ -8,14 +8,15 @@ import jsPDF from 'jspdf';
 import PptxGenJS from 'pptxgenjs';
 type SHAPE_NAME = PptxGenJS.SHAPE_NAME;
 
-import { useFlowStore, newPuckId } from '../store/flowStore';
-import type { FlowNode, FlowEdge, FlowNodeData, StatusIndicator } from '../store/flowStore';
+import { useFlowStore, newPuckId, getStatusIndicators } from '../store/flowStore';
+import type { FlowNode, FlowEdge, FlowNodeData, FlowEdgeData, StatusIndicator } from '../store/flowStore';
 import { useStyleStore } from '../store/styleStore';
 import { useSwimlaneStore } from '../store/swimlaneStore';
 import type { SwimlaneConfig, BorderStyleType } from '../store/swimlaneStore';
 import { useLayerStore } from '../store/layerStore';
 import type { Layer } from '../store/layerStore';
 import { useLegendStore } from '../store/legendStore';
+import type { LegendItemKind, LegendItem } from '../store/legendStore';
 import { log } from './logger';
 import {
   type ExportFormat,
@@ -32,10 +33,14 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Find the React Flow viewport element to capture.
- * Falls back to the `.react-flow` container if the viewport isn't found.
+ * Find the canvas element to capture.
+ * Captures the full canvas wrapper (includes swimlanes, legend, and nodes/edges).
+ * Falls back to the React Flow viewport or container if the wrapper isn't found.
  */
 export function getReactFlowElement(): HTMLElement {
+  // Full canvas wrapper includes swimlanes and legend overlay
+  const canvasWrapper = document.querySelector<HTMLElement>('[data-flowcraft-canvas]');
+  if (canvasWrapper) return canvasWrapper;
   const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
   if (viewport) return viewport;
   const container = document.querySelector<HTMLElement>('.react-flow');
@@ -255,13 +260,11 @@ export async function exportAsPdf(options: PdfExportOptions): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// PPTX Export -- native shapes + SVG fallback
+// PPTX Export -- comprehensive feature parity
 // ---------------------------------------------------------------------------
 
 /**
  * Map FlowCraft node shapes to pptxgenjs SHAPE_NAME values.
- * Shapes with a direct PPTX equivalent are listed here; any shape
- * not in this map falls back to SVG-image rendering.
  */
 const PPTX_SHAPE_MAP: Record<string, SHAPE_NAME> = {
   rectangle: 'rect',
@@ -283,47 +286,46 @@ const PPTX_SHAPE_MAP: Record<string, SHAPE_NAME> = {
   database: 'flowChartMagneticDisk',
   internalStorage: 'flowChartInternalStorage',
   display: 'flowChartDisplay',
+  stickyNote: 'rect',
+  textbox: 'rect',
+  group: 'rect',
 };
 
 /**
- * SVG path definitions for arrow / complex shapes that have no PPTX
- * primitive.  Keys match the FlowCraft NodeShape ids; values are
- * functions returning an SVG string sized to the given w/h pixels.
+ * SVG path definitions for arrow / complex shapes that have no PPTX primitive.
  */
 const SVG_SHAPE_RENDERERS: Record<
   string,
-  (w: number, h: number, fill: string, stroke: string) => string
+  (w: number, h: number, fill: string, stroke: string, strokeWidth: number, dashArray: string) => string
 > = {
-  blockArrow: (w, h, fill, stroke) =>
+  blockArrow: (w, h, fill, stroke, sw, dash) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 160 80">
       <path d="M 0 20 L 100 20 L 100 5 L 155 40 L 100 75 L 100 60 L 0 60 Z"
-            fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
+            fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="${dash}" stroke-linejoin="round"/>
     </svg>`,
-  chevronArrow: (w, h, fill, stroke) =>
+  chevronArrow: (w, h, fill, stroke, sw, dash) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 160 80">
       <path d="M 0 5 L 115 5 L 155 40 L 115 75 L 0 75 L 40 40 Z"
-            fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
+            fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="${dash}" stroke-linejoin="round"/>
     </svg>`,
-  doubleArrow: (w, h, fill, stroke) =>
+  doubleArrow: (w, h, fill, stroke, sw, dash) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 160 80">
       <path d="M 40 5 L 0 40 L 40 75 L 40 55 L 120 55 L 120 75 L 160 40 L 120 5 L 120 25 L 40 25 Z"
-            fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
+            fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="${dash}" stroke-linejoin="round"/>
     </svg>`,
-  circularArrow: (w, h, fill, stroke) =>
+  circularArrow: (w, h, fill, stroke, sw, _dash) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 100 80">
       <path d="M 75 12 A 32 32 0 1 1 38 20" fill="none" stroke="${fill}" stroke-width="6" stroke-linecap="round"/>
-      <polygon points="24,4 48,20 22,28" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
+      <polygon points="24,4 48,20 22,28" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
     </svg>`,
-  arrow: (w, h, fill, stroke) =>
+  arrow: (w, h, fill, stroke, sw, dash) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 160 80">
       <path d="M 0 20 L 100 20 L 100 5 L 155 40 L 100 75 L 100 60 L 0 60 Z"
-            fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
+            fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="${dash}" stroke-linejoin="round"/>
     </svg>`,
 };
 
-/**
- * Default dimensions per shape (mirrors GenericShapeNode logic).
- */
+/** Default dimensions per shape (mirrors GenericShapeNode logic). */
 function getDefaultSize(shape: string): { w: number; h: number } {
   const ARROW_SHAPES = new Set(['blockArrow', 'chevronArrow', 'doubleArrow', 'circularArrow']);
   if (shape === 'circularArrow') return { w: 100, h: 100 };
@@ -333,8 +335,71 @@ function getDefaultSize(shape: string): { w: number; h: number } {
   return { w: 160, h: 60 };
 }
 
+/** Convert FlowCraft borderStyle to PptxGenJS dashType */
+function toPptxDashType(style?: string): 'solid' | 'dash' | 'sysDot' | 'lgDash' {
+  if (style === 'dashed') return 'lgDash';
+  if (style === 'dotted') return 'sysDot';
+  return 'solid';
+}
+
+/** Convert strokeDasharray string to PptxGenJS dashType */
+function dashArrayToPptxDash(da?: string): 'solid' | 'dash' | 'sysDot' | 'lgDash' {
+  if (!da) return 'solid';
+  // "8 4" or similar → dashed; "2 2" or "1 3" → dotted
+  const parts = da.trim().split(/\s+/).map(Number);
+  if (parts.length >= 2 && parts[0] <= 3) return 'sysDot';
+  if (parts.length >= 2) return 'lgDash';
+  return 'solid';
+}
+
+/** Map React Flow marker strings to PptxGenJS arrow types */
+function toPptxArrowType(marker?: string): 'none' | 'triangle' | 'stealth' | 'arrow' | 'diamond' | 'oval' {
+  if (!marker) return 'none';
+  if (marker.includes('closed')) return 'triangle';
+  if (marker.includes('open')) return 'stealth';
+  if (marker.includes('diamond')) return 'diamond';
+  if (marker.includes('circle') || marker.includes('dot')) return 'oval';
+  // Default marker url format: url(#marker-id) → triangle
+  if (marker.startsWith('url(')) return 'triangle';
+  return 'triangle';
+}
+
+/** Convert hex color string, stripping # prefix */
+function hex(color?: string, fallback = '94a3b8'): string {
+  if (!color || color === 'transparent') return fallback;
+  return color.replace('#', '');
+}
+
+/** Darken a hex color by ~25% for use as a border color */
+function darkenHex(color: string): string {
+  const c = color.replace('#', '');
+  const r = Math.max(0, Math.round(parseInt(c.substring(0, 2), 16) * 0.7));
+  const g = Math.max(0, Math.round(parseInt(c.substring(2, 4), 16) * 0.7));
+  const b = Math.max(0, Math.round(parseInt(c.substring(4, 6), 16) * 0.7));
+  return [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+/** Get StatusIndicator puck position offsets relative to node dimensions */
+function puckOffset(
+  position: StatusIndicator['position'],
+  nodeW: number,
+  nodeH: number,
+  puckSize: number,
+): { x: number; y: number } {
+  const half = puckSize / 2;
+  switch (position) {
+    case 'top-left': return { x: -half, y: -half };
+    case 'bottom-left': return { x: -half, y: nodeH - half };
+    case 'bottom-right': return { x: nodeW - half, y: nodeH - half };
+    case 'top-right':
+    default: return { x: nodeW - half, y: -half };
+  }
+}
+
 export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   const state = useFlowStore.getState();
+  const swimlaneState = useSwimlaneStore.getState();
+  const legendState = useLegendStore.getState();
   const { nodes, edges } = state;
 
   const { slideSize, includeNotes, oneSlidePerGroup } = options;
@@ -396,14 +461,8 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   // Guard: nothing to draw
   if (nodes.length === 0) {
     slide.addText('(empty diagram)', {
-      x: 1,
-      y: 3,
-      w: slideW - 2,
-      h: 1,
-      fontSize: 18,
-      color: '999999',
-      align: 'center',
-      valign: 'middle',
+      x: 1, y: 3, w: slideW - 2, h: 1,
+      fontSize: 18, color: '999999', align: 'center', valign: 'middle',
     });
     const fileData = (await pptx.write({ outputType: 'blob' })) as Blob;
     saveAs(fileData, getFilename('pptx'));
@@ -434,8 +493,8 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   const contentW = maxX - minX || 1;
   const contentH = maxY - minY || 1;
 
-  const padding = 0.5; // inches on each side
-  const titleReserve = 0.55; // leave room for the title text
+  const padding = 0.5;
+  const titleReserve = 0.55;
   const availW = slideW - 2 * padding;
   const availH = slideH - padding - titleReserve - padding;
 
@@ -443,7 +502,6 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   const scaleY = availH / contentH;
   const scale = Math.min(scaleX, scaleY);
 
-  // Offset so the diagram is centered in the available area
   const drawnW = contentW * scale;
   const drawnH = contentH * scale;
   const offsetX = padding + (availW - drawnW) / 2;
@@ -455,7 +513,150 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   const toW = (px: number) => px * scale;
   const toH = (px: number) => px * scale;
 
-  // -- add edges as lines FIRST (below nodes) -------------------------
+  // -- render swimlanes (background layer) ----------------------------
+  const swimConfig = swimlaneState.config;
+  const swimOffset = swimlaneState.containerOffset;
+  const hLanes = swimConfig.horizontal;
+  const vLanes = swimConfig.vertical;
+  const hasSwimlanes = hLanes.length > 0 || vLanes.length > 0;
+
+  if (hasSwimlanes) {
+    const border = swimConfig.containerBorder;
+    const divider = swimConfig.dividerStyle;
+
+    // Compute container bounds from lane sizes
+    const totalW = vLanes.reduce((sum, l) => sum + l.size, 0) || contentW;
+    const totalH = hLanes.reduce((sum, l) => sum + l.size, 0) || contentH;
+
+    const containerX = toX(swimOffset.x);
+    const containerY = toY(swimOffset.y);
+    const containerW = toW(totalW);
+    const containerH = toH(totalH);
+
+    // Container border
+    if (border && border.style !== 'none') {
+      slide.addShape('rect', {
+        x: containerX,
+        y: containerY,
+        w: containerW,
+        h: containerH,
+        fill: { type: 'none' },
+        line: {
+          color: hex(border.color, 'e2e8f0'),
+          width: border.width || 1,
+          dashType: toPptxDashType(border.style),
+        },
+        rectRadius: border.radius ? border.radius / 100 : undefined,
+      });
+    }
+
+    // Vertical lane dividers and backgrounds
+    let vOffset = 0;
+    for (let i = 0; i < vLanes.length; i++) {
+      const lane = vLanes[i];
+      const laneX = toX(swimOffset.x + vOffset);
+      const laneW = toW(lane.size);
+
+      // Lane background (light fill)
+      slide.addShape('rect', {
+        x: laneX,
+        y: containerY,
+        w: laneW,
+        h: containerH,
+        fill: { color: hex(lane.color, 'f1f5f9'), transparency: 85 },
+        line: { type: 'none' } as unknown as PptxGenJS.ShapeLineProps,
+      });
+
+      // Lane label at top
+      if (lane.showLabel !== false) {
+        slide.addText(lane.label, {
+          x: laneX,
+          y: containerY,
+          w: laneW,
+          h: Math.min(0.3, containerH * 0.05),
+          fontSize: Math.max(7, Math.min(11, (swimConfig.labelFontSize || 12) * scale * 72 * 0.5)),
+          color: hex(lane.color, '475569'),
+          bold: true,
+          align: 'center',
+          valign: 'middle',
+          fontFace: 'Arial',
+        });
+      }
+
+      // Divider line (except after last lane)
+      if (i < vLanes.length - 1 && divider && divider.style !== 'none') {
+        const divX = laneX + laneW;
+        slide.addShape('line', {
+          x: divX,
+          y: containerY,
+          w: 0,
+          h: containerH,
+          line: {
+            color: hex(divider.color, 'cbd5e1'),
+            width: divider.width || 1,
+            dashType: toPptxDashType(divider.style),
+          },
+        });
+      }
+
+      vOffset += lane.size;
+    }
+
+    // Horizontal lane dividers and backgrounds
+    let hOffset = 0;
+    for (let i = 0; i < hLanes.length; i++) {
+      const lane = hLanes[i];
+      const laneY = toY(swimOffset.y + hOffset);
+      const laneH = toH(lane.size);
+
+      // Lane background
+      slide.addShape('rect', {
+        x: containerX,
+        y: laneY,
+        w: containerW,
+        h: laneH,
+        fill: { color: hex(lane.color, 'f1f5f9'), transparency: 85 },
+        line: { type: 'none' } as unknown as PptxGenJS.ShapeLineProps,
+      });
+
+      // Lane label on the left
+      if (lane.showLabel !== false) {
+        slide.addText(lane.label, {
+          x: containerX,
+          y: laneY,
+          w: Math.min(0.5, containerW * 0.08),
+          h: laneH,
+          fontSize: Math.max(7, Math.min(11, (swimConfig.labelFontSize || 12) * scale * 72 * 0.5)),
+          color: hex(lane.color, '475569'),
+          bold: true,
+          align: 'center',
+          valign: 'middle',
+          fontFace: 'Arial',
+          rotate: swimConfig.labelRotation || 0,
+        });
+      }
+
+      // Divider line (except after last lane)
+      if (i < hLanes.length - 1 && divider && divider.style !== 'none') {
+        const divY = laneY + laneH;
+        slide.addShape('line', {
+          x: containerX,
+          y: divY,
+          w: containerW,
+          h: 0,
+          line: {
+            color: hex(divider.color, 'cbd5e1'),
+            width: divider.width || 1,
+            dashType: toPptxDashType(divider.style),
+          },
+        });
+      }
+
+      hOffset += lane.size;
+    }
+  }
+
+  // -- add edges as lines (below nodes) -------------------------
   for (const edge of edges) {
     const sourceNode = nodes.find((n) => n.id === edge.source);
     const targetNode = nodes.find((n) => n.id === edge.target);
@@ -466,15 +667,56 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     const sw = sourceNode.data.width || sDefaults.w;
     const sh = sourceNode.data.height || sDefaults.h;
     const tw = targetNode.data.width || tDefaults.w;
+    const th = targetNode.data.height || tDefaults.h;
 
-    // Source: bottom-center; Target: top-center (default flow direction)
-    const sx = toX(sourceNode.position.x) + toW(sw) / 2;
-    const sy = toY(sourceNode.position.y) + toH(sh);
-    const tx = toX(targetNode.position.x) + toW(tw) / 2;
-    const ty = toY(targetNode.position.y);
+    // Source: center of node; Target: center of node
+    const sCx = toX(sourceNode.position.x) + toW(sw) / 2;
+    const sCy = toY(sourceNode.position.y) + toH(sh) / 2;
+    const tCx = toX(targetNode.position.x) + toW(tw) / 2;
+    const tCy = toY(targetNode.position.y) + toH(th) / 2;
 
-    const edgeColorRaw = (edge.data?.color as string) || '#94a3b8';
-    const edgeColor = edgeColorRaw.replace('#', '');
+    // Determine source/target edge connection points based on relative positions
+    // (bottom-center → top-center for vertical flow; right-center → left-center for horizontal)
+    let sx: number, sy: number, tx: number, ty: number;
+    const dx = Math.abs(tCx - sCx);
+    const dy = Math.abs(tCy - sCy);
+
+    if (dy >= dx) {
+      // Vertical dominant: connect bottom→top or top→bottom
+      if (tCy > sCy) {
+        sx = sCx; sy = toY(sourceNode.position.y) + toH(sh); // bottom
+        tx = tCx; ty = toY(targetNode.position.y);            // top
+      } else {
+        sx = sCx; sy = toY(sourceNode.position.y);            // top
+        tx = tCx; ty = toY(targetNode.position.y) + toH(th);  // bottom
+      }
+    } else {
+      // Horizontal dominant: connect right→left or left→right
+      if (tCx > sCx) {
+        sx = toX(sourceNode.position.x) + toW(sw); sy = sCy; // right
+        tx = toX(targetNode.position.x);            ty = tCy; // left
+      } else {
+        sx = toX(sourceNode.position.x); sy = sCy;            // left
+        tx = toX(targetNode.position.x) + toW(tw); ty = tCy;  // right
+      }
+    }
+
+    const edgeData = edge.data as FlowEdgeData | undefined;
+    const edgeStyle = edge.style as Record<string, unknown> | undefined;
+    const edgeColor = hex(
+      edgeData?.color || (edgeStyle?.stroke as string) || undefined,
+      '94a3b8',
+    );
+    const edgeWidth = edgeData?.thickness || (edgeStyle?.strokeWidth as number) || 1.5;
+    const edgeOpacity = edgeData?.opacity ?? 1;
+    const rawDash = (edgeData?.strokeDasharray as string | undefined) ?? (edgeStyle?.strokeDasharray as string | undefined);
+    const edgeDash = dashArrayToPptxDash(rawDash);
+
+    // Determine arrow markers
+    const markerEnd = typeof edge.markerEnd === 'string' ? edge.markerEnd : undefined;
+    const markerStart = typeof edge.markerStart === 'string' ? edge.markerStart : undefined;
+    const endArrow = toPptxArrowType(markerEnd);
+    const beginArrow = toPptxArrowType(markerStart);
 
     const lineX = Math.min(sx, tx);
     const lineY = Math.min(sy, ty);
@@ -488,24 +730,29 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       h: lineH,
       line: {
         color: edgeColor,
-        width: (edge.data?.thickness as number) || 1,
-        endArrowType: 'triangle',
+        width: edgeWidth,
+        dashType: edgeDash,
+        endArrowType: endArrow !== 'none' ? endArrow : undefined,
+        beginArrowType: beginArrow !== 'none' ? beginArrow : undefined,
+        transparency: Math.round((1 - edgeOpacity) * 100),
       },
       flipH: tx < sx,
       flipV: ty < sy,
     });
 
     // Edge label
-    if (edge.data?.label) {
-      const labelX = (sx + tx) / 2 - 0.4;
-      const labelY = (sy + ty) / 2 - 0.12;
-      slide.addText(edge.data.label as string, {
-        x: labelX,
-        y: labelY,
-        w: 0.8,
-        h: 0.24,
+    if (edgeData?.label) {
+      const t = edgeData.labelPosition ?? 0.5;
+      const lx = sx + t * (tx - sx);
+      const ly = sy + t * (ty - sy);
+      const labelColor = hex(edgeData.labelColor || undefined, edgeColor);
+      slide.addText(edgeData.label, {
+        x: lx - 0.5,
+        y: ly - 0.15,
+        w: 1,
+        h: 0.3,
         fontSize: 8,
-        color: edgeColor,
+        color: labelColor,
         align: 'center',
         valign: 'middle',
         fontFace: 'Arial',
@@ -515,35 +762,75 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
 
   // -- add nodes as native shapes or SVG images -----------------------
   for (const node of nodes) {
-    const defaults = getDefaultSize(node.data.shape);
-    const w = node.data.width || defaults.w;
-    const h = node.data.height || defaults.h;
+    const d = node.data;
+    const defaults = getDefaultSize(d.shape);
+    const w = d.width || defaults.w;
+    const h = d.height || defaults.h;
     const x = toX(node.position.x);
     const y = toY(node.position.y);
     const wInch = toW(w);
     const hInch = toH(h);
 
-    const fillColor = (node.data.color || '#3b82f6').replace('#', '');
-    const borderColorRaw = node.data.borderColor || 'transparent';
-    const borderColor = borderColorRaw.replace('#', '');
-    const textColor = (node.data.textColor || '#ffffff').replace('#', '');
-    const label = node.data.label || '';
+    const fillColor = hex(d.color, '3b82f6');
+    const fillColorRaw = d.color || '#3b82f6';
+    const borderColorRaw = d.borderColor || '';
+    const textColor = hex(d.textColor, 'ffffff');
+    const label = d.label || '';
+    const nodeOpacity = d.opacity ?? 1;
+    const fillTransparency = Math.round((1 - nodeOpacity) * 100);
 
-    // Font size: scale the canvas font (px) by the layout scale factor.
-    // scale converts px to inches; multiply by 72 to get points.
-    // Clamp to a readable range (6-36pt).
-    const rawFontPt = (node.data.fontSize || 14) * scale * 72;
+    // Font properties
+    const rawFontPt = (d.fontSize || 14) * scale * 72;
     const finalFontSize = Math.min(36, Math.max(6, Math.round(rawFontPt)));
+    const isBold = d.fontWeight ? d.fontWeight >= 600 : false;
+    const fontFamily = d.fontFamily || 'Arial';
+    const textAlign = (d.textAlign as 'left' | 'center' | 'right') || 'center';
 
-    const pptxShapeName = PPTX_SHAPE_MAP[node.data.shape];
-    const svgRenderer = SVG_SHAPE_RENDERERS[node.data.shape];
+    // Border properties — always render a border for visual fidelity.
+    // If no explicit border color, use a darkened version of the fill color.
+    const borderWidth = d.borderWidth ?? 1;
+    const borderDash = toPptxDashType(d.borderStyle);
+    const hasBorderColor = borderColorRaw && borderColorRaw !== 'transparent';
+    const derivedBorderColor = hasBorderColor
+      ? hex(borderColorRaw)
+      : darkenHex(fillColorRaw);
+
+    const pptxShapeName = PPTX_SHAPE_MAP[d.shape];
+    const svgRenderer = SVG_SHAPE_RENDERERS[d.shape];
+
+    // Build line opts — always include border for visible outlines
+    const lineOpts = { color: derivedBorderColor, width: borderWidth, dashType: borderDash };
+
+    // Build text options shared across all rendering paths
+    const textOpts = {
+      fontSize: finalFontSize,
+      color: textColor,
+      align: textAlign,
+      valign: 'middle' as const,
+      fontFace: fontFamily,
+      bold: isBold,
+    };
 
     if (pptxShapeName) {
       // ---------- Native PPTX shape with embedded text ---------------
-      const lineOpts =
-        borderColorRaw !== 'transparent'
-          ? { color: borderColor, width: 1 }
-          : undefined;
+      const shapeSpecific: Record<string, unknown> = {};
+      // Apply corner radius for any rect-based shape with borderRadius
+      const isRectBased = ['rect', 'roundRect'].includes(pptxShapeName);
+      if (d.shape === 'roundedRectangle') {
+        shapeSpecific.rectRadius = d.borderRadius
+          ? Math.min(0.5, d.borderRadius / Math.min(w, h))
+          : 0.1;
+      } else if (isRectBased && d.borderRadius && d.borderRadius > 0) {
+        // Regular rectangle / textbox with custom borderRadius
+        shapeSpecific.rectRadius = Math.min(0.5, d.borderRadius / Math.min(w, h));
+      }
+      if (d.shape === 'stickyNote') {
+        shapeSpecific.fill = { color: hex(d.color, 'fef08a'), transparency: fillTransparency };
+      }
+      if (d.shape === 'group') {
+        shapeSpecific.fill = { color: hex(d.color, 'f1f5f9'), transparency: Math.max(fillTransparency, 70) };
+        shapeSpecific.line = { color: hex(d.borderColor, 'cbd5e1'), width: 1, dashType: 'dash' as const };
+      }
 
       slide.addText(label, {
         shape: pptxShapeName,
@@ -551,67 +838,167 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
         y,
         w: wInch,
         h: hInch,
-        fill: { color: fillColor },
+        fill: { color: fillColor, transparency: fillTransparency },
         line: lineOpts,
-        fontSize: finalFontSize,
-        color: textColor,
-        align: 'center',
-        valign: 'middle',
-        fontFace: 'Arial',
-        rectRadius: node.data.shape === 'roundedRectangle' ? 0.1 : undefined,
+        ...textOpts,
+        ...shapeSpecific,
       });
     } else if (svgRenderer) {
       // ---------- SVG image fallback for complex shapes ---------------
-      const svgFill = node.data.color || '#3b82f6';
-      const svgStroke =
-        borderColorRaw !== 'transparent' ? borderColorRaw : 'none';
+      const svgFill = d.color || '#3b82f6';
+      const svgStroke = hasBorderColor ? borderColorRaw : '#' + darkenHex(fillColorRaw);
+      const svgStrokeWidth = borderWidth;
+      const svgDash = d.borderStyle === 'dashed' ? '8 4' : d.borderStyle === 'dotted' ? '2 2' : '';
       const svgString = svgRenderer(
-        Math.round(w),
-        Math.round(h),
-        svgFill,
-        svgStroke,
+        Math.round(w), Math.round(h), svgFill, svgStroke, svgStrokeWidth, svgDash,
       );
       const base64 = btoa(svgString);
       slide.addImage({
         data: `data:image/svg+xml;base64,${base64}`,
-        x,
-        y,
-        w: wInch,
-        h: hInch,
+        x, y, w: wInch, h: hInch,
+        transparency: fillTransparency,
       });
 
       // Overlay text on top of the SVG image
       if (label) {
-        slide.addText(label, {
-          x,
-          y,
-          w: wInch,
-          h: hInch,
-          fontSize: finalFontSize,
-          color: textColor,
-          align: 'center',
-          valign: 'middle',
-          fontFace: 'Arial',
-        });
+        slide.addText(label, { x, y, w: wInch, h: hInch, ...textOpts });
       }
     } else {
       // ---------- Unknown shape -> plain rectangle fallback ----------
-      const lineOpts =
-        borderColorRaw !== 'transparent'
-          ? { color: borderColor, width: 1 }
-          : undefined;
-
+      const fallbackRadius = d.borderRadius && d.borderRadius > 0
+        ? { rectRadius: Math.min(0.5, d.borderRadius / Math.min(w, h)) }
+        : {};
       slide.addText(label, {
         shape: 'rect' as SHAPE_NAME,
-        x,
-        y,
-        w: wInch,
-        h: hInch,
-        fill: { color: fillColor },
+        x, y, w: wInch, h: hInch,
+        fill: { color: fillColor, transparency: fillTransparency },
         line: lineOpts,
-        fontSize: finalFontSize,
-        color: textColor,
+        ...textOpts,
+        ...fallbackRadius,
+      });
+    }
+
+    // ---------- Status indicator pucks on the node -------------------
+    const pucks = getStatusIndicators(d);
+    for (const puck of pucks) {
+      if (puck.status === 'none') continue;
+      const puckSize = toW(puck.size || 12);
+      const pos = puckOffset(puck.position, wInch, hInch, puckSize);
+      const puckColor = hex(puck.color, '3b82f6');
+      const puckBorderColor = hex(puck.borderColor, puckColor);
+
+      slide.addShape('ellipse', {
+        x: x + pos.x,
+        y: y + pos.y,
+        w: puckSize,
+        h: puckSize,
+        fill: { color: puckColor },
+        line: puck.borderWidth
+          ? { color: puckBorderColor, width: puck.borderWidth }
+          : undefined,
+      });
+    }
+
+    // ---------- Icon on the node (rendered as text symbol) -----------
+    if (d.icon && !d.iconOnly) {
+      const iconSize = toW(d.iconSize || 16);
+      const iconColor = hex(d.iconColor, textColor);
+
+      // Render icon name as text in top-left/top-right area
+      // Note: lucide icons don't map to PowerPoint; use the icon name as a label hint
+      const iconX = d.iconPosition === 'right'
+        ? x + wInch - iconSize - 0.02
+        : x + 0.02;
+      const iconY = y + 0.02;
+
+      // Create a small SVG circle with the first letter of the icon name
+      const initial = d.icon.charAt(0).toUpperCase();
+      slide.addText(initial, {
+        shape: 'ellipse',
+        x: iconX,
+        y: iconY,
+        w: iconSize,
+        h: iconSize,
+        fill: { color: hex(d.iconBgColor, fillColor) },
+        line: d.iconBorderWidth
+          ? { color: hex(d.iconBorderColor, 'ffffff'), width: d.iconBorderWidth }
+          : undefined,
+        fontSize: Math.max(5, Math.round(iconSize * 72 * 0.5)),
+        color: iconColor,
         align: 'center',
+        valign: 'middle',
+        fontFace: 'Arial',
+        bold: true,
+      });
+    }
+  }
+
+  // -- render legend overlays (node + swimlane) -------------------------
+  const allLegends = [legendState.nodeLegend, legendState.swimlaneLegend];
+  let legendOffset = 0; // stack multiple legends vertically from bottom-right
+  for (const legendConfig of allLegends) {
+    if (!legendConfig.visible || legendConfig.items.length === 0) continue;
+    const lgStyle = legendConfig.style;
+    const lgW = Math.min(2.5, toW(lgStyle.width || 200));
+    const lgItemH = 0.22;
+    const lgTitleH = 0.3;
+    const lgH = lgTitleH + legendConfig.items.length * lgItemH + 0.1;
+
+    const lgX = slideW - lgW - 0.3;
+    const lgY = slideH - lgH - 0.3 - legendOffset;
+    legendOffset += lgH + 0.15;
+
+    // Legend background
+    slide.addShape('roundRect', {
+      x: lgX,
+      y: lgY,
+      w: lgW,
+      h: lgH,
+      fill: { color: hex(lgStyle.bgColor, 'ffffff'), transparency: Math.round((1 - lgStyle.opacity) * 100) },
+      line: { color: hex(lgStyle.borderColor, 'e2e8f0'), width: lgStyle.borderWidth || 1 },
+      rectRadius: 0.05,
+    });
+
+    // Legend title
+    if (legendConfig.title) {
+      slide.addText(legendConfig.title, {
+        x: lgX + 0.1,
+        y: lgY + 0.05,
+        w: lgW - 0.2,
+        h: lgTitleH,
+        fontSize: Math.min(11, lgStyle.fontSize || 11),
+        bold: true,
+        color: '333333',
+        align: 'left',
+        valign: 'middle',
+        fontFace: 'Arial',
+      });
+    }
+
+    // Legend items
+    const sortedItems = [...legendConfig.items].sort((a, b) => a.order - b.order);
+    for (let i = 0; i < sortedItems.length; i++) {
+      const item = sortedItems[i];
+      const itemY = lgY + lgTitleH + i * lgItemH;
+
+      // Color swatch
+      slide.addShape('ellipse', {
+        x: lgX + 0.15,
+        y: itemY + 0.04,
+        w: 0.14,
+        h: 0.14,
+        fill: { color: hex(item.color, '3b82f6') },
+      });
+
+      // Label
+      slide.addText(item.label, {
+        x: lgX + 0.35,
+        y: itemY,
+        w: lgW - 0.45,
+        h: lgItemH,
+        fontSize: Math.min(9, lgStyle.fontSize || 9),
+        color: '475569',
+        align: 'left',
         valign: 'middle',
         fontFace: 'Arial',
       });
@@ -620,10 +1007,18 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
 
   // -- speaker notes --------------------------------------------------
   if (includeNotes) {
-    const noteText = nodes
-      .map((n) => `${n.data.label} (${n.data.shape})`)
-      .join('\n');
-    slide.addNotes(noteText || 'FlowCraft diagram export');
+    const noteLines: string[] = [];
+    noteLines.push(`FlowCraft Diagram — ${nodes.length} nodes, ${edges.length} connectors`);
+    noteLines.push(`Exported: ${new Date().toLocaleString()}`);
+    noteLines.push('');
+    for (const n of nodes) {
+      const pucks = getStatusIndicators(n.data);
+      const puckStr = pucks.length > 0
+        ? ` [${pucks.map((p) => p.status).join(', ')}]`
+        : '';
+      noteLines.push(`• ${n.data.label} (${n.data.shape})${puckStr}`);
+    }
+    slide.addNotes(noteLines.join('\n'));
   }
 
   // -- write file -----------------------------------------------------
@@ -696,10 +1091,19 @@ export function exportAsJson(options: JsonExportOptions): void {
     exportData.layers = layerState.layers;
   }
 
-  // Legend
+  // Legends (node + swimlane)
   const legendState = useLegendStore.getState();
-  if (legendState.config.items.length > 0) {
-    exportData.legend = legendState.config;
+  if (legendState.nodeLegend.items.length > 0) {
+    exportData.nodeLegend = legendState.nodeLegend;
+  }
+  if (legendState.swimlaneLegend.items.length > 0) {
+    exportData.swimlaneLegend = legendState.swimlaneLegend;
+  }
+  // Backwards compat: also write combined "legend" if either has items
+  if (legendState.nodeLegend.items.length > 0 || legendState.swimlaneLegend.items.length > 0) {
+    exportData.legend = legendState.nodeLegend.items.length > 0
+      ? legendState.nodeLegend
+      : legendState.swimlaneLegend;
   }
 
   if (options.includeMetadata) {
@@ -712,7 +1116,7 @@ export function exportAsJson(options: JsonExportOptions): void {
   const indent = options.pretty ? 2 : undefined;
   const jsonString = JSON.stringify(exportData, null, indent);
   const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
-  saveAs(blob, getFilename('json'));
+  saveAs(blob, getFilename('fc'));
 }
 
 // ---------------------------------------------------------------------------
@@ -860,7 +1264,7 @@ export function importFromJson(
 
     // Optional string fields
     for (const key of ['description', 'color', 'borderColor', 'textColor', 'fontFamily',
-      'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
+      'textAlign', 'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
       'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId'] as const) {
       if (typeof rawData[key] === 'string') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
@@ -886,7 +1290,21 @@ export function importFromJson(
       nodeData.blockedBy = rawData.blockedBy.filter((v: unknown) => typeof v === 'string');
     }
 
-    // Status pucks
+    // Status pucks — migrate legacy singular statusIndicator if needed
+    if (!Array.isArray(rawData.statusIndicators) && rawData.statusIndicator && typeof rawData.statusIndicator === 'object') {
+      const p = rawData.statusIndicator as Record<string, unknown>;
+      nodeData.statusIndicators = [{
+        id: typeof p.id === 'string' ? p.id : newPuckId(),
+        status: typeof p.status === 'string' ? p.status as StatusIndicator['status'] : 'none',
+        color: typeof p.color === 'string' ? p.color : undefined,
+        size: typeof p.size === 'number' ? p.size : undefined,
+        position: typeof p.position === 'string' ? p.position as StatusIndicator['position'] : undefined,
+        borderColor: typeof p.borderColor === 'string' ? p.borderColor : undefined,
+        borderWidth: typeof p.borderWidth === 'number' ? p.borderWidth : undefined,
+        borderStyle: typeof p.borderStyle === 'string' ? p.borderStyle as StatusIndicator['borderStyle'] : undefined,
+        icon: typeof p.icon === 'string' ? p.icon : undefined,
+      }];
+    }
     if (Array.isArray(rawData.statusIndicators)) {
       nodeData.statusIndicators = (rawData.statusIndicators as Record<string, unknown>[])
         .filter((p) => typeof p === 'object' && p !== null)
@@ -978,7 +1396,9 @@ export function importFromJson(
       if (typeof r.label === 'string') topLevel.label = r.label;
       if (typeof r.animated === 'boolean') topLevel.animated = r.animated;
       if (typeof r.markerEnd === 'string') topLevel.markerEnd = r.markerEnd;
+      else if (r.markerEnd && typeof r.markerEnd === 'object') topLevel.markerEnd = r.markerEnd;
       if (typeof r.markerStart === 'string') topLevel.markerStart = r.markerStart;
+      else if (r.markerStart && typeof r.markerStart === 'object') topLevel.markerStart = r.markerStart;
       if (typeof r.style === 'object' && r.style !== null) topLevel.style = r.style;
 
       edges.push({
@@ -1047,6 +1467,8 @@ export function importFromJson(
               collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
               size: typeof l.size === 'number' ? l.size : 200,
               order: typeof l.order === 'number' ? l.order : 0,
+              showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
+              hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
             });
           }
         }
@@ -1062,6 +1484,8 @@ export function importFromJson(
               collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
               size: typeof l.size === 'number' ? l.size : 200,
               order: typeof l.order === 'number' ? l.order : 0,
+              showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
+              hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
             });
           }
         }
@@ -1140,23 +1564,26 @@ export function importFromJson(
     }
   }
 
-  // Legend — clear existing, then apply imported
+  // Legends — clear existing, then apply imported (node + swimlane, with backwards compat)
   {
     const lgStore = useLegendStore.getState();
-    lgStore.resetLegend();
-    if (data.legend && typeof data.legend === 'object') {
-      const lg = data.legend as Record<string, unknown>;
-      if (typeof lg.title === 'string') lgStore.setTitle(lg.title);
-      if (typeof lg.visible === 'boolean') lgStore.setVisible(lg.visible);
+    lgStore.resetLegend('node');
+    lgStore.resetLegend('swimlane');
+
+    const importLegendConfig = (raw: unknown, which: 'node' | 'swimlane') => {
+      if (!raw || typeof raw !== 'object') return;
+      const lg = raw as Record<string, unknown>;
+      if (typeof lg.title === 'string') lgStore.setTitle(which, lg.title);
+      if (typeof lg.visible === 'boolean') lgStore.setVisible(which, lg.visible);
       if (lg.position && typeof lg.position === 'object') {
         const pos = lg.position as Record<string, unknown>;
         if (typeof pos.x === 'number' && typeof pos.y === 'number') {
-          lgStore.setPosition({ x: pos.x, y: pos.y });
+          lgStore.setPosition(which, { x: pos.x, y: pos.y });
         }
       }
       if (lg.style && typeof lg.style === 'object') {
         const s = lg.style as Record<string, unknown>;
-        lgStore.updateStyle({
+        lgStore.updateStyle(which, {
           ...(typeof s.bgColor === 'string' ? { bgColor: s.bgColor } : {}),
           ...(typeof s.borderColor === 'string' ? { borderColor: s.borderColor } : {}),
           ...(typeof s.borderWidth === 'number' ? { borderWidth: s.borderWidth } : {}),
@@ -1166,19 +1593,34 @@ export function importFromJson(
         });
       }
       if (Array.isArray(lg.items)) {
-        for (const raw of lg.items) {
-          if (typeof raw !== 'object' || raw === null) continue;
-          const item = raw as Record<string, unknown>;
-          lgStore.addItem({
+        for (const rawItem of lg.items) {
+          if (typeof rawItem !== 'object' || rawItem === null) continue;
+          const item = rawItem as Record<string, unknown>;
+          lgStore.addItem(which, {
             id: typeof item.id === 'string' ? item.id : `legend_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
             label: typeof item.label === 'string' ? item.label : 'Item',
             color: typeof item.color === 'string' ? item.color : '#3b82f6',
+            kind: typeof item.kind === 'string' ? item.kind as LegendItemKind : undefined,
+            borderStyle: typeof item.borderStyle === 'string' ? item.borderStyle as LegendItem['borderStyle'] : undefined,
             shape: typeof item.shape === 'string' ? item.shape : undefined,
             icon: typeof item.icon === 'string' ? item.icon : undefined,
             order: typeof item.order === 'number' ? item.order : 0,
+            hidden: typeof item.hidden === 'boolean' ? item.hidden : undefined,
           });
         }
       }
+    };
+
+    // New format: separate nodeLegend and swimlaneLegend
+    if (data.nodeLegend) {
+      importLegendConfig(data.nodeLegend, 'node');
+    }
+    if (data.swimlaneLegend) {
+      importLegendConfig(data.swimlaneLegend, 'swimlane');
+    }
+    // Backwards compat: old single "legend" field → import as node legend
+    if (!data.nodeLegend && !data.swimlaneLegend && data.legend) {
+      importLegendConfig(data.legend, 'node');
     }
   }
 
@@ -1229,12 +1671,20 @@ export async function copySvgForPaste(): Promise<void> {
   const element = getReactFlowElement();
 
   const svgDataUrl = await toSvg(element, { skipFonts: false });
-  const svgString = decodeURIComponent(svgDataUrl.split(',')[1]);
+  let svgString = decodeURIComponent(svgDataUrl.split(',')[1]);
 
-  // Write SVG as text/html so apps like PPT receive a vector graphic,
-  // plus a PNG fallback for apps that only support raster images.
+  // Ensure SVG has xmlns for standalone rendering
+  if (!svgString.includes('xmlns=')) {
+    svgString = svgString.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+  }
+
+  // text/html  — Figma, Illustrator, Google Slides paste as editable vector
   const htmlBlob = new Blob([svgString], { type: 'text/html' });
 
+  // text/plain — Text editors, code tools get the SVG source
+  const textBlob = new Blob([svgString], { type: 'text/plain' });
+
+  // image/png  — PowerPoint, Word, and apps that only accept raster
   const pngDataUrl = await toPng(element, { pixelRatio: 2, backgroundColor: '#ffffff' });
   const pngResponse = await fetch(pngDataUrl);
   const pngBlob = await pngResponse.blob();
@@ -1242,10 +1692,11 @@ export async function copySvgForPaste(): Promise<void> {
   await navigator.clipboard.write([
     new ClipboardItem({
       'text/html': htmlBlob,
+      'text/plain': textBlob,
       'image/png': pngBlob,
     }),
   ]);
-  log.debug('SVG vector copied to clipboard');
+  log.debug('SVG vector copied to clipboard (html + text + png)');
 }
 
 // ---------------------------------------------------------------------------

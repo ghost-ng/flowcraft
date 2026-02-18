@@ -140,7 +140,7 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
   return (
     <div
       ref={panelRef}
-      className="fixed z-50 rounded-xl shadow-2xl border bg-white dark:bg-slate-900 dark:border-slate-700 border-slate-200 flex flex-col"
+      className="fixed z-50 rounded-xl shadow-2xl border bg-white dark:bg-dk-panel dark:border-dk-border border-slate-200 flex flex-col"
       style={{
         left: position.x,
         top: position.y,
@@ -150,12 +150,12 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
     >
       {/* Draggable title bar */}
       <div
-        className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700 cursor-move select-none shrink-0"
+        className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-dk-border cursor-move select-none shrink-0"
         onMouseDown={handleMouseDown}
       >
         <div className="flex items-center gap-2">
           <GripHorizontal size={14} className="text-slate-400" />
-          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+          <span className="text-xs font-semibold text-slate-600 dark:text-dk-muted uppercase tracking-wide">
             Icons
           </span>
           <span className="text-[10px] text-slate-400">
@@ -164,15 +164,15 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-          title="Close"
+          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer"
+          data-tooltip="Close"
         >
           <X size={14} className="text-slate-400" />
         </button>
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
+      <div className="px-3 py-2 border-b border-slate-200 dark:border-dk-border shrink-0">
         <div className="relative">
           <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
@@ -180,8 +180,8 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
             placeholder="Search icons..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full pl-7 pr-7 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-600
-                       bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200
+            className="w-full pl-7 pr-7 py-1.5 text-xs rounded border border-slate-200 dark:border-dk-border
+                       bg-white dark:bg-dk-panel text-slate-700 dark:text-dk-text
                        focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             autoFocus
           />
@@ -232,8 +232,8 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
                     e.dataTransfer.effectAllowed = 'move';
                   }}
                   className="flex items-center justify-center p-1.5 rounded cursor-grab
-                             hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600
-                             text-slate-500 dark:text-slate-400 transition-colors
+                             hover:bg-blue-50 dark:hover:bg-blue-800/10 hover:text-blue-600
+                             text-slate-500 dark:text-dk-muted transition-colors
                              active:cursor-grabbing active:scale-95"
                   title={iconName}
                 >
@@ -249,7 +249,7 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
           <button
             onClick={handleShowMore}
             className="w-full mt-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50
-                       dark:hover:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800
+                       dark:hover:bg-blue-800/10 rounded border border-blue-200 dark:border-blue-800
                        transition-colors cursor-pointer"
           >
             Show more ({displayedIcons.length - visibleCount} remaining)

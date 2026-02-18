@@ -166,6 +166,8 @@ export interface FlowState {
   setEdges: (edges: FlowEdge[]) => void;
   getEdge: (edgeId: string) => FlowEdge | undefined;
   updateEdgeData: (edgeId: string, data: Partial<FlowEdgeData>) => void;
+  /** Patch any edge properties (data, style, markers, type) via immer draft mutation */
+  updateEdge: (edgeId: string, patch: Partial<FlowEdge>) => void;
 
   // ---- status puck CRUD --------------------------------------
   addStatusPuck: (nodeId: string, puck: StatusIndicator) => void;
@@ -175,6 +177,8 @@ export interface FlowState {
   // ---- link group helpers ------------------------------------
   createLinkGroup: (nodeIds: string[]) => string;
   removeLinkGroup: (linkGroupId: string) => void;
+  addNodeToLinkGroup: (nodeId: string, linkGroupId: string) => void;
+  removeNodeFromLinkGroup: (nodeId: string) => void;
 
   // ---- selection helpers --------------------------------------
   setSelectedNodes: (ids: string[]) => void;
@@ -395,6 +399,22 @@ export const useFlowStore = create<FlowState>()(
       });
     },
 
+    updateEdge: (edgeId, patch) => {
+      set((state) => {
+        const edge = state.edges.find((e) => e.id === edgeId);
+        if (!edge) return;
+        if (patch.data !== undefined) {
+          edge.data = { ...edge.data, ...patch.data };
+        }
+        if (patch.style !== undefined) {
+          edge.style = { ...(edge.style || {}), ...patch.style };
+        }
+        if (patch.type !== undefined) edge.type = patch.type;
+        if ('markerEnd' in patch) edge.markerEnd = patch.markerEnd;
+        if ('markerStart' in patch) edge.markerStart = patch.markerStart;
+      });
+    },
+
     // -- status puck CRUD ------------------------------------------
     addStatusPuck: (nodeId, puck) => {
       log.debug('addStatusPuck', nodeId, puck.id);
@@ -453,6 +473,24 @@ export const useFlowStore = create<FlowState>()(
           if (node.data.linkGroupId === linkGroupId) {
             node.data = { ...node.data, linkGroupId: undefined };
           }
+        }
+      });
+    },
+
+    addNodeToLinkGroup: (nodeId, linkGroupId) => {
+      set((state) => {
+        const node = state.nodes.find((n) => n.id === nodeId);
+        if (node) {
+          node.data = { ...node.data, linkGroupId };
+        }
+      });
+    },
+
+    removeNodeFromLinkGroup: (nodeId) => {
+      set((state) => {
+        const node = state.nodes.find((n) => n.id === nodeId);
+        if (node) {
+          node.data = { ...node.data, linkGroupId: undefined };
         }
       });
     },

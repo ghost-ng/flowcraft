@@ -41,10 +41,10 @@ const StyleCard: React.FC<StyleCardProps> = React.memo(
         ${isActive
           ? 'border-blue-500 ring-2 ring-blue-500/30'
           : darkMode
-            ? 'border-slate-700 hover:border-slate-500'
+            ? 'border-dk-border hover:border-slate-500'
             : 'border-slate-200 hover:border-slate-400'
         }
-        ${darkMode ? 'bg-slate-800' : 'bg-white'}
+        ${darkMode ? 'bg-dk-panel' : 'bg-white'}
       `}
     >
       {/* Mini preview */}
@@ -67,7 +67,7 @@ const StyleCard: React.FC<StyleCardProps> = React.memo(
       {/* Label */}
       <span
         className={`text-[11px] font-medium truncate w-full text-center ${
-          darkMode ? 'text-slate-300' : 'text-slate-600'
+          darkMode ? 'text-dk-muted' : 'text-slate-600'
         }`}
       >
         {displayName}
@@ -107,7 +107,7 @@ const PaletteSwatch: React.FC<PaletteSwatchProps> = React.memo(
         ${isActive
           ? 'border-blue-500 ring-2 ring-blue-500/30'
           : darkMode
-            ? 'border-slate-700 hover:border-slate-500'
+            ? 'border-dk-border hover:border-slate-500'
             : 'border-slate-200 hover:border-slate-400'
         }
       `}
@@ -123,7 +123,7 @@ const PaletteSwatch: React.FC<PaletteSwatchProps> = React.memo(
       </div>
       <span
         className={`text-[10px] font-medium ${
-          darkMode ? 'text-slate-400' : 'text-slate-500'
+          darkMode ? 'text-dk-muted' : 'text-slate-500'
         }`}
       >
         {displayName}
@@ -212,7 +212,10 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      // Skip close if clicking the toggle button (avoids close-then-reopen race)
+      if (target.closest('[data-style-picker-toggle]')) return;
+      if (panelRef.current && !panelRef.current.contains(target)) {
         onClose();
       }
     };
@@ -237,7 +240,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
       className={`
         absolute top-12 right-4 w-80 max-h-[70vh] rounded-xl shadow-2xl border overflow-hidden flex flex-col z-50
         ${darkMode
-          ? 'bg-slate-900 border-slate-700'
+          ? 'bg-dk-panel border-dk-border'
           : 'bg-white border-slate-200'
         }
       `}
@@ -246,7 +249,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
       <div className="flex-1 overflow-y-auto p-4">
         <h3
           className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
-            darkMode ? 'text-slate-400' : 'text-slate-500'
+            darkMode ? 'text-dk-muted' : 'text-slate-500'
           }`}
         >
           Diagram Style
@@ -271,7 +274,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         {/* Color Palettes */}
         <h3
           className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
-            darkMode ? 'text-slate-400' : 'text-slate-500'
+            darkMode ? 'text-dk-muted' : 'text-slate-500'
           }`}
         >
           Color Palette

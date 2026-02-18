@@ -57,7 +57,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, dar
       transition-colors duration-75 cursor-pointer
       disabled:opacity-40 disabled:cursor-not-allowed
       ${darkMode
-        ? 'hover:bg-slate-700 text-slate-200'
+        ? 'hover:bg-dk-hover text-dk-text'
         : 'hover:bg-slate-100 text-slate-700'
       }
     `}
@@ -70,7 +70,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, dar
 );
 
 const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
-  <div className={`my-1 h-px ${darkMode ? 'bg-slate-700' : 'bg-slate-200'}`} />
+  <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
 );
 
 // ---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
       className={`
         min-w-[180px] rounded-lg shadow-xl border p-1
         ${darkMode
-          ? 'bg-slate-800 border-slate-700'
+          ? 'bg-dk-panel border-dk-border'
           : 'bg-white border-slate-200'
         }
       `}

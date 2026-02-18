@@ -14,6 +14,8 @@ import {
   Loader2,
   Check,
   AlertCircle,
+  Maximize2,
+  MousePointerSquareDashed,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
@@ -23,6 +25,7 @@ import {
 } from '../../store/exportStore';
 import { useFlowStore } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
+import { getReactFlowInstance } from '../Canvas/FlowCanvas';
 import {
   runExport,
   getReactFlowElement,
@@ -84,7 +87,7 @@ const PngOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Transparent background
           </span>
         </label>
@@ -101,7 +104,7 @@ const PngOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('png', { padding: Number(e.target.value) })}
             className="flex-1 accent-blue-500"
           />
-          <span className={`text-sm w-10 text-right ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm w-10 text-right ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             {options.padding}px
           </span>
         </div>
@@ -144,7 +147,7 @@ const JpgOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="flex-1 accent-blue-500"
           />
-          <span className={`text-sm w-12 text-right ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm w-12 text-right ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             {Math.round(options.quality * 100)}%
           </span>
         </div>
@@ -161,7 +164,7 @@ const JpgOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="w-8 h-8 rounded border-0 cursor-pointer"
           />
-          <span className={`text-sm font-mono ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm font-mono ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             {options.backgroundColor}
           </span>
         </div>
@@ -178,7 +181,7 @@ const JpgOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('jpg', { padding: Number(e.target.value) })}
             className="flex-1 accent-blue-500"
           />
-          <span className={`text-sm w-10 text-right ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm w-10 text-right ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             {options.padding}px
           </span>
         </div>
@@ -202,7 +205,7 @@ const SvgOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('svg', { embedFonts: e.target.checked })}
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Embed fonts in SVG
           </span>
         </label>
@@ -219,7 +222,7 @@ const SvgOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Include CSS styles
           </span>
         </label>
@@ -236,7 +239,7 @@ const SvgOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('svg', { padding: Number(e.target.value) })}
             className="flex-1 accent-blue-500"
           />
-          <span className={`text-sm w-10 text-right ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm w-10 text-right ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             {options.padding}px
           </span>
         </div>
@@ -298,7 +301,7 @@ const PdfOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('pdf', { fitToPage: e.target.checked })}
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Fit diagram to page
           </span>
         </label>
@@ -315,7 +318,7 @@ const PdfOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('pdf', { margin: Number(e.target.value) })}
             className="flex-1 accent-blue-500"
           />
-          <span className={`text-sm w-12 text-right ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm w-12 text-right ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             {options.margin}mm
           </span>
         </div>
@@ -361,7 +364,7 @@ const PptxOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Include title slide
           </span>
         </label>
@@ -378,7 +381,7 @@ const PptxOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Include node info as notes
           </span>
         </label>
@@ -402,7 +405,7 @@ const JsonOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             onChange={(e) => setOpts('json', { pretty: e.target.checked })}
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Pretty print (indented)
           </span>
         </label>
@@ -419,7 +422,7 @@ const JsonOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Include viewport state
           </span>
         </label>
@@ -436,7 +439,7 @@ const JsonOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             }
             className="rounded accent-blue-500"
           />
-          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
             Include style settings
           </span>
         </label>
@@ -452,7 +455,7 @@ const JsonOptionsPanel: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 function selectClass(darkMode: boolean): string {
   return `w-full px-3 py-1.5 rounded-md text-sm border transition-colors ${
     darkMode
-      ? 'bg-gray-700 border-gray-600 text-gray-200 focus:border-blue-400'
+      ? 'bg-dk-hover border-dk-border text-dk-text focus:border-blue-400'
       : 'bg-white border-gray-300 text-gray-700 focus:border-blue-500'
   } outline-none focus:ring-1 focus:ring-blue-500/30`;
 }
@@ -465,7 +468,7 @@ const OptionGroup: React.FC<{
   <div>
     <label
       className={`block text-xs font-medium mb-1.5 ${
-        darkMode ? 'text-gray-400' : 'text-gray-500'
+        darkMode ? 'text-dk-muted' : 'text-gray-500'
       }`}
     >
       {label}
@@ -487,7 +490,7 @@ const PillButton: React.FC<{
       active
         ? 'bg-blue-500 text-white'
         : darkMode
-          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          ? 'bg-dk-hover text-dk-muted hover:bg-dk-border'
           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
     }`}
   >
@@ -511,37 +514,78 @@ const ExportDialog: React.FC = () => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const nodeCount = useFlowStore((s) => s.nodes.length);
   const edgeCount = useFlowStore((s) => s.edges.length);
+  // Scope: 'all' fits the entire diagram before capturing; 'selection' captures as-is
+  const [scope, setScope] = useState<'all' | 'selection'>('all');
+  // Whether to include grid lines in the exported image (off by default)
+  const [includeGrid, setIncludeGrid] = useState(false);
+  // Whether to include minimap in the exported image (off by default)
+  const [includeMinimap, setIncludeMinimap] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Generate preview thumbnail
+
+
+  // Serialize current format options for dependency tracking
+  const currentOpts = options[lastFormat];
+  const optsKey = JSON.stringify(currentOpts);
+
+  // Generate preview thumbnail (debounced on option changes)
   useEffect(() => {
     if (!dialogOpen) return;
 
     let cancelled = false;
 
-    const generatePreview = async () => {
+    const timer = setTimeout(async () => {
+      // Temporarily hide grid/minimap if user unchecked their toggles
+      const gridEl = document.querySelector<HTMLElement>('.react-flow__background');
+      const minimapEl = document.querySelector<HTMLElement>('.react-flow__minimap');
+      const gridWas = gridEl ? gridEl.style.display : '';
+      const minimapWas = minimapEl ? minimapEl.style.display : '';
+      if (!includeGrid && gridEl) gridEl.style.display = 'none';
+      if (!includeMinimap && minimapEl) minimapEl.style.display = 'none';
+
+      // For scope='all', fitView so preview matches the exported output
+      const rf = getReactFlowInstance();
+      let savedVP: { x: number; y: number; zoom: number } | null = null;
+      if (scope === 'all' && rf) {
+        savedVP = rf.getViewport();
+        rf.fitView({ padding: 0.05 });
+        await new Promise((r) => setTimeout(r, 100));
+      }
+
       try {
         const element = getReactFlowElement();
+        // Use transparent bg if PNG with transparentBackground checked
+        const bgColor =
+          lastFormat === 'png' && (currentOpts as { transparentBackground?: boolean }).transparentBackground
+            ? undefined
+            : lastFormat === 'jpg'
+              ? (currentOpts as { backgroundColor?: string }).backgroundColor || '#ffffff'
+              : darkMode ? '#253345' : '#ffffff';
+
         const url = await toPng(element, {
           pixelRatio: 0.5,
-          backgroundColor: darkMode ? '#1e293b' : '#ffffff',
+          backgroundColor: bgColor,
         });
         if (!cancelled) setPreviewUrl(url);
       } catch (e) {
         log.warn('Export preview generation failed', e);
         if (!cancelled) setPreviewUrl(null);
+      } finally {
+        if (gridEl) gridEl.style.display = gridWas;
+        if (minimapEl) minimapEl.style.display = minimapWas;
+        if (savedVP && rf) rf.setViewport(savedVP);
       }
-    };
+    }, 200); // 200ms debounce
 
-    generatePreview();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [dialogOpen, darkMode]);
+  }, [dialogOpen, darkMode, includeGrid, includeMinimap, scope, lastFormat, optsKey]);
 
   // Close on Escape
   useEffect(() => {
@@ -567,13 +611,33 @@ const ExportDialog: React.FC = () => {
     [setDialogOpen],
   );
 
-  // Handle export
+  // Handle export -- when scope is 'all', fitView before capturing so
+  // the entire diagram is visible, then restore the original viewport.
   const handleExport = useCallback(async () => {
     setExportInProgress(true);
     setExportStatus('idle');
     setErrorMessage('');
 
+    const rf = getReactFlowInstance();
+    let savedViewport: { x: number; y: number; zoom: number } | null = null;
+
+    // Temporarily hide grid/minimap if unchecked
+    const gridEl = document.querySelector<HTMLElement>('.react-flow__background');
+    const minimapEl = document.querySelector<HTMLElement>('.react-flow__minimap');
+    const gridWas = gridEl ? gridEl.style.display : '';
+    const minimapWas = minimapEl ? minimapEl.style.display : '';
+    if (!includeGrid && gridEl) gridEl.style.display = 'none';
+    if (!includeMinimap && minimapEl) minimapEl.style.display = 'none';
+
     try {
+      // Fit the entire diagram into view before capture
+      if (scope === 'all' && rf) {
+        savedViewport = rf.getViewport();
+        rf.fitView({ padding: 0.05 });
+        // Wait for the DOM to re-render at the new viewport
+        await new Promise((r) => setTimeout(r, 200));
+      }
+
       await runExport(lastFormat, options[lastFormat] as unknown as Record<string, unknown>);
       setExportStatus('success');
       setTimeout(() => {
@@ -586,9 +650,16 @@ const ExportDialog: React.FC = () => {
         err instanceof Error ? err.message : 'Export failed. Please try again.',
       );
     } finally {
+      // Restore the grid/minimap visibility
+      if (gridEl) gridEl.style.display = gridWas;
+      if (minimapEl) minimapEl.style.display = minimapWas;
+      // Restore the original viewport so the user's view is unchanged
+      if (savedViewport && rf) {
+        rf.setViewport(savedViewport);
+      }
       setExportInProgress(false);
     }
-  }, [lastFormat, options, setExportInProgress, setDialogOpen]);
+  }, [lastFormat, options, scope, includeGrid, includeMinimap, setExportInProgress, setDialogOpen]);
 
   // Estimated file size
   const scale =
@@ -614,7 +685,7 @@ const ExportDialog: React.FC = () => {
         className={`
           relative w-full max-w-2xl mx-4 rounded-xl shadow-2xl border overflow-hidden
           ${darkMode
-            ? 'bg-gray-800 border-gray-700'
+            ? 'bg-dk-panel border-dk-border'
             : 'bg-white border-gray-200'
           }
         `}
@@ -622,14 +693,14 @@ const ExportDialog: React.FC = () => {
         {/* Header */}
         <div
           className={`flex items-center justify-between px-6 py-4 border-b ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
+            darkMode ? 'border-dk-border' : 'border-gray-200'
           }`}
         >
           <div className="flex items-center gap-2">
             <Download size={18} className="text-blue-500" />
             <h2
               className={`text-lg font-semibold ${
-                darkMode ? 'text-gray-100' : 'text-gray-900'
+                darkMode ? 'text-dk-text' : 'text-gray-900'
               }`}
             >
               Export Diagram
@@ -640,7 +711,7 @@ const ExportDialog: React.FC = () => {
             onClick={() => setDialogOpen(false)}
             className={`p-1 rounded-md transition-colors ${
               darkMode
-                ? 'hover:bg-gray-700 text-gray-400'
+                ? 'hover:bg-dk-hover text-dk-muted'
                 : 'hover:bg-gray-100 text-gray-500'
             }`}
           >
@@ -651,7 +722,7 @@ const ExportDialog: React.FC = () => {
         {/* Format tabs */}
         <div
           className={`flex gap-1 px-6 pt-4 pb-2 ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
+            darkMode ? 'border-dk-border' : 'border-gray-200'
           }`}
         >
           {FORMAT_TABS.map((tab) => (
@@ -663,7 +734,7 @@ const ExportDialog: React.FC = () => {
                 lastFormat === tab.id
                   ? 'bg-blue-500 text-white shadow-sm'
                   : darkMode
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    ? 'bg-dk-hover text-dk-muted hover:bg-dk-border'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -673,13 +744,87 @@ const ExportDialog: React.FC = () => {
           ))}
         </div>
 
+        {/* Scope selector */}
+        <div
+          className={`flex items-center gap-3 px-6 pb-2 ${
+            darkMode ? 'border-dk-border' : 'border-gray-200'
+          }`}
+        >
+          <span
+            className={`text-xs font-medium ${
+              darkMode ? 'text-dk-muted' : 'text-gray-500'
+            }`}
+          >
+            Scope
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setScope('all')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                scope === 'all'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : darkMode
+                    ? 'bg-dk-hover text-dk-muted hover:bg-dk-border'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Maximize2 size={12} />
+              Entire Diagram
+            </button>
+            <button
+              type="button"
+              onClick={() => setScope('selection')}
+              title="Export the current viewport (what you see)"
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                scope === 'selection'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : darkMode
+                    ? 'bg-dk-hover text-dk-muted hover:bg-dk-border'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <MousePointerSquareDashed size={12} />
+              Current View
+            </button>
+          </div>
+
+          {/* Grid & minimap toggles -- only for image formats */}
+          {lastFormat !== 'json' && lastFormat !== 'pptx' && (
+            <div className="flex items-center gap-4 ml-auto">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeGrid}
+                  onChange={(e) => setIncludeGrid(e.target.checked)}
+                  className="rounded accent-blue-500"
+                />
+                <span className={`text-xs ${darkMode ? 'text-dk-muted' : 'text-gray-500'}`}>
+                  Include grid
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeMinimap}
+                  onChange={(e) => setIncludeMinimap(e.target.checked)}
+                  className="rounded accent-blue-500"
+                />
+                <span className={`text-xs ${darkMode ? 'text-dk-muted' : 'text-gray-500'}`}>
+                  Include minimap
+                </span>
+              </label>
+            </div>
+          )}
+        </div>
+
         {/* Body: Preview + Options */}
         <div className="flex px-6 py-4 gap-6 min-h-[300px]">
           {/* Left: Preview */}
           <div
             className={`flex-1 flex items-center justify-center rounded-lg border overflow-hidden ${
               darkMode
-                ? 'bg-gray-900 border-gray-700'
+                ? 'bg-dk border-dk-border'
                 : 'bg-gray-50 border-gray-200'
             }`}
           >
@@ -692,7 +837,7 @@ const ExportDialog: React.FC = () => {
             ) : (
               <div
                 className={`text-sm ${
-                  darkMode ? 'text-gray-500' : 'text-gray-400'
+                  darkMode ? 'text-dk-faint' : 'text-gray-400'
                 }`}
               >
                 {nodeCount === 0
@@ -716,21 +861,21 @@ const ExportDialog: React.FC = () => {
         {/* Footer */}
         <div
           className={`flex items-center justify-between px-6 py-3 border-t ${
-            darkMode ? 'border-gray-700' : 'border-gray-200'
+            darkMode ? 'border-dk-border' : 'border-gray-200'
           }`}
         >
           {/* File size estimate + status */}
           <div className="flex items-center gap-3">
             <span
               className={`text-xs ${
-                darkMode ? 'text-gray-400' : 'text-gray-500'
+                darkMode ? 'text-dk-muted' : 'text-gray-500'
               }`}
             >
               Est. size: <strong>{estSize}</strong>
             </span>
             <span
               className={`text-xs ${
-                darkMode ? 'text-gray-500' : 'text-gray-400'
+                darkMode ? 'text-dk-faint' : 'text-gray-400'
               }`}
             >
               {nodeCount} nodes, {edgeCount} connectors
@@ -755,7 +900,7 @@ const ExportDialog: React.FC = () => {
               onClick={() => setDialogOpen(false)}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 darkMode
-                  ? 'text-gray-300 hover:bg-gray-700'
+                  ? 'text-dk-muted hover:bg-dk-hover'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >

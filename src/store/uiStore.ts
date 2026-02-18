@@ -78,6 +78,15 @@ export interface UIState {
   // ---- toast notification --------------------------------------
   toast: { message: string; type: 'info' | 'success' | 'error' | 'warning' } | null;
 
+  // ---- link group editor --------------------------------------
+  /** Link group ID currently being edited (null = dialog closed) */
+  linkGroupEditorId: string | null;
+  /** When true, clicking a node adds it to the group being edited */
+  linkGroupAddMode: boolean;
+
+  // ---- screenshot mode ----------------------------------------
+  screenshotMode: boolean;
+
   // ---- confirm dialog -----------------------------------------
   confirmDialog: {
     message: string;
@@ -134,6 +143,8 @@ export interface UIState {
   selectPuck: (puckId: string, nodeId: string) => void;
   togglePuckSelection: (puckId: string, nodeId: string) => void;
   clearPuckSelection: () => void;
+  /** Select pucks matching a filter across all nodes. Accepts puck IDs directly. */
+  selectPucks: (puckIds: string[], nodeId?: string | null) => void;
 
   setFormatPainterActive: (active: boolean) => void;
   setFormatPainterNodeStyle: (style: UIState['formatPainterNodeStyle']) => void;
@@ -149,6 +160,14 @@ export interface UIState {
   clearToast: () => void;
   showConfirm: (message: string, options?: { title?: string; confirmLabel?: string; cancelLabel?: string }) => Promise<boolean>;
   resolveConfirm: (result: boolean) => void;
+
+  // ---- screenshot mode actions ----------------------------------
+  setScreenshotMode: (active: boolean) => void;
+
+  // ---- link group editor actions --------------------------------
+  setLinkGroupEditorId: (id: string | null) => void;
+  setLinkGroupAddMode: (active: boolean) => void;
+  closeLinkGroupEditor: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +212,11 @@ export const useUIStore = create<UIState>()((set) => ({
 
   toast: null,
   confirmDialog: null,
+
+  screenshotMode: false,
+
+  linkGroupEditorId: null,
+  linkGroupAddMode: false,
 
   // -- actions --------------------------------------------------
   setActivePanelTab: (tab) => set({ activePanelTab: tab }),
@@ -252,6 +276,7 @@ export const useUIStore = create<UIState>()((set) => ({
       return { selectedPuckIds: ids, selectedPuckNodeId: ids.length > 0 ? nodeId : null };
     }),
   clearPuckSelection: () => set({ selectedPuckIds: [], selectedPuckNodeId: null }),
+  selectPucks: (puckIds, nodeId) => set({ selectedPuckIds: puckIds, selectedPuckNodeId: nodeId ?? null }),
 
   setFormatPainterActive: (active) => set({ formatPainterActive: active }),
   setFormatPainterNodeStyle: (style) => set({ formatPainterNodeStyle: style }),
@@ -296,6 +321,14 @@ export const useUIStore = create<UIState>()((set) => ({
       set({ confirmDialog: null });
     }
   },
+
+  // -- screenshot mode ---------------------------------------------
+  setScreenshotMode: (active) => set({ screenshotMode: active }),
+
+  // -- link group editor ------------------------------------------
+  setLinkGroupEditorId: (id) => set({ linkGroupEditorId: id, linkGroupAddMode: false }),
+  setLinkGroupAddMode: (active) => set({ linkGroupAddMode: active }),
+  closeLinkGroupEditor: () => set({ linkGroupEditorId: null, linkGroupAddMode: false }),
 }));
 
 /** Direct access to the store (useful outside of React components) */

@@ -4,8 +4,9 @@
 
 import React from 'react';
 import { type EdgeProps, getSmoothStepPath, EdgeLabelRenderer } from '@xyflow/react';
-import type { FlowEdgeData, DependencyType } from '../../types/edges';
+import type { DependencyType } from '../../types/edges';
 import { useUIStore } from '../../store/uiStore';
+import { useEdgeVisuals } from './useEdgeVisuals';
 
 // ---------------------------------------------------------------------------
 // Dependency style configuration
@@ -111,26 +112,24 @@ const DependencyEdge: React.FC<EdgeProps> = ({
   targetY,
   sourcePosition,
   targetPosition,
-  data,
-  style,
+  style: _style,
   selected,
   markerEnd: markerEndProp,
-  markerStart,
+  markerStart: markerStartProp,
 }) => {
+  void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
+  const ev = useEdgeVisuals(id);
   const selectionColor = useUIStore((s) => s.selectionColor);
-  const edgeData = data as FlowEdgeData | undefined;
-  const overrides = edgeData?.styleOverrides;
-  const depType: DependencyType = edgeData?.dependencyType ?? 'depends-on';
-  const depStyle = DEPENDENCY_STYLES[depType];
 
-  // Resolve visual properties -- per-edge overrides beat dependency defaults
-  const strokeColor = overrides?.stroke ?? depStyle.stroke;
-  const strokeWidth = overrides?.strokeWidth ?? (style?.strokeWidth as number) ?? DEFAULT_STROKE_WIDTH;
-  const rawData = edgeData as Record<string, unknown> | undefined;
-  const strokeDasharray = (rawData?.strokeDasharray as string) ?? overrides?.strokeDasharray ?? depStyle.strokeDasharray;
-  const opacity = overrides?.opacity ?? depStyle.opacity;
-  const markerEnd = markerEndProp || depStyle.markerEnd;
-  const label = edgeData?.label;
+  const depType: DependencyType = (ev.dependencyType as DependencyType) ?? 'depends-on';
+  const depStyle = DEPENDENCY_STYLES[depType];
+  const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? depStyle.stroke;
+  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? DEFAULT_STROKE_WIDTH;
+  const strokeDasharray = ev.strokeDasharray ?? ev.overrideDash ?? ev.styleDash ?? depStyle.strokeDasharray;
+  const opacity = ev.opacity ?? ev.overrideOpacity ?? ev.styleOpacity ?? depStyle.opacity;
+  const markerEnd = ev.markerEnd ?? markerEndProp ?? depStyle.markerEnd;
+  const markerStart = ev.markerStart ?? markerStartProp;
+  const label = ev.label;
   const showLabel = label !== undefined && label !== '';
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -192,7 +191,7 @@ const DependencyEdge: React.FC<EdgeProps> = ({
 
       {/* Dependency type pill badge + optional label (position adjustable via labelPosition) */}
       {(() => {
-        const t = (edgeData as Record<string, unknown>)?.labelPosition as number ?? 0.5;
+        const t = ev.labelPosition ?? 0.5;
         let lx = labelX, ly = labelY;
         if (t !== 0.5) {
           if (t < 0.5) { const s = t * 2; lx = sourceX + s * (labelX - sourceX); ly = sourceY + s * (labelY - sourceY); }
@@ -221,10 +220,10 @@ const DependencyEdge: React.FC<EdgeProps> = ({
                 className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
                 style={{
                   transform: `translate(-50%, -50%) translate(${lx}px, ${ly + (DEPENDENCY_LABELS[depType] ? 8 : 0)}px)`,
-                  color: (edgeData as Record<string, unknown>)?.labelColor as string ?? overrides?.labelFontColor ?? '#475569',
-                  backgroundColor: overrides?.labelBgColor ?? '#ffffff',
+                  color: ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569',
+                  backgroundColor: ev.overrideLabelBgColor ?? '#ffffff',
                   borderColor: strokeColor,
-                  fontSize: overrides?.labelFontSize ?? 11,
+                  fontSize: ev.overrideLabelFontSize ?? 11,
                 }}
               >
                 {label}

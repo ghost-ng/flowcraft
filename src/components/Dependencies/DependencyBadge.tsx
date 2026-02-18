@@ -4,7 +4,7 @@
 
 import React, { useMemo } from 'react';
 import { useDependencyStore } from '../../store/dependencyStore';
-import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
+import { useFlowStore, type FlowNodeData, getStatusIndicators } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
 
 // ---------------------------------------------------------------------------
@@ -56,26 +56,43 @@ const DependencyBadge: React.FC<DependencyBadgeProps> = ({ nodeId }) => {
     );
   }, [nodes, nodeId, edges]);
 
+  // Check if there are status pucks at the same corners as the badges
+  const puckOffset = useMemo(() => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return { left: 0, right: 0 };
+    const pucks = getStatusIndicators(node.data as FlowNodeData);
+    let leftMax = 0;
+    let rightMax = 0;
+    for (const p of pucks) {
+      const pos = p.position ?? 'top-right';
+      const sz = (p.size ?? 12) + ((p.borderWidth ?? 1) * 2) + 4; // diameter + border + gap
+      if (pos === 'top-left') leftMax = Math.max(leftMax, sz);
+      if (pos === 'top-right') rightMax = Math.max(rightMax, sz);
+    }
+    return { left: leftMax, right: rightMax };
+  }, [nodes, nodeId]);
+
   if (!showBadges) return null;
   if (counts.in === 0 && counts.out === 0) return null;
 
-  const bgBase = darkMode ? 'bg-slate-800' : 'bg-white';
-  const textBase = darkMode ? 'text-slate-200' : 'text-slate-700';
-  const borderBase = darkMode ? 'border-slate-600' : 'border-slate-300';
-  const shadowClass = darkMode ? 'shadow-md shadow-black/30' : 'shadow-sm';
+  const bgBase = darkMode ? 'bg-dk-panel' : 'bg-white';
+  const textBase = darkMode ? 'text-dk-text' : 'text-slate-700';
+  const borderBase = darkMode ? 'border-dk-border' : 'border-slate-300';
+  const shadowClass = darkMode ? 'shadow-md shadow-black/20' : 'shadow-sm';
 
   return (
     <>
-      {/* Upstream count badge (top-left) */}
+      {/* Upstream count badge (top-left) — elevated above pucks if present */}
       {counts.in > 0 && (
         <div
           className={`
-            absolute -top-2.5 -left-2.5 z-10
+            absolute -left-2.5 z-10
             flex items-center justify-center
             min-w-[22px] h-[22px] px-1
             rounded-full border text-[10px] font-semibold leading-none
             ${bgBase} ${textBase} ${borderBase} ${shadowClass}
           `}
+          style={{ top: -(10 + puckOffset.left) }}
           title={`${counts.in} upstream dependency${counts.in > 1 ? 'ies' : ''}`}
         >
           {counts.in}
@@ -83,16 +100,17 @@ const DependencyBadge: React.FC<DependencyBadgeProps> = ({ nodeId }) => {
         </div>
       )}
 
-      {/* Downstream count badge (top-right) */}
+      {/* Downstream count badge (top-right) — elevated above pucks if present */}
       {counts.out > 0 && (
         <div
           className={`
-            absolute -top-2.5 -right-2.5 z-10
+            absolute -right-2.5 z-10
             flex items-center justify-center
             min-w-[22px] h-[22px] px-1
             rounded-full border text-[10px] font-semibold leading-none
             ${bgBase} ${textBase} ${borderBase} ${shadowClass}
           `}
+          style={{ top: -(10 + puckOffset.right) }}
           title={`${counts.out} downstream dependency${counts.out > 1 ? 'ies' : ''}`}
         >
           {counts.out}

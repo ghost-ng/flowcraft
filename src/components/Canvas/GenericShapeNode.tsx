@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
 import { useFlowStore, type FlowNodeData, type StatusIndicator, getStatusIndicators } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { DependencyBadge } from '../Dependencies';
 import { ensureReadableText, darkenColor } from '../../utils/colorUtils';
 
@@ -141,9 +143,11 @@ interface StatusBadgeProps {
 
 const CLICK_THRESHOLD = 4; // px – movement below this is treated as a click, not a drag
 
-const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, onUpdatePosition, onUpdateSize }) => {
+const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; indexInGroup: number; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, indexInGroup, onUpdatePosition, onUpdateSize }) => {
   const isSelected = useUIStore((s) => s.selectedPuckIds.includes(puckId));
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const presentationMode = useUIStore((s) => s.presentationMode);
 
   if (!statusIndicator || statusIndicator.status === 'none') return null;
 
@@ -153,27 +157,33 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const offset = -(size / 2);
 
   // Border customisation
-  const bColor = statusIndicator.borderColor ?? '#ffffff';
-  const bWidth = statusIndicator.borderWidth ?? 2;
+  const bColor = statusIndicator.borderColor ?? '#000000';
+  const bWidth = statusIndicator.borderWidth ?? 1;
   const bStyle = statusIndicator.borderStyle ?? 'solid';
   const borderStr = bStyle === 'none' ? 'none' : `${bWidth}px ${bStyle} ${bColor}`;
 
   // For diamonds, position pucks at the midpoint of each diamond edge
   // instead of at the bounding box corners (which are outside the shape).
   const isDiamondShape = shape === 'diamond';
+  // Side-by-side offset when multiple pucks share the same corner.
+  // Right corners spread leftward; left corners spread rightward.
+  const spacing = size + bWidth * 2 + 2; // puck diameter + border + 2px gap
+  const sideOffset = indexInGroup * spacing;
+  const isRight = position === 'top-right' || position === 'bottom-right';
+
   const positionStyle: React.CSSProperties = {};
   if (isDiamondShape) {
     // Diamond edge midpoints: TL→(25%,25%), TR→(75%,25%), BL→(25%,75%), BR→(75%,75%)
-    positionStyle.transform = 'translate(-50%, -50%)';
+    positionStyle.transform = `translate(-50%, -50%) translateX(${isRight ? -sideOffset : sideOffset}px)`;
     if (position === 'top-right')        { positionStyle.left = '75%'; positionStyle.top = '25%'; }
     else if (position === 'top-left')    { positionStyle.left = '25%'; positionStyle.top = '25%'; }
     else if (position === 'bottom-right'){ positionStyle.left = '75%'; positionStyle.top = '75%'; }
     else                                 { positionStyle.left = '25%'; positionStyle.top = '75%'; }
   } else {
-    if (position === 'top-right' || position === 'bottom-right') {
-      positionStyle.right = offset;
+    if (isRight) {
+      positionStyle.right = offset + sideOffset;
     } else {
-      positionStyle.left = offset;
+      positionStyle.left = offset + sideOffset;
     }
     if (position === 'top-right' || position === 'top-left') {
       positionStyle.top = offset;
@@ -200,6 +210,7 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   // inside React Flow's CSS-transformed container. Instead we hide the badge
   // and create overlay elements on document.body for the drag preview + ghost.
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (presentationMode) return; // no puck interaction in presentation mode
     e.stopPropagation();
     e.preventDefault();
     const startX = e.clientX;
@@ -310,7 +321,63 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
 
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
-  }, [position, onUpdatePosition, onUpdateSize, size, bgColor, bColor, bWidth, bStyle, puckId, nodeId]);
+  }, [position, onUpdatePosition, onUpdateSize, size, bgColor, bColor, bWidth, bStyle, puckId, nodeId, presentationMode]);
+
+  // Right-click → open "Select All" context menu (disabled in presentation mode)
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (presentationMode) return;
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  }, [presentationMode]);
+
+  // Select-all helpers — gather puck IDs from flowStore that match criteria
+  const selectAllOnNode = useCallback(() => {
+    const node = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const pucks = getStatusIndicators(node.data as FlowNodeData);
+    useUIStore.getState().selectPucks(pucks.map((p) => p.id!).filter(Boolean), nodeId);
+    setCtxMenu(null);
+  }, [nodeId]);
+
+  const selectAllByColor = useCallback(() => {
+    const allNodes = useFlowStore.getState().nodes;
+    const ids: string[] = [];
+    for (const n of allNodes) {
+      for (const p of getStatusIndicators(n.data as FlowNodeData)) {
+        if ((p.color || '#94a3b8') === bgColor && p.id) ids.push(p.id);
+      }
+    }
+    useUIStore.getState().selectPucks(ids, null);
+    setCtxMenu(null);
+  }, [bgColor]);
+
+  const selectAllByBorder = useCallback(() => {
+    const allNodes = useFlowStore.getState().nodes;
+    const ids: string[] = [];
+    for (const n of allNodes) {
+      for (const p of getStatusIndicators(n.data as FlowNodeData)) {
+        const pBColor = p.borderColor ?? '#000000';
+        const pBWidth = p.borderWidth ?? 1;
+        const pBStyle = p.borderStyle ?? 'solid';
+        if (pBColor === bColor && pBWidth === bWidth && pBStyle === bStyle && p.id) ids.push(p.id);
+      }
+    }
+    useUIStore.getState().selectPucks(ids, null);
+    setCtxMenu(null);
+  }, [bColor, bWidth, bStyle]);
+
+  const selectAllGlobal = useCallback(() => {
+    const allNodes = useFlowStore.getState().nodes;
+    const ids: string[] = [];
+    for (const n of allNodes) {
+      for (const p of getStatusIndicators(n.data as FlowNodeData)) {
+        if (p.id) ids.push(p.id);
+      }
+    }
+    useUIStore.getState().selectPucks(ids, null);
+    setCtxMenu(null);
+  }, []);
 
   // Selection ring via box-shadow
   const selectionShadow = isSelected ? `0 0 0 2px ${selectionColor}` : undefined;
@@ -319,12 +386,12 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const hitSize = Math.max(24, size + bWidth * 2);
   const hitOffset = -(hitSize / 2); // centre the hit zone on the node corner
 
-  // Position the hit zone (same logic as original, but with hitOffset)
+  // Position the hit zone (same logic as visible puck, with hitOffset + side-by-side offset)
   const hitPositionStyle: React.CSSProperties = {};
-  if (position === 'top-right' || position === 'bottom-right') {
-    hitPositionStyle.right = hitOffset;
+  if (isRight) {
+    hitPositionStyle.right = hitOffset + sideOffset;
   } else {
-    hitPositionStyle.left = hitOffset;
+    hitPositionStyle.left = hitOffset + sideOffset;
   }
   if (position === 'top-right' || position === 'top-left') {
     hitPositionStyle.top = hitOffset;
@@ -339,7 +406,8 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
       className="nodrag nopan"
       onPointerDown={handlePointerDown}
       onClick={(e) => e.stopPropagation()}
-      title="Click to select · Shift+click multi-select · Drag to move · Ctrl+drag to resize"
+      onContextMenu={handleContextMenu}
+      data-tooltip="Click to select · Shift+click multi-select · Drag to move · Ctrl+drag to resize"
       style={{
         position: 'absolute',
         ...hitPositionStyle,
@@ -375,6 +443,49 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
           return CustomIcon ? <CustomIcon size={Math.round(size * 0.6)} className="text-white block" /> : null;
         })()}
       </div>
+
+      {/* Right-click "Select All" context menu — portaled to document.body
+           because position:fixed is broken inside React Flow's CSS-transformed container */}
+      {ctxMenu && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setCtxMenu(null)} onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }} />
+          <div
+            className="fixed z-[9999] min-w-[180px] rounded-lg shadow-xl border bg-white dark:bg-[#1e293b] dark:border-[#334155] py-1 text-xs"
+            style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          >
+            <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Select All Pucks</div>
+            <button
+              onClick={selectAllOnNode}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: bgColor }} />
+              On this node
+            </button>
+            <button
+              onClick={selectAllByColor}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: bgColor }} />
+              Same color
+            </button>
+            <button
+              onClick={selectAllByBorder}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'transparent', border: borderStr }} />
+              Same outline
+            </button>
+            <div className="h-px bg-slate-200 dark:bg-[#334155] my-0.5" />
+            <button
+              onClick={selectAllGlobal}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              All pucks (global)
+            </button>
+          </div>
+        </>,
+        document.body,
+      )}
     </div>
   );
 };
@@ -389,6 +500,12 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const isEditingNode = useUIStore((s) => s.isEditingNode);
   const setIsEditingNode = useUIStore((s) => s.setIsEditingNode);
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const linkGroupEditorId = useUIStore((s) => s.linkGroupEditorId);
+  const presentationMode = useUIStore((s) => s.presentationMode);
+  const defaultFontFamily = useSettingsStore((s) => s.nodeDefaults.fontFamily);
+
+  // Suppress selection visuals in presentation mode
+  const isSelected = selected && !presentationMode;
 
   const isEditing = isEditingNode === id;
   const iconPosition = nodeData.iconPosition || 'left';
@@ -401,9 +518,10 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const isIconOnly = !!nodeData.iconOnly;
   const fillColor = isIconOnly ? 'transparent' : (nodeData.color || shapeColors[shape] || '#3b82f6');
   const borderColor = isIconOnly ? 'transparent' : (nodeData.borderColor || darkenColor(fillColor, 0.25));
-  const baseTextColor = nodeData.textColor || (isIconOnly ? '#475569' : '#ffffff');
+  const isTransparentFill = !fillColor || fillColor === 'transparent' || fillColor === 'none';
+  const baseTextColor = nodeData.textColor || (isIconOnly ? '#475569' : isTransparentFill ? '#1e293b' : '#ffffff');
   // Auto-contrast: ensure text is readable against the fill colour
-  const textColor = (!isIconOnly && fillColor && fillColor !== 'transparent')
+  const textColor = (!isIconOnly && fillColor && !isTransparentFill)
     ? ensureReadableText(fillColor, baseTextColor)
     : baseTextColor;
   const fontSize = nodeData.fontSize || 14;
@@ -512,13 +630,17 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const borderShadow = (!noBox && borderColor !== 'transparent' && !hasDashedBorder)
     ? `0 0 0 ${borderW}px ${borderColor}`
     : '';
-  const selectionShadow = selected
+  const selectionShadow = isSelected
     ? `0 0 0 2.5px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
     : '';
-  const dropShadow = (!noBox && !selected)
+  const isInEditedGroup = !!(linkGroupEditorId && nodeData.linkGroupId === linkGroupEditorId);
+  const linkGroupShadow = isInEditedGroup && !isSelected
+    ? '0 0 0 2px #3b82f6, 0 0 6px 1px #3b82f640'
+    : '';
+  const dropShadow = (!noBox && !isSelected && !isInEditedGroup)
     ? '0 1px 3px rgba(0,0,0,0.1)'
     : '';
-  const combinedShadow = [borderShadow, selectionShadow, dropShadow].filter(Boolean).join(', ') || 'none';
+  const combinedShadow = [borderShadow, selectionShadow, linkGroupShadow, dropShadow].filter(Boolean).join(', ') || 'none';
 
   // Outer wrapper: holds resizer + handles, never clips
   const wrapperStyle: React.CSSProperties = {
@@ -543,7 +665,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     color: textColor,
     fontSize: scaledFontSize,
     fontWeight: nodeData.fontWeight || 500,
-    fontFamily: nodeData.fontFamily || "'Inter', sans-serif",
+    fontFamily: nodeData.fontFamily || defaultFontFamily || "'Inter', sans-serif",
     boxShadow: combinedShadow,
     transition: 'box-shadow 0.15s',
     overflow: noBox ? 'visible' : 'hidden',
@@ -564,7 +686,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   return (
     <div style={wrapperStyle} onDoubleClick={handleDoubleClick}>
       <NodeResizer
-        isVisible={!!selected}
+        isVisible={!!isSelected}
         minWidth={40}
         minHeight={30}
         lineStyle={{ borderColor: selectionColor, borderWidth: 1 }}
@@ -585,21 +707,32 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
       {/* Dependency badges overlay */}
       <DependencyBadge nodeId={id} />
-      {getStatusIndicators(nodeData).map((puck) => (
-        <StatusBadge
-          key={puck.id}
-          statusIndicator={puck}
-          nodeId={id}
-          puckId={puck.id!}
-          shape={shape}
-          onUpdatePosition={(pos) => {
-            useFlowStore.getState().updateStatusPuck(id, puck.id!, { position: pos as any });
-          }}
-          onUpdateSize={(newSize) => {
-            useFlowStore.getState().updateStatusPuck(id, puck.id!, { size: newSize });
-          }}
-        />
-      ))}
+      {(() => {
+        const pucks = getStatusIndicators(nodeData);
+        // Count how many pucks share each corner so they can be laid out side-by-side
+        const positionCounters: Record<string, number> = {};
+        return pucks.map((puck) => {
+          const pos = puck.position ?? 'top-right';
+          const idx = positionCounters[pos] ?? 0;
+          positionCounters[pos] = idx + 1;
+          return (
+            <StatusBadge
+              key={puck.id}
+              statusIndicator={puck}
+              nodeId={id}
+              puckId={puck.id!}
+              indexInGroup={idx}
+              shape={shape}
+              onUpdatePosition={(newPos) => {
+                useFlowStore.getState().updateStatusPuck(id, puck.id!, { position: newPos as any });
+              }}
+              onUpdateSize={(newSize) => {
+                useFlowStore.getState().updateStatusPuck(id, puck.id!, { size: newSize });
+              }}
+            />
+          );
+        });
+      })()}
 
       {/* Connection handles */}
       <Handle type="target" position={Position.Top} id="top" />
@@ -621,8 +754,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         >
           <ArrowSvg
             fill={fillColor}
-            stroke={selected ? selectionColor : borderColor}
-            strokeW={selected ? Math.max(borderW, 2) : borderColor !== 'transparent' ? borderW : 0}
+            stroke={isSelected ? selectionColor : borderColor}
+            strokeW={isSelected ? Math.max(borderW, 2) : borderColor !== 'transparent' ? borderW : 0}
           />
         </svg>
       )}
@@ -638,8 +771,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         >
           <ShapeSvg
             fill={fillColor}
-            stroke={selected ? selectionColor : borderColor}
-            strokeW={selected ? Math.max(borderW, 2) : borderColor !== 'transparent' ? borderW : 0}
+            stroke={isSelected ? selectionColor : borderColor}
+            strokeW={isSelected ? Math.max(borderW, 2) : borderColor !== 'transparent' ? borderW : 0}
           />
         </svg>
       )}

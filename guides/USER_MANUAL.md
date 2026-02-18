@@ -60,6 +60,7 @@ When you first open FlowCraft, you'll see:
 - Grid styles: **Dots**, **Lines**, or **Cross** (configurable in grid options dropdown)
 - Grid spacing: 10px, 20px, 40px, or 80px
 - **Snap to Grid** can be toggled for automatic position snapping
+- **Snap Distance** - click the Snap button to see a dropdown with distance options: 4px, 8px, 16px, or 32px. The snap distance controls how far apart elements snap, independent of grid spacing.
 
 ### Overlays
 - **Minimap** - small overview in the corner, click to navigate
@@ -298,10 +299,14 @@ Available in the toolbar Align dropdown and context menu:
 - **Ctrl + Shift + H** - Mirror horizontally (swap left-right positions)
 - **Ctrl + Shift + F** - Mirror vertically (swap top-bottom positions)
 
-### Rotation
-- **Ctrl + ]** - Rotate arrangement 90 degrees clockwise
-- **Ctrl + [** - Rotate arrangement 90 degrees counter-clockwise
-- Rotate 180 degrees (via dropdown)
+### Z-Ordering
+Control the stacking order of nodes (like PowerPoint):
+- **Ctrl + ]** - Bring forward one step
+- **Ctrl + [** - Send backward one step
+- **Ctrl + Shift + ]** - Bring to front (top of stack)
+- **Ctrl + Shift + [** - Send to back (bottom of stack)
+
+These are also available via right-click > **Order** submenu.
 
 ### Auto Layout
 - **Ctrl + L** - Automatically arrange nodes in a top-to-bottom hierarchy
@@ -361,29 +366,49 @@ Fine-tune how lane header labels are displayed:
 
 ## Diagram Legend
 
-FlowCraft includes a draggable legend overlay that can be placed on the canvas to provide a color-coded key for your diagram.
+FlowCraft supports **two independent legend overlays**: a **Node Legend** for node/edge visual indicators, and a **Swimlane Legend** for lane colors. Each legend is separately draggable and configurable.
 
-### Creating a Legend
-- Toggle legend visibility via the **Legend** button in the toolbar, or use the checkbox in the Lane tab of the Properties Panel
-- The legend appears as a floating panel on the canvas that can be dragged to any position
+### Node Legend
+The node legend displays a visual key for fill colors, border styles, status pucks, and edge colors used in your diagram.
 
-### Legend Items
-- Click **Add Item** to create a new legend entry
-- Each item has a **color swatch** and a **label**
-- Remove items with the delete button on each entry
-- Drag items to reorder them
+**Creating:**
+- Click the **eye** icon in the legend button group (top-right of canvas) to toggle visibility
+- If no legend items exist, clicking the eye icon auto-generates one from the current diagram
+- Click the **list** icon to open the legend editor popover
 
-### Customizing the Legend
-In the Properties Panel (Lane tab), you can configure:
-- **Title** - the heading displayed at the top of the legend (default: "Legend")
-- **Background Color** - the legend panel's background
-- **Border Color** - the legend panel's border
-- **Font Size** - text size for legend labels
-- **Width** - panel width (120-300px)
-- **Opacity** - transparency level (0-100%)
+**Visual Indicator Kinds:**
+Each legend item renders a swatch matching its kind:
+- **Fill** — filled rectangle (node fill colors)
+- **Border** — outlined rectangle with solid/dashed/dotted style (node border colors)
+- **Puck** — small circle (status indicator colors)
+- **Edge** — line with arrowhead (connector colors)
+
+**Auto-Generate:**
+Click the refresh icon in the legend editor to auto-scan your diagram and populate legend items from all unique fill colors, border colors, status puck colors, and edge colors.
+
+### Swimlane Legend
+The swimlane legend displays the lane colors used in your swimlane layout.
+
+**Creating:**
+- In the Swimlanes tab of the Properties Panel, click **Generate Lane Legend**
+- The swimlane legend appears as a separate floating panel with `kind: "lane"` items
+
+### Legend Editing
+Both legends support:
+- **Inline editing** — double-click the title or any item label to edit in place
+- **Context menu** — right-click for options: Edit Label, Remove Item, Add Item, Auto-Generate, Hide Legend, Clear Legend
+- **Drag to reposition** — grab the title bar and drag to move the legend anywhere on the canvas
+
+### Customizing Legends
+In the node legend editor popover (list icon):
+- **Title** — the heading displayed at the top
+- **Background Color** and **Border Color** — legend panel styling
+- **Font Size** — text size for labels
+- **Width** — panel width (120-300px)
+- Add/remove items manually with the **Add Item** / trash buttons
 
 ### Legend in Exports
-The legend is included in **PNG**, **SVG**, and **PDF** exports when visible, appearing in the same position as on the canvas.
+Both legends are included in **PNG**, **SVG**, **PDF**, and **PPTX** exports when visible. In PPTX, legends are stacked vertically from the bottom-right of the slide. In JSON export, they are stored as `nodeLegend` and `swimlaneLegend` objects.
 
 ---
 
@@ -465,17 +490,17 @@ Click the **Templates** button in the toolbar to open the Template Gallery.
 ### Diagram Styles
 Apply a complete visual theme to your entire diagram. Available in the toolbar Style Picker.
 
-18 built-in styles:
+19 built-in styles:
 - Clean Minimal, Corporate Professional, Blueprint, Whiteboard Sketch
 - Neon Dark, Pastel Soft, Flat Material, Monochrome Ink
 - Retro Terminal, Watercolor, Glass Morphism, Wireframe
 - Military C2, Infographic Bold, Colorful Gradient, Dark Neon Glow
-- Notebook, Gradient Cards
+- Notebook, Gradient Cards, Cyber C2
 
 ### Color Palettes
-10 built-in palettes for quick node coloring:
+11 built-in palettes for quick node coloring:
 - Ocean, Berry, Forest, Sunset, Grayscale
-- Cyber, Pastel Dream, Earth Tone, Military, Accessible
+- Cyber, Pastel Dream, Earth Tone, Military, Accessible, Cyber C2
 
 Apply palette colors quickly with number keys **1-9** to color selected nodes.
 
@@ -526,9 +551,15 @@ Press **Ctrl + E** or click the Export button to open the export dialog.
 - Pretty print option
 - Include viewport, styles, and metadata
 
+### Export Options
+The export dialog includes toggles to control what appears in the export:
+- **Show Grid** - include or hide the grid overlay in the exported image
+- **Show Minimap** - include or hide the minimap in the exported image
+
 ### Quick Export
 - **Copy as PNG** - copies diagram image to clipboard (toolbar button)
 - **Copy as SVG** - copies diagram as SVG to clipboard (toolbar button)
+- **Copy as Vector** - copies diagram as SVG with PNG fallback for universal paste support (Figma, Illustrator, PowerPoint, etc.)
 
 ---
 
@@ -599,16 +630,18 @@ Press **Ctrl + /** to view the full shortcuts dialog at any time.
 | Shift + Arrow keys | Nudge selected (10px) |
 | Ctrl + Scroll | Adjust border thickness |
 
-### Layout & Alignment
+### Order & Layout
 | Shortcut | Action |
 |----------|--------|
+| Ctrl + ] | Bring forward |
+| Ctrl + [ | Send backward |
+| Ctrl + Shift + ] | Bring to front |
+| Ctrl + Shift + [ | Send to back |
 | Ctrl + L | Auto layout |
 | Ctrl + G | Group in region |
 | Ctrl + Shift + G | Link group |
 | Ctrl + Shift + H | Mirror horizontal |
 | Ctrl + Shift + F | Mirror vertical |
-| Ctrl + ] | Rotate 90 degrees clockwise |
-| Ctrl + [ | Rotate 90 degrees counter-clockwise |
 
 ### Style
 | Shortcut | Action |
@@ -642,7 +675,7 @@ The toolbar runs along the top (or left side) of the application, organized into
 - **Grid Options** - toggle grid, change style and spacing
 - **Rulers** - toggle ruler visibility
 - **Minimap** - toggle minimap
-- **Snap** - toggle snap to grid
+- **Snap** - toggle snap to grid; click to open dropdown with snap distance options (4/8/16/32px)
 
 ### Layout Group
 - **Auto Arrange** (Ctrl+L)
@@ -651,7 +684,7 @@ The toolbar runs along the top (or left side) of the application, organized into
 ### Transform Group (active with 2+ selections)
 - **Align** dropdown (Left, Center H, Right, Top, Center V, Bottom)
 - **Mirror** dropdown (Horizontal, Vertical)
-- **Rotate** dropdown (90 CW, 90 CCW, 180)
+- **Order** — z-order controls: Bring Forward (Ctrl+]), Send Backward (Ctrl+[)
 
 ### Style Group
 - **Properties Panel** - toggle panel visibility
@@ -683,8 +716,9 @@ The toolbar runs along the top (or left side) of the application, organized into
 - **Change Shape** - submenu with all shape types
 - **Add Status** - submenu with status types
 - **Color** - quick color swatches
-- **Select Same Shape** - select all nodes with this shape type
-- **Send to Back** / **Bring to Front** - layer ordering
+- **Select** - submenu to select nodes by: same Color, same Outline/Border, same Shape, or All Nodes
+- **Order** - submenu for z-ordering: Forward (Ctrl+]), Backward (Ctrl+[), Front (Ctrl+Shift+]), Back (Ctrl+Shift+[). These items stay open for multiple clicks.
+- **Edit Link Group** - opens the link group editor dialog (visible when node belongs to a link group)
 
 ### Edge Context Menu (right-click an edge)
 - **Delete** - remove the edge

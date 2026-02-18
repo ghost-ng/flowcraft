@@ -72,7 +72,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
       flex items-center gap-2.5 w-full px-3 py-1.5 text-left text-sm rounded
       transition-colors duration-75 cursor-pointer
       ${darkMode
-        ? 'hover:bg-slate-700 text-slate-200'
+        ? 'hover:bg-dk-hover text-dk-text'
         : 'hover:bg-slate-100 text-slate-700'
       }
     `}
@@ -88,7 +88,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 );
 
 const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
-  <div className={`my-1 h-px ${darkMode ? 'bg-slate-700' : 'bg-slate-200'}`} />
+  <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
 );
 
 // ---------------------------------------------------------------------------
@@ -140,25 +140,83 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
       <div
         className={`
           min-w-[180px] rounded-lg shadow-xl border p-1
-          ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
+          ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
         `}
       >
-        <MenuItem
-          icon={<Spline size={14} />}
-          label="Connector Type"
-          onClick={() => setSubmenu(submenu === 'type' ? null : 'type')}
-          darkMode={darkMode}
-          hasSubmenu
-          onMouseEnter={() => setSubmenu('type')}
-        />
-        <MenuItem
-          icon={<Palette size={14} />}
-          label="Connector Color"
-          onClick={() => setSubmenu(submenu === 'color' ? null : 'color')}
-          darkMode={darkMode}
-          hasSubmenu
-          onMouseEnter={() => setSubmenu('color')}
-        />
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Spline size={14} />}
+            label="Connector Type"
+            onClick={() => setSubmenu(submenu === 'type' ? null : 'type')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('type')}
+          />
+          {submenu === 'type' && (
+            <div
+              className={`
+                absolute top-0 left-full ml-1 min-w-[150px] rounded-lg shadow-xl border p-1
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              {edgeTypeOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChangeType(opt.value);
+                    onClose();
+                  }}
+                  className={`
+                    flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
+                    transition-colors duration-75 cursor-pointer
+                    ${darkMode
+                      ? 'hover:bg-dk-hover text-dk-text'
+                      : 'hover:bg-slate-100 text-slate-700'
+                    }
+                  `}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Palette size={14} />}
+            label="Connector Color"
+            onClick={() => setSubmenu(submenu === 'color' ? null : 'color')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('color')}
+          />
+          {submenu === 'color' && (
+            <div
+              className={`
+                absolute top-0 left-full ml-1 rounded-lg shadow-xl border p-3
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              <div className="grid grid-cols-5 gap-1.5">
+                {quickColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChangeColor(color);
+                      onClose();
+                    }}
+                    className="w-7 h-7 rounded-md border-2 border-transparent hover:border-white hover:scale-110 transition-all cursor-pointer"
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <MenuDivider darkMode={darkMode} />
 
@@ -167,12 +225,14 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
           label="Edit Label"
           onClick={() => { onEditLabel(); onClose(); }}
           darkMode={darkMode}
+          onMouseEnter={() => setSubmenu(null)}
         />
         <MenuItem
           icon={<MoveHorizontal size={14} />}
           label="Straighten"
           onClick={() => { onStraighten(); onClose(); }}
           darkMode={darkMode}
+          onMouseEnter={() => setSubmenu(null)}
         />
 
         <MenuDivider darkMode={darkMode} />
@@ -182,65 +242,9 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
           label="Delete"
           onClick={() => { onDelete(); onClose(); }}
           darkMode={darkMode}
+          onMouseEnter={() => setSubmenu(null)}
         />
       </div>
-
-      {/* Type submenu */}
-      {submenu === 'type' && (
-        <div
-          className={`
-            absolute top-0 left-full ml-1 min-w-[150px] rounded-lg shadow-xl border p-1
-            ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
-          `}
-        >
-          {edgeTypeOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChangeType(opt.value);
-                onClose();
-              }}
-              className={`
-                flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
-                transition-colors duration-75 cursor-pointer
-                ${darkMode
-                  ? 'hover:bg-slate-700 text-slate-200'
-                  : 'hover:bg-slate-100 text-slate-700'
-                }
-              `}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Color submenu */}
-      {submenu === 'color' && (
-        <div
-          className={`
-            absolute top-0 left-full ml-1 rounded-lg shadow-xl border p-3
-            ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
-          `}
-        >
-          <div className="grid grid-cols-5 gap-1.5">
-            {quickColors.map((color) => (
-              <button
-                key={color}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChangeColor(color);
-                  onClose();
-                }}
-                className="w-7 h-7 rounded-md border-2 border-transparent hover:border-white hover:scale-110 transition-all cursor-pointer"
-                style={{ backgroundColor: color }}
-                title={color}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

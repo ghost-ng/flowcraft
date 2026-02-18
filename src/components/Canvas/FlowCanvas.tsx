@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -23,19 +23,33 @@ import { useSwimlaneStore } from '../../store/swimlaneStore';
 import GenericShapeNode from './GenericShapeNode';
 import GroupNode from './GroupNode';
 import Ruler, { RulerCorner } from './Ruler';
-import { edgeTypes } from '../Edges';
+import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
-import { LegendOverlay } from '../Legend';
+import { LegendOverlay, LegendButton } from '../Legend';
 import { useLegendStore } from '../../store/legendStore';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
+import { LinkGroupEditorDialog } from '../LinkGroup';
 import { log } from '../../utils/logger';
 import {
   computeLaneBoundaries,
   getNodeLaneAssignment,
   type LaneDefinition,
 } from '../../utils/swimlaneUtils';
+
+// ---------------------------------------------------------------------------
+// Module-level React Flow instance accessor
+// Allows components rendered outside the ReactFlowProvider (e.g. ExportDialog)
+// to call fitView / getViewport / setViewport before capturing.
+// ---------------------------------------------------------------------------
+
+let _rfInstance: ReturnType<typeof useReactFlow> | null = null;
+
+/** Returns the current React Flow instance, or null if not yet initialized. */
+export function getReactFlowInstance() {
+  return _rfInstance;
+}
 
 // Custom paint-brush cursor for format painter mode (SVG data URL, hotspot at tip)
 const FORMAT_PAINTER_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z'/%3E%3Cpath d='M9 8 5.5 11.5a2.12 2.12 0 1 0 3 3L12 11'/%3E%3Cpath d='M5 15 2 22l7-3'/%3E%3C/svg%3E") 2 22, crosshair`;
@@ -60,6 +74,51 @@ const DEFAULT_EDGE_OPTIONS = {
 
 let idCounter = 0;
 const nextId = () => `node_${Date.now()}_${++idCounter}`;
+
+// ---------------------------------------------------------------------------
+// Swimlane auto-assignment helper (reads stores directly — no hooks needed)
+// ---------------------------------------------------------------------------
+
+function assignSwimlaneToNode(
+  nodeId: string,
+  position: { x: number; y: number },
+  nodeW = 160,
+  nodeH = 60,
+) {
+  const { config, containerOffset } = useSwimlaneStore.getState();
+  const hLanes = config.horizontal;
+  const vLanes = config.vertical;
+  if (hLanes.length === 0 && vLanes.length === 0) return;
+
+  const localX = position.x - containerOffset.x;
+  const localY = position.y - containerOffset.y;
+
+  let assignedLaneId: string | null = null;
+  if (hLanes.length > 0) {
+    const headerOffset = vLanes.length > 0 ? 32 : 0;
+    const laneDefs: LaneDefinition[] = hLanes.map((l) => ({
+      id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
+    }));
+    const boundaries = computeLaneBoundaries(laneDefs, 'horizontal', headerOffset);
+    assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
+  }
+  if (!assignedLaneId && vLanes.length > 0) {
+    const headerOffset = hLanes.length > 0 ? 40 : 0;
+    const laneDefs: LaneDefinition[] = vLanes.map((l) => ({
+      id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
+    }));
+    const boundaries = computeLaneBoundaries(laneDefs, 'vertical', headerOffset);
+    assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
+  }
+
+  // Update assignment (set lane or clear if moved outside)
+  const store = useFlowStore.getState();
+  const node = store.nodes.find((n) => n.id === nodeId);
+  const currentLaneId = node ? (node.data as FlowNodeData).swimlaneId : undefined;
+  if (assignedLaneId !== (currentLaneId || null)) {
+    store.updateNodeData(nodeId, { swimlaneId: assignedLaneId || undefined });
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Context menu state types
@@ -95,15 +154,20 @@ export interface FlowCanvasProps {
     zoomOut: () => void;
     fitView: () => void;
   }) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // Inner canvas (must be inside ReactFlowProvider)
 // ---------------------------------------------------------------------------
 
-const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
+const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, canUndo, canRedo }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const rfInstance = useReactFlow();
+  _rfInstance = rfInstance;
   const { screenToFlowPosition, zoomIn, zoomOut, fitView } = rfInstance;
 
   // Flow store
@@ -116,13 +180,14 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const removeNode = useFlowStore((s) => s.removeNode);
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const setNodes = useFlowStore((s) => s.setNodes);
-  const setSelectedNodes = useFlowStore((s) => s.setSelectedNodes);
-  const setSelectedEdges = useFlowStore((s) => s.setSelectedEdges);
+  // Note: setSelectedNodes/setSelectedEdges are accessed via useFlowStore.getState()
+  // when needed (select-all, edge context menu) to avoid subscribing to unused values.
 
   // UI store
   const minimapVisible = useUIStore((s) => s.minimapVisible);
   const gridVisible = useUIStore((s) => s.gridVisible);
   const snapEnabled = useUIStore((s) => s.snapEnabled);
+  const snapDistance = useUIStore((s) => s.snapDistance);
   const gridSpacing = useUIStore((s) => s.gridSpacing);
   const gridStyle = useUIStore((s) => s.gridStyle);
   const rulerVisible = useUIStore((s) => s.rulerVisible);
@@ -146,8 +211,45 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   const hasLanes = hLanes.length > 0 || vLanes.length > 0;
   const setIsCreatingSwimlanes = useSwimlaneStore((s) => s.setIsCreating);
 
-  // Legend
-  const legendVisible = useLegendStore((s) => s.config.visible && s.config.items.length > 0);
+  // Compute hidden lane IDs and filter nodes/edges for hidden lanes
+  const hiddenLaneIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const lane of hLanes) if (lane.hidden) ids.add(lane.id);
+    for (const lane of vLanes) if (lane.hidden) ids.add(lane.id);
+    return ids;
+  }, [hLanes, vLanes]);
+
+  const visibleNodes = useMemo(() => {
+    if (hiddenLaneIds.size === 0) return nodes;
+    return nodes.map((n) => {
+      const laneId = (n.data as Record<string, unknown>)?.swimlaneId as string | undefined;
+      if (laneId && hiddenLaneIds.has(laneId)) {
+        return { ...n, hidden: true };
+      }
+      return n;
+    });
+  }, [nodes, hiddenLaneIds]);
+
+  const visibleEdges = useMemo(() => {
+    if (hiddenLaneIds.size === 0) return edges;
+    // Build set of hidden node IDs
+    const hiddenNodeIds = new Set<string>();
+    for (const n of nodes) {
+      const laneId = (n.data as Record<string, unknown>)?.swimlaneId as string | undefined;
+      if (laneId && hiddenLaneIds.has(laneId)) hiddenNodeIds.add(n.id);
+    }
+    if (hiddenNodeIds.size === 0) return edges;
+    return edges.map((e) => {
+      if (hiddenNodeIds.has(e.source) || hiddenNodeIds.has(e.target)) {
+        return { ...e, hidden: true };
+      }
+      return e;
+    });
+  }, [edges, nodes, hiddenLaneIds]);
+
+  // Legend — two independent legends
+  const nodeLegendVisible = useLegendStore((s) => s.nodeLegend.visible && s.nodeLegend.items.length > 0);
+  const swimlaneLegendVisible = useLegendStore((s) => s.swimlaneLegend.visible && s.swimlaneLegend.items.length > 0);
 
   // Hovered node tracking (for Ctrl+Wheel border-width adjustment)
   const hoveredNodeRef = useRef<string | null>(null);
@@ -175,12 +277,16 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
         label: shapeType === 'textbox' ? 'Text' : 'New Node',
         shape: shapeType as FlowNodeData['shape'],
       };
-      // Textbox: transparent fill, dashed border, auto-sized
+      // Textbox: transparent fill, no border, dark text
       if (shapeType === 'textbox') {
-        data.fillColor = 'transparent';
-        data.borderStyle = 'dashed';
-        data.borderColor = '#94a3b8';
-        data.borderWidth = 1;
+        data.color = 'transparent';
+        data.borderColor = 'transparent';
+        data.borderWidth = 0;
+        // Ensure text is visible against the canvas background
+        const canvasBg = activeStyle.canvas.background.toLowerCase();
+        const isLightBg = !canvasBg || canvasBg === '#ffffff' || canvasBg === '#fff'
+          || canvasBg > '#aaaaaa';
+        data.textColor = isLightBg ? '#1e293b' : '#f1f5f9';
       }
       const newNode: FlowNode = {
         id: nextId(),
@@ -189,6 +295,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
         data: data as FlowNodeData,
       };
       addNode(newNode);
+      // Auto-assign to swimlane based on drop position
+      assignSwimlaneToNode(newNode.id, position);
       return newNode.id;
     },
     [screenToFlowPosition, addNode],
@@ -224,6 +332,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           },
         };
         addNode(newNode);
+        assignSwimlaneToNode(newNode.id, position, 300, 200);
         return;
       }
 
@@ -244,6 +353,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           },
         };
         addNode(newNode);
+        // Auto-assign to swimlane based on drop position
+        assignSwimlaneToNode(newNode.id, position, isIconOnly ? 60 : 160, isIconOnly ? 60 : 60);
 
         // Clear palette shape selection after icon drop
         useUIStore.getState().setSelectedPaletteShape(null);
@@ -534,6 +645,28 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
     }
   }, [nodeMenu, setNodes]);
 
+  const handleSendBackward = useCallback(() => {
+    if (!nodeMenu) return;
+    const currentNodes = useFlowStore.getState().nodes;
+    const idx = currentNodes.findIndex((n) => n.id === nodeMenu.nodeId);
+    if (idx > 0) {
+      const moved = [...currentNodes];
+      [moved[idx - 1], moved[idx]] = [moved[idx], moved[idx - 1]];
+      setNodes(moved);
+    }
+  }, [nodeMenu, setNodes]);
+
+  const handleBringForward = useCallback(() => {
+    if (!nodeMenu) return;
+    const currentNodes = useFlowStore.getState().nodes;
+    const idx = currentNodes.findIndex((n) => n.id === nodeMenu.nodeId);
+    if (idx < currentNodes.length - 1) {
+      const moved = [...currentNodes];
+      [moved[idx], moved[idx + 1]] = [moved[idx + 1], moved[idx]];
+      setNodes(moved);
+    }
+  }, [nodeMenu, setNodes]);
+
   // ---- Ungroup a group node -------------------------------------------------
 
   const handleUngroupNode = useCallback(() => {
@@ -677,6 +810,18 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
+      // Link group add-mode: clicking a node adds it to the group
+      const lgUI = useUIStore.getState();
+      if (lgUI.linkGroupAddMode && lgUI.linkGroupEditorId) {
+        // Defer to next tick so React Flow finishes its click/selection processing first
+        const lgId = lgUI.linkGroupEditorId;
+        const nId = node.id;
+        queueMicrotask(() => {
+          useFlowStore.getState().addNodeToLinkGroup(nId, lgId);
+        });
+        return;
+      }
+
       if (!formatPainterActive || !formatPainterNodeStyle) return;
       log.debug('Format painter applied to node', node.id);
       // Build patch from copied style
@@ -782,58 +927,27 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   // Assign swimlane ID when a node is dropped
   const onNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
-      const { config, containerOffset } = useSwimlaneStore.getState();
-      const hLanes = config.horizontal;
-      const vLanes = config.vertical;
-      if (hLanes.length === 0 && vLanes.length === 0) return;
-
-      // Convert node position to swimlane-local coordinates
-      const localX = node.position.x - containerOffset.x;
-      const localY = node.position.y - containerOffset.y;
-
       const nodeW = (node.data as FlowNodeData).width || 160;
       const nodeH = (node.data as FlowNodeData).height || 60;
-
-      // Check horizontal lanes first, then vertical
-      let assignedLaneId: string | null = null;
-      if (hLanes.length > 0) {
-        const headerOffset = vLanes.length > 0 ? 32 : 0; // V_HEADER_HEIGHT
-        const laneDefs: LaneDefinition[] = hLanes.map((l) => ({
-          id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
-        }));
-        const boundaries = computeLaneBoundaries(laneDefs, 'horizontal', headerOffset);
-        assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
-      }
-      if (!assignedLaneId && vLanes.length > 0) {
-        const headerOffset = hLanes.length > 0 ? 40 : 0; // H_HEADER_WIDTH
-        const laneDefs: LaneDefinition[] = vLanes.map((l) => ({
-          id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
-        }));
-        const boundaries = computeLaneBoundaries(laneDefs, 'vertical', headerOffset);
-        assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
-      }
-
-      // Update node data if lane assignment changed
-      const currentLaneId = (node.data as FlowNodeData).swimlaneId;
-      if (assignedLaneId !== (currentLaneId || null)) {
-        updateNodeData(node.id, { swimlaneId: assignedLaneId || undefined } as Partial<FlowNodeData>);
-      }
+      assignSwimlaneToNode(node.id, node.position, nodeW, nodeH);
     },
-    [updateNodeData],
+    [],
   );
 
-  // Fallback context menu on wrapper to prevent browser menu for selection area
-  // Reliable selection tracking via onSelectionChange
-  const onSelectionChange = useCallback(({ nodes: selNodes, edges: selEdges }: { nodes: FlowNode[]; edges: FlowEdge[] }) => {
-    setSelectedNodes(selNodes.map((n) => n.id));
-    setSelectedEdges(selEdges.map((e) => e.id));
+  // Selection tracking — onNodesChange/onEdgesChange already maintain
+  // selectedNodes/selectedEdges via applyNodeChanges/applyEdgeChanges.
+  // We MUST NOT call setSelectedNodes/setSelectedEdges here because that
+  // mutates node.selected/edge.selected producing new array refs, which
+  // triggers StoreUpdater → onEdgesChange → infinite loop.
+  // This callback is only used for puck-selection housekeeping.
+  const onSelectionChange = useCallback(({ nodes: selNodes }: { nodes: FlowNode[]; edges: FlowEdge[] }) => {
     // Clear puck selection only when a different node is actively selected
     // (not when all nodes are deselected — pane click handler clears pucks separately)
     const puckNode = useUIStore.getState().selectedPuckNodeId;
     if (puckNode && selNodes.length > 0 && !selNodes.some((n) => n.id === puckNode)) {
       useUIStore.getState().clearPuckSelection();
     }
-  }, [setSelectedNodes, setSelectedEdges]);
+  }, []);
 
   const onWrapperContextMenu = useCallback((event: React.MouseEvent) => {
     // Only intercept if we have selected nodes and the right-click is in the flow area
@@ -871,7 +985,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
   }, [updateNodeData]);
 
   return (
-    <div ref={reactFlowWrapper} className={`w-full h-full relative ${presentationMode ? 'presentation-mode' : ''}`} onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: presentationMode ? 'grab' : formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
+    <div ref={reactFlowWrapper} data-flowcraft-canvas className={`w-full h-full relative ${presentationMode ? 'presentation-mode' : ''}`} onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
       {/* Format painter active indicator */}
       {formatPainterActive && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-lg animate-pulse">
@@ -889,12 +1003,13 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
       {/* Swimlane layer rendered behind the flow canvas */}
       {hasLanes && <SwimlaneLayer />}
 
-      {/* Legend overlay rendered behind the flow canvas */}
-      {legendVisible && <LegendOverlay />}
+      {/* Legend overlays rendered behind the flow canvas — independent node + swimlane */}
+      {nodeLegendVisible && <LegendOverlay which="node" />}
+      {swimlaneLegendVisible && <LegendOverlay which="swimlane" />}
 
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={visibleNodes}
+        edges={visibleEdges}
         onNodesChange={presentationMode ? undefined : onNodesChange}
         onEdgesChange={presentationMode ? undefined : onEdgesChange}
         onConnect={presentationMode ? undefined : onConnect}
@@ -921,7 +1036,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
         nodesConnectable={!presentationMode}
         elementsSelectable={!presentationMode}
         snapToGrid={presentationMode ? false : snapEnabled}
-        snapGrid={[gridSpacing, gridSpacing]}
+        snapGrid={[snapDistance, snapDistance]}
         selectionOnDrag={false}
         selectionMode={SelectionMode.Partial}
         selectionKeyCode={presentationMode ? null : "Control"}
@@ -957,16 +1072,46 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           />
         )}
 
-        <Controls
-          showZoom
-          showFitView
-          showInteractive={false}
-          position="bottom-left"
-        />
+        {!presentationMode && (
+          <Controls
+            showZoom
+            showFitView
+            showInteractive={false}
+            position="top-left"
+          />
+        )}
       </ReactFlow>
 
+      {/* Floating undo/redo buttons */}
+      {!presentationMode && onUndo && onRedo && (
+        <div className="absolute top-28 left-2 z-10 flex gap-1">
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="p-1.5 rounded-md bg-white/90 border border-slate-200 shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            data-tooltip="Undo (Ctrl+Z)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          </button>
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="p-1.5 rounded-md bg-white/90 border border-slate-200 shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            data-tooltip="Redo (Ctrl+Shift+Z)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+          </button>
+        </div>
+      )}
+
+      {/* Legend floating buttons */}
+      {!presentationMode && <LegendButton />}
+
+      {/* SVG arrowhead marker definitions (must be in DOM for url(#...) refs) */}
+      <MarkerDefs />
+
       {/* Swimlane resize handles rendered ABOVE ReactFlow so they receive mouse events */}
-      {hasLanes && <SwimlaneResizeOverlay />}
+      {hasLanes && !presentationMode && <SwimlaneResizeOverlay />}
 
       {/* Ruler overlays */}
       {rulerVisible && (
@@ -1011,6 +1156,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
           onChangeColor={handleChangeColor}
           onSendToBack={handleSendToBack}
           onBringToFront={handleBringToFront}
+          onSendBackward={handleSendBackward}
+          onBringForward={handleBringForward}
           isGroupNode={isNodeMenuGroupNode}
           onUngroup={handleUngroupNode}
           hasMultipleSelected={useFlowStore.getState().selectedNodes.length > 1}
@@ -1022,6 +1169,14 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
             const positions = fn(selected);
             for (const [id, pos] of positions) {
               updateNodePosition(id, pos);
+            }
+          }}
+          isInLinkGroup={!!nodes.find((n) => n.id === nodeMenu.nodeId)?.data.linkGroupId}
+          onEditLinkGroup={() => {
+            const lgId = nodes.find((n) => n.id === nodeMenu.nodeId)?.data.linkGroupId;
+            if (lgId) {
+              useUIStore.getState().setLinkGroupEditorId(lgId);
+              closeContextMenus();
             }
           }}
         />
@@ -1052,6 +1207,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
         />
       )}
 
+      {/* Link Group Editor dialog */}
+      <LinkGroupEditorDialog />
+
       {/* Presentation mode overlay (inside ReactFlowProvider for viewport access) */}
       <PresentationOverlay />
     </div>
@@ -1062,10 +1220,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit }) => {
 // Exported wrapper with provider
 // ---------------------------------------------------------------------------
 
-const FlowCanvas: React.FC<FlowCanvasProps> = ({ onInit }) => {
+const FlowCanvas: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, canUndo, canRedo }) => {
   return (
     <ReactFlowProvider>
-      <FlowCanvasInner onInit={onInit} />
+      <FlowCanvasInner onInit={onInit} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} />
     </ReactFlowProvider>
   );
 };

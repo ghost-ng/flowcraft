@@ -62,10 +62,10 @@ interface DepRowProps {
 
 const DepRow: React.FC<DepRowProps> = React.memo(
   ({ row, darkMode, onRemove, onChangeType }) => {
-    const bgHover = darkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50';
-    const borderClr = darkMode ? 'border-slate-600' : 'border-slate-200';
-    const textClr = darkMode ? 'text-slate-200' : 'text-slate-700';
-    const mutedClr = darkMode ? 'text-slate-400' : 'text-slate-500';
+    const bgHover = darkMode ? 'hover:bg-dk-hover/50' : 'hover:bg-slate-50';
+    const borderClr = darkMode ? 'border-dk-border' : 'border-slate-200';
+    const textClr = darkMode ? 'text-dk-text' : 'text-slate-700';
+    const mutedClr = darkMode ? 'text-dk-muted' : 'text-slate-500';
 
     return (
       <div
@@ -88,7 +88,7 @@ const DepRow: React.FC<DepRowProps> = React.memo(
           className={`
             text-[10px] px-1 py-0.5 rounded border cursor-pointer
             ${darkMode
-              ? 'bg-slate-800 border-slate-600 text-slate-300'
+              ? 'bg-dk-panel border-dk-border text-dk-muted'
               : 'bg-white border-slate-300 text-slate-600'
             }
             focus:outline-none focus:ring-1 focus:ring-blue-400
@@ -107,9 +107,9 @@ const DepRow: React.FC<DepRowProps> = React.memo(
           className={`
             p-0.5 rounded transition-colors cursor-pointer
             ${mutedClr} hover:text-red-500
-            ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-red-50'}
+            ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-red-50'}
           `}
-          title="Remove dependency"
+          data-tooltip-left="Remove dependency"
         >
           <X size={12} />
         </button>
@@ -137,8 +137,8 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   count,
   darkMode,
 }) => {
-  const textClr = darkMode ? 'text-slate-300' : 'text-slate-600';
-  const countBg = darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500';
+  const textClr = darkMode ? 'text-dk-muted' : 'text-slate-600';
+  const countBg = darkMode ? 'bg-dk-hover text-dk-muted' : 'bg-slate-100 text-slate-500';
 
   return (
     <div className={`flex items-center gap-1.5 mb-1.5 ${textClr}`}>
@@ -307,10 +307,10 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
 
   // -- Styles -----------------------------------------------------------------
 
-  const sectionBorder = darkMode ? 'border-slate-700' : 'border-slate-200';
-  const mutedText = darkMode ? 'text-slate-400' : 'text-slate-500';
+  const sectionBorder = darkMode ? 'border-dk-border' : 'border-slate-200';
+  const mutedText = darkMode ? 'text-dk-muted' : 'text-slate-500';
   const btnClasses = darkMode
-    ? 'bg-slate-700 hover:bg-slate-600 text-slate-200 border-slate-600'
+    ? 'bg-dk-hover hover:bg-dk-border text-dk-text border-dk-border'
     : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300';
 
   return (
@@ -336,7 +336,7 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
         className={`
           flex items-center gap-2 px-3 py-2 rounded-lg border
           ${darkMode
-            ? 'bg-slate-800 border-slate-700 text-slate-300'
+            ? 'bg-dk-panel border-dk-border text-dk-muted'
             : 'bg-slate-50 border-slate-200 text-slate-600'
           }
         `}

@@ -59,17 +59,17 @@ const WalkModeBreadcrumb: React.FC = () => {
 
   // Style classes
   const barBg = darkMode
-    ? 'bg-slate-800/95 border-slate-600'
+    ? 'bg-dk-panel/95 border-dk-border'
     : 'bg-white/95 border-slate-200';
   const pillBase = darkMode
-    ? 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600 hover:text-slate-100'
+    ? 'bg-dk-hover text-dk-muted border-dk-border hover:bg-dk-border hover:text-dk-text'
     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-800';
   const pillActive = darkMode
     ? 'bg-blue-600 text-white border-blue-500 ring-2 ring-blue-400/40'
     : 'bg-blue-500 text-white border-blue-400 ring-2 ring-blue-300/40';
-  const chevronClr = darkMode ? 'text-slate-500' : 'text-slate-400';
+  const chevronClr = darkMode ? 'text-dk-faint' : 'text-slate-400';
   const exitBtnClr = darkMode
-    ? 'bg-slate-700 hover:bg-red-900/60 text-slate-300 hover:text-red-300 border-slate-600'
+    ? 'bg-dk-hover hover:bg-red-900/60 text-dk-muted hover:text-red-300 border-dk-border'
     : 'bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border-slate-200';
 
   return (
@@ -102,7 +102,7 @@ const WalkModeBreadcrumb: React.FC = () => {
                 border transition-all cursor-pointer whitespace-nowrap
                 ${crumb.isCurrent ? pillActive : pillBase}
               `}
-              title={
+              data-tooltip={
                 crumb.isCurrent
                   ? `${crumb.label} (current)`
                   : `Jump to ${crumb.label}`
@@ -121,7 +121,7 @@ const WalkModeBreadcrumb: React.FC = () => {
       <div
         className={`
           w-px h-5 mx-1 shrink-0
-          ${darkMode ? 'bg-slate-600' : 'bg-slate-300'}
+          ${darkMode ? 'bg-dk-border' : 'bg-slate-300'}
         `}
       />
 
@@ -134,7 +134,7 @@ const WalkModeBreadcrumb: React.FC = () => {
           transition-colors cursor-pointer whitespace-nowrap
           ${exitBtnClr}
         `}
-        title="Exit Walk Mode"
+        data-tooltip="Exit Walk Mode"
       >
         <X size={12} />
         Exit

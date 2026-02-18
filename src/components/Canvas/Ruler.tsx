@@ -38,10 +38,10 @@ const Ruler: React.FC<RulerProps> = ({ orientation }) => {
     return result;
   }, [start, end, zoom, offset]);
 
-  const bg = darkMode ? '#1e293b' : '#f8fafc';
-  const borderColor = darkMode ? '#334155' : '#e2e8f0';
-  const tickColor = darkMode ? '#64748b' : '#94a3b8';
-  const textColor = darkMode ? '#94a3b8' : '#64748b';
+  const bg = darkMode ? '#253345' : '#f8fafc';
+  const borderColor = darkMode ? '#3a4a5c' : '#e2e8f0';
+  const tickColor = darkMode ? '#7e8d9f' : '#94a3b8';
+  const textColor = darkMode ? '#8494a7' : '#64748b';
 
   if (isH) {
     return (
@@ -148,9 +148,9 @@ export const RulerCorner: React.FC = () => {
         left: 0,
         width: RULER_SIZE,
         height: RULER_SIZE,
-        backgroundColor: darkMode ? '#1e293b' : '#f8fafc',
-        borderRight: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`,
-        borderBottom: `1px solid ${darkMode ? '#334155' : '#e2e8f0'}`,
+        backgroundColor: darkMode ? '#253345' : '#f8fafc',
+        borderRight: `1px solid ${darkMode ? '#3a4a5c' : '#e2e8f0'}`,
+        borderBottom: `1px solid ${darkMode ? '#3a4a5c' : '#e2e8f0'}`,
         zIndex: 11,
       }}
     />

@@ -214,7 +214,7 @@ const ShapeItem: React.FC<ShapeItemProps> = React.memo(({ shape, isSelected, onS
         relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg cursor-grab
         transition-all duration-100 group
         hover:bg-primary/10 hover:scale-105 active:scale-95 active:cursor-grabbing
-        ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/30' : ''}
+        ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15' : ''}
       `}
     >
       <div className={`transition-colors ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-text-muted group-hover:text-primary'}`}>
@@ -258,14 +258,14 @@ const ShapePalette: React.FC = () => {
               ))}
 
               {/* Arrows section separator */}
-              <div className="w-full border-t border-border dark:border-slate-600 my-1" />
+              <div className="w-full border-t border-border dark:border-dk-border my-1" />
 
               {arrowShapes.map((shape) => (
                 <ShapeItem key={shape.type} shape={shape} isSelected={selectedPaletteShape === shape.type} onSelect={handleShapeSelect} />
               ))}
 
               {/* Icons button */}
-              <div className="w-full border-t border-border dark:border-slate-600 my-1" />
+              <div className="w-full border-t border-border dark:border-dk-border my-1" />
               <button
                 onClick={() => setIconPickerOpen(true)}
                 data-tooltip-right="Icon Library"
@@ -277,7 +277,7 @@ const ShapePalette: React.FC = () => {
               </button>
 
               {/* Containers section separator */}
-              <div className="w-full border-t border-border dark:border-slate-600 my-1" />
+              <div className="w-full border-t border-border dark:border-dk-border my-1" />
 
               <div
                 draggable
@@ -311,11 +311,11 @@ const ShapePalette: React.FC = () => {
                   }
                 }}
                 data-tooltip-right="Swimlanes"
-                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-8 rounded-lg
+                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
                            transition-all duration-100
                            hover:bg-primary/10 text-text-muted hover:text-primary cursor-pointer"
               >
-                <Rows3 size={16} />
+                <Rows3 size={20} />
               </button>
             </div>
           </div>
@@ -330,7 +330,7 @@ const ShapePalette: React.FC = () => {
           rounded-r-md border border-l-0 cursor-pointer
           transition-colors duration-100
           ${darkMode
-            ? 'bg-surface-alt-dark border-border-dark hover:bg-slate-700 text-text-muted-dark'
+            ? 'bg-surface-alt-dark border-border-dark hover:bg-dk-hover text-text-muted-dark'
             : 'bg-surface-alt border-border hover:bg-slate-100 text-text-muted'
           }
         `}

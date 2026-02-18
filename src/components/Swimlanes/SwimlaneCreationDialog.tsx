@@ -199,7 +199,7 @@ const SwimlaneCreationDialog: React.FC = () => {
           <h2 className={`text-sm font-semibold ${textClass}`}>Create Swimlanes</h2>
           <button
             onClick={handleClose}
-            className={`p-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer ${mutedClass}`}
+            className={`p-1 rounded-md ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-100'} transition-colors cursor-pointer ${mutedClass}`}
           >
             <X size={16} />
           </button>
@@ -245,7 +245,7 @@ const SwimlaneCreationDialog: React.FC = () => {
                     flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
                     ${orientation === opt.value
                       ? 'bg-primary/10 border-primary/40 text-primary'
-                      : `${borderClass} ${mutedClass} hover:bg-slate-50`
+                      : `${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`
                     }
                   `}
                 >
@@ -267,7 +267,7 @@ const SwimlaneCreationDialog: React.FC = () => {
                 className={`
                   w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer
                   disabled:opacity-40 disabled:cursor-not-allowed
-                  ${borderClass} ${mutedClass} hover:bg-slate-50
+                  ${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}
                 `}
               >
                 <Minus size={14} />
@@ -281,7 +281,7 @@ const SwimlaneCreationDialog: React.FC = () => {
                 className={`
                   w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer
                   disabled:opacity-40 disabled:cursor-not-allowed
-                  ${borderClass} ${mutedClass} hover:bg-slate-50
+                  ${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}
                 `}
               >
                 <Plus size={14} />
@@ -322,7 +322,7 @@ const SwimlaneCreationDialog: React.FC = () => {
                   flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
                   ${colorMode === 'auto'
                     ? 'bg-primary/10 border-primary/40 text-primary'
-                    : `${borderClass} ${mutedClass} hover:bg-slate-50`
+                    : `${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`
                   }
                 `}
               >
@@ -334,7 +334,7 @@ const SwimlaneCreationDialog: React.FC = () => {
                   flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
                   ${colorMode === 'single'
                     ? 'bg-primary/10 border-primary/40 text-primary'
-                    : `${borderClass} ${mutedClass} hover:bg-slate-50`
+                    : `${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`
                   }
                 `}
               >
@@ -358,7 +358,7 @@ const SwimlaneCreationDialog: React.FC = () => {
             onClick={handleClose}
             className={`
               px-4 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
-              ${borderClass} ${mutedClass} hover:bg-slate-50
+              ${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}
             `}
           >
             Cancel

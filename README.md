@@ -13,20 +13,24 @@ FlowCraft is a browser-based diagramming application for creating flowcharts, sy
 - Icon support with full Lucide icon library and icon styling (color, background, outline)
 - Multiple status pucks per node with drag-to-corner snapping
 - Smart connectors with customizable edge styles (bezier, step, smoothstep, straight)
-- 14 diagram styles and 10 color palettes
+- 19 diagram styles and 11 color palettes
 - Swimlane / matrix layout system with customizable borders and dividers
-- Diagram legend overlay with draggable positioning
+- Dual diagram legend overlays (node + swimlane) with visual indicator kinds (fill, border, puck, edge, lane)
+- Z-ordering controls (Ctrl+[/] for forward/backward, Ctrl+Shift+[/] for front/back)
 - Straighten connector: right-click to align connected nodes
+- Node select submenu: select by color, outline, shape, or all nodes
+- Link group editor: add/remove nodes from linked groups with visual highlighting
 - Text box shape for annotations
 - Dependency tracking and chain highlighting
 - Format painter for quick style copying
 - Presentation mode with annotation tools (pen, highlighter, eraser)
-- Export to PNG, SVG, PDF, PPTX, and JSON
+- Export to PNG, SVG, PDF, PPTX, and JSON with grid/minimap toggle
+- Copy diagram to clipboard as SVG vector (paste into Figma, Illustrator, etc.)
 - Import from JSON with full validation
 - Keyboard shortcuts for common operations
 - Dark mode support
 - Alignment, distribution, and auto-layout
-- Snap-to-grid with configurable spacing
+- Snap-to-grid with configurable snap distance (4/8/16/32px)
 
 ## JSON Import Rulebook
 

@@ -10,6 +10,7 @@ import { pastelDream } from './pastelDream';
 import { earthTone } from './earthTone';
 import { military } from './military';
 import { accessible } from './accessible';
+import { cyberC2 } from './cyberC2';
 
 export const colorPalettes: Record<string, ColorPalette> = {
   ocean,
@@ -22,6 +23,7 @@ export const colorPalettes: Record<string, ColorPalette> = {
   earthTone,
   military,
   accessible,
+  cyberC2,
 };
 
 export const defaultPaletteId = 'ocean';
@@ -37,4 +39,5 @@ export {
   earthTone,
   military,
   accessible,
+  cyberC2,
 };

@@ -4,8 +4,8 @@
 
 import React from 'react';
 import { type EdgeProps, getStraightPath, EdgeLabelRenderer } from '@xyflow/react';
-import type { FlowEdgeData } from '../../types/edges';
 import { useUIStore } from '../../store/uiStore';
+import { useEdgeVisuals } from './useEdgeVisuals';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -25,24 +25,22 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
   sourceY,
   targetX,
   targetY,
-  data,
-  style,
+  style: _style,
   selected,
-  markerEnd,
-  markerStart,
+  markerEnd: markerEndProp,
+  markerStart: markerStartProp,
 }) => {
+  void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
+  const ev = useEdgeVisuals(id);
   const selectionColor = useUIStore((s) => s.selectionColor);
-  const edgeData = data as FlowEdgeData | undefined;
-  const overrides = edgeData?.styleOverrides;
-
-  // Resolve visual properties
-  const strokeColor = overrides?.stroke ?? style?.stroke ?? DEFAULT_STROKE;
-  const strokeWidth = overrides?.strokeWidth ?? (style?.strokeWidth as number) ?? DEFAULT_STROKE_WIDTH;
-  const rawData = edgeData as Record<string, unknown> | undefined;
-  const strokeDasharray = (rawData?.strokeDasharray as string) ?? overrides?.strokeDasharray ?? undefined;
-  const opacity = overrides?.opacity ?? (typeof rawData?.opacity === 'number' ? rawData.opacity : 1);
-  const isAnimated = edgeData?.animated ?? false;
-  const label = edgeData?.label;
+  const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? DEFAULT_STROKE;
+  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? DEFAULT_STROKE_WIDTH;
+  const strokeDasharray = ev.strokeDasharray ?? ev.overrideDash ?? ev.styleDash ?? undefined;
+  const opacity = ev.opacity ?? ev.overrideOpacity ?? ev.styleOpacity ?? 1;
+  const isAnimated = ev.animated;
+  const label = ev.label;
+  const markerEnd = ev.markerEnd ?? markerEndProp;
+  const markerStart = ev.markerStart ?? markerStartProp;
 
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
@@ -100,9 +98,9 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
         />
       )}
 
-      {/* Label (position adjustable via labelPosition: 0=source, 0.5=center, 1=target) */}
+      {/* Label */}
       {label && (() => {
-        const t = (edgeData as Record<string, unknown>)?.labelPosition as number ?? 0.5;
+        const t = ev.labelPosition ?? 0.5;
         let lx = labelX, ly = labelY;
         if (t !== 0.5) {
           if (t < 0.5) { const s = t * 2; lx = sourceX + s * (labelX - sourceX); ly = sourceY + s * (labelY - sourceY); }
@@ -114,10 +112,10 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
               className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
               style={{
                 transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)`,
-                color: (edgeData as Record<string, unknown>)?.labelColor as string ?? overrides?.labelFontColor ?? '#475569',
-                backgroundColor: overrides?.labelBgColor ?? '#ffffff',
+                color: ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569',
+                backgroundColor: ev.overrideLabelBgColor ?? '#ffffff',
                 borderColor: strokeColor,
-                fontSize: overrides?.labelFontSize ?? 11,
+                fontSize: ev.overrideLabelFontSize ?? 11,
               }}
             >
               {label}

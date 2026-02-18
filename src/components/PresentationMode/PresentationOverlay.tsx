@@ -12,8 +12,12 @@ import {
   Highlighter,
   Eraser,
   Download,
+  Camera,
   Undo2,
   Trash2,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
 } from 'lucide-react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
@@ -74,9 +78,6 @@ const PresentationOverlay: React.FC = () => {
   const activeStrokeRef = useRef<StrokePath | null>(null);
   const [, forceRender] = useState(0);
 
-  // Panning cursor state (pointer tool + mouse held down)
-  const [isPanning, setIsPanning] = useState(false);
-
   // Escape key exits presentation mode
   useEffect(() => {
     if (!presentationMode) return;
@@ -88,34 +89,6 @@ const PresentationOverlay: React.FC = () => {
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [presentationMode]);
-
-  // Track panning in pointer mode (mousedown on canvas → grabbing cursor)
-  useEffect(() => {
-    if (!presentationMode || tool !== 'pointer') {
-      setIsPanning(false);
-      return;
-    }
-    const pane = document.querySelector('.react-flow__pane');
-    if (!pane) return;
-    const handleDown = () => setIsPanning(true);
-    const handleUp = () => setIsPanning(false);
-    pane.addEventListener('mousedown', handleDown);
-    window.addEventListener('mouseup', handleUp);
-    return () => {
-      pane.removeEventListener('mousedown', handleDown);
-      window.removeEventListener('mouseup', handleUp);
-    };
-  }, [presentationMode, tool]);
-
-  // Inject grabbing cursor globally while panning
-  useEffect(() => {
-    if (!isPanning) return;
-    const style = document.createElement('style');
-    style.id = 'fc-panning-cursor';
-    style.textContent = '.presentation-mode, .presentation-mode * { cursor: grabbing !important; }';
-    document.head.appendChild(style);
-    return () => { style.remove(); };
-  }, [isPanning]);
 
   const handleExit = useCallback(async () => {
     if (strokes.length > 0) {
@@ -208,6 +181,10 @@ const PresentationOverlay: React.FC = () => {
     setStrokes([]);
   }, []);
 
+  const handleScreenshot = useCallback(() => {
+    useUIStore.getState().setScreenshotMode(true);
+  }, []);
+
   if (!presentationMode) return null;
 
   const toolButtons = [
@@ -279,8 +256,8 @@ const PresentationOverlay: React.FC = () => {
       {/* Floating toolbar at bottom-center */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9995] flex items-center gap-1 px-3 py-2 rounded-xl shadow-2xl border backdrop-blur-md"
         style={{
-          backgroundColor: darkMode ? 'rgba(15,23,42,0.9)' : 'rgba(255,255,255,0.95)',
-          borderColor: darkMode ? '#334155' : '#e2e8f0',
+          backgroundColor: darkMode ? 'rgba(28,39,54,0.9)' : 'rgba(255,255,255,0.95)',
+          borderColor: darkMode ? '#3a4a5c' : '#e2e8f0',
         }}
       >
         {/* Tool buttons */}
@@ -288,12 +265,12 @@ const PresentationOverlay: React.FC = () => {
           <button
             key={id}
             onClick={() => setPresentationTool(id)}
-            title={label}
+            data-tooltip-top={label}
             className={`p-2 rounded-lg transition-colors cursor-pointer ${
               tool === id
                 ? 'bg-blue-500 text-white'
                 : darkMode
-                  ? 'text-gray-300 hover:bg-slate-700'
+                  ? 'text-dk-muted hover:bg-dk-hover'
                   : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -304,7 +281,7 @@ const PresentationOverlay: React.FC = () => {
         {/* Pen color picker (visible when pen is active) */}
         {tool === 'pen' && (
           <>
-            <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-slate-600' : 'bg-gray-200'}`} />
+            <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-dk-border' : 'bg-gray-200'}`} />
             {penColors.map((c) => (
               <button
                 key={c}
@@ -319,15 +296,15 @@ const PresentationOverlay: React.FC = () => {
           </>
         )}
 
-        <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-slate-600' : 'bg-gray-200'}`} />
+        <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-dk-border' : 'bg-gray-200'}`} />
 
         {/* Undo */}
         <button
           onClick={handleUndo}
           disabled={strokes.length === 0}
-          title="Undo"
+          data-tooltip-top="Undo"
           className={`p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-            darkMode ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-600 hover:bg-gray-100'
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
           <Undo2 size={18} />
@@ -337,24 +314,66 @@ const PresentationOverlay: React.FC = () => {
         <button
           onClick={handleClearAll}
           disabled={strokes.length === 0}
-          title="Clear all annotations"
+          data-tooltip-top="Clear all annotations"
           className={`p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-            darkMode ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-600 hover:bg-gray-100'
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
           <Trash2 size={18} />
         </button>
 
-        <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-slate-600' : 'bg-gray-200'}`} />
+        <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-dk-border' : 'bg-gray-200'}`} />
+
+        {/* Zoom controls */}
+        <button
+          onClick={() => rfInstance.zoomIn({ duration: 200 })}
+          data-tooltip-top="Zoom In"
+          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <ZoomIn size={18} />
+        </button>
+        <button
+          onClick={() => rfInstance.zoomOut({ duration: 200 })}
+          data-tooltip-top="Zoom Out"
+          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <ZoomOut size={18} />
+        </button>
+        <button
+          onClick={() => rfInstance.fitView({ duration: 300, padding: 0.1 })}
+          data-tooltip-top="Fit View"
+          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Maximize size={18} />
+        </button>
+
+        <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-dk-border' : 'bg-gray-200'}`} />
+
+        {/* Screenshot */}
+        <button
+          onClick={handleScreenshot}
+          data-tooltip-top="Copy Screenshot to Clipboard"
+          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Camera size={18} />
+        </button>
 
         {/* Export */}
         <button
           onClick={() => {
             import('../../store/exportStore').then((m) => m.useExportStore.getState().setDialogOpen(true));
           }}
-          title="Export"
+          data-tooltip-top="Export"
           className={`p-2 rounded-lg transition-colors cursor-pointer ${
-            darkMode ? 'text-gray-300 hover:bg-slate-700' : 'text-gray-600 hover:bg-gray-100'
+            darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
           <Download size={18} />
@@ -363,7 +382,7 @@ const PresentationOverlay: React.FC = () => {
         {/* Exit */}
         <button
           onClick={handleExit}
-          title="Exit Presentation (Esc)"
+          data-tooltip-top="Exit Presentation (Esc)"
           className="p-2 rounded-lg transition-colors cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
         >
           <X size={18} />

@@ -2,7 +2,8 @@
 // EdgePropertiesTab.tsx -- Full edge properties editor panel
 // ---------------------------------------------------------------------------
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useFlowStore, type FlowEdgeData } from '../../store/flowStore';
 
 // ---------------------------------------------------------------------------
@@ -21,6 +22,24 @@ const Field: React.FC<FieldProps> = ({ label, children }) => (
     </label>
     {children}
   </div>
+);
+
+// ---------------------------------------------------------------------------
+// SectionHeader -- Collapsible section toggle
+// ---------------------------------------------------------------------------
+
+const SectionHeader: React.FC<{
+  title: string;
+  collapsed: boolean;
+  onToggle: () => void;
+}> = ({ title, collapsed, onToggle }) => (
+  <button
+    onClick={onToggle}
+    className="flex items-center justify-between w-full py-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors cursor-pointer border-t border-border dark:border-dk-border pt-3 mt-1"
+  >
+    <span>{title}</span>
+    {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+  </button>
 );
 
 // ---------------------------------------------------------------------------
@@ -131,56 +150,142 @@ interface EdgePropertiesTabProps {
   edgeId: string;
   edgeData: FlowEdgeData;
   edgeType?: string;
+  selectedEdgeIds?: string[];
+  toggleAllSignal?: number;
 }
 
 const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
-  ({ edgeId, edgeData, edgeType }) => {
-    const updateEdgeData = useFlowStore((s) => s.updateEdgeData);
+  ({ edgeId, edgeData, edgeType, selectedEdgeIds, toggleAllSignal }) => {
     const edges = useFlowStore((s) => s.edges);
-    const setEdges = useFlowStore((s) => s.setEdges);
+    const updateEdgeAction = useFlowStore((s) => s.updateEdge);
 
+    // -----------------------------------------------------------------------
+    // Collapsible section state
+    // -----------------------------------------------------------------------
+
+    const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
+    const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+      style: false,
+      label: true,
+      arrowheads: true,
+      dependency: true,
+    });
+
+    const isSectionCollapsed = useCallback(
+      (key: string): boolean => {
+        if (allExpanded === true) return false;
+        if (allExpanded === false) return true;
+        return !!collapsedSections[key];
+      },
+      [allExpanded, collapsedSections],
+    );
+
+    const handleToggleAll = useCallback(() => {
+      setAllExpanded((prev) => {
+        if (prev === false) return true;
+        return false;
+      });
+    }, []);
+
+    // React to toggle-all signal from the parent (button lives in the tab bar)
+    useEffect(() => {
+      if (toggleAllSignal && toggleAllSignal > 0) {
+        handleToggleAll();
+      }
+    }, [toggleAllSignal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const toggleSection = useCallback((key: string) => {
+      setAllExpanded(null);
+      setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    }, []);
+
+    // -----------------------------------------------------------------------
+    // Smart defaults on edge change
+    // -----------------------------------------------------------------------
+
+    useEffect(() => {
+      // Compute marker values inside the effect to avoid dependency on
+      // the outer `edges` reference (which would cause re-runs on every
+      // edge array change instead of only on edgeId change).
+      const edgesSnapshot = useFlowStore.getState().edges;
+      const edge = edgesSnapshot.find((e) => e.id === edgeId);
+      const mStart = markerToArrowhead(
+        typeof edge?.markerStart === 'string' ? edge.markerStart : undefined,
+      );
+      const mEnd = markerToArrowhead(
+        typeof edge?.markerEnd === 'string' ? edge.markerEnd : undefined,
+      );
+
+      setCollapsedSections({
+        style: false, // always open
+        label: !edgeData.label,
+        arrowheads: mStart === 'none' && mEnd === 'none',
+        dependency: !edgeData.dependencyType,
+      });
+      setAllExpanded(null);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [edgeId]); // only on edge change
+
+    // -----------------------------------------------------------------------
+    // Edge update helpers
+    // -----------------------------------------------------------------------
+
+    // Helper: get the IDs to update (all selected or just the current one)
+    const getTargetIds = useCallback(
+      (): string[] =>
+        selectedEdgeIds && selectedEdgeIds.length > 1 ? selectedEdgeIds : [edgeId],
+      [edgeId, selectedEdgeIds],
+    );
+
+    // Update edge data — uses immer draft mutation via updateEdge store action
+    // for reliable Zustand change detection and React Flow re-rendering.
     const update = useCallback(
       (patch: Partial<FlowEdgeData>) => {
-        updateEdgeData(edgeId, patch);
+        const ids = getTargetIds();
+        // Build style mirror for React Flow rendering
+        const stylePatch: Record<string, unknown> = {};
+        if ('thickness' in patch && patch.thickness != null) stylePatch.strokeWidth = patch.thickness;
+        if ('color' in patch && patch.color != null) stylePatch.stroke = patch.color;
+        if ('opacity' in patch && patch.opacity != null) stylePatch.opacity = patch.opacity;
+        if ('strokeDasharray' in patch) stylePatch.strokeDasharray = patch.strokeDasharray;
+        for (const id of ids) {
+          updateEdgeAction(id, {
+            data: patch as FlowEdgeData,
+            ...(Object.keys(stylePatch).length > 0 ? { style: stylePatch as React.CSSProperties } : {}),
+          });
+        }
       },
-      [edgeId, updateEdgeData],
+      [getTargetIds, updateEdgeAction],
     );
 
     // Update the edge type (which is on the edge itself, not on edge.data)
     const updateType = useCallback(
       (type: string) => {
-        const updated = edges.map((e) =>
-          e.id === edgeId ? { ...e, type } : e,
-        );
-        setEdges(updated);
+        for (const id of getTargetIds()) {
+          updateEdgeAction(id, { type });
+        }
       },
-      [edgeId, edges, setEdges],
+      [getTargetIds, updateEdgeAction],
     );
 
     // Update markerEnd on the edge itself
     const updateMarkerEnd = useCallback(
       (marker: string) => {
-        const updated = edges.map((e) =>
-          e.id === edgeId
-            ? { ...e, markerEnd: marker || undefined }
-            : e,
-        );
-        setEdges(updated);
+        for (const id of getTargetIds()) {
+          updateEdgeAction(id, { markerEnd: marker || undefined });
+        }
       },
-      [edgeId, edges, setEdges],
+      [getTargetIds, updateEdgeAction],
     );
 
     // Update markerStart on the edge itself
     const updateMarkerStart = useCallback(
       (marker: string) => {
-        const updated = edges.map((e) =>
-          e.id === edgeId
-            ? { ...e, markerStart: marker || undefined }
-            : e,
-        );
-        setEdges(updated);
+        for (const id of getTargetIds()) {
+          updateEdgeAction(id, { markerStart: marker || undefined });
+        }
       },
-      [edgeId, edges, setEdges],
+      [getTargetIds, updateEdgeAction],
     );
 
     const strokeColor = edgeData.color || '#94a3b8';
@@ -205,229 +310,265 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
 
     return (
       <div className="flex flex-col gap-4">
-        {/* Connector type */}
-        <Field label="Connector Type">
-          <select
-            value={edgeType || 'smoothstep'}
-            onChange={(e) => updateType(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
-                       dark:bg-slate-800 dark:border-slate-600 dark:text-white
-                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
-          >
-            {EDGE_TYPES.map(({ value, label: lbl }) => (
-              <option key={value} value={value}>
-                {lbl}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {/* ================================================================
+            STYLE SECTION
+            ================================================================ */}
+        <SectionHeader
+          title="Style"
+          collapsed={isSectionCollapsed('style')}
+          onToggle={() => toggleSection('style')}
+        />
 
-        {/* Connector color */}
-        <Field label="Connector Color">
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={strokeColor}
-              onChange={(e) => update({ color: e.target.value })}
-              className="w-8 h-8 rounded border border-border cursor-pointer"
-            />
-            <input
-              type="text"
-              value={strokeColor}
-              onChange={(e) => update({ color: e.target.value })}
-              className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
-                         dark:bg-slate-800 dark:border-slate-600 dark:text-white
-                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
-          </div>
-        </Field>
-
-        {/* Thickness */}
-        <Field label="Thickness">
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min={1}
-              max={6}
-              step={0.5}
-              value={thickness}
-              onChange={(e) => update({ thickness: Number(e.target.value) })}
-              className="flex-1 accent-primary"
-            />
-            <span className="text-xs text-text-muted w-8 text-right font-mono">
-              {thickness}px
-            </span>
-          </div>
-        </Field>
-
-        {/* Opacity */}
-        <Field label="Opacity">
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={edgeData.opacity ?? 1}
-              onChange={(e) => update({ opacity: Number(e.target.value) })}
-              className="flex-1 h-1.5 accent-primary"
-            />
-            <span className="text-xs text-text-muted w-8 text-right font-mono">
-              {Math.round((edgeData.opacity ?? 1) * 100)}%
-            </span>
-          </div>
-        </Field>
-
-        {/* Line style */}
-        <Field label="Line Style">
-          <div className="flex items-center gap-1">
-            {EDGE_STYLES.map(({ value, label: lbl }) => (
-              <button
-                key={value}
-                onClick={() => {
-                  const dash = styleToStrokeDash(value);
-                  update({ strokeDasharray: dash } as Partial<FlowEdgeData>);
-                }}
-                className={`
-                  flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
-                  ${currentLineStyle === value
-                    ? 'bg-primary/10 border-primary/30 text-primary'
-                    : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }
-                `}
+        {!isSectionCollapsed('style') && (
+          <>
+            {/* Connector type */}
+            <Field label="Connector Type">
+              <select
+                value={edgeType || 'smoothstep'}
+                onChange={(e) => updateType(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                           dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
               >
-                {lbl}
-              </button>
-            ))}
-          </div>
-        </Field>
+                {EDGE_TYPES.map(({ value, label: lbl }) => (
+                  <option key={value} value={value}>
+                    {lbl}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-        {/* Dash spacing (only for dashed/dotted) */}
-        {currentLineStyle !== 'solid' && (
-          <Field label="Dash Spacing">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={currentLineStyle === 'dotted' ? 2 : 4}
-                max={currentLineStyle === 'dotted' ? 16 : 24}
-                step={1}
-                value={currentDashSpacing}
-                onChange={(e) => {
-                  const spacing = Number(e.target.value);
-                  const dash = styleToStrokeDash(currentLineStyle, spacing);
-                  update({ strokeDasharray: dash } as Partial<FlowEdgeData>);
-                }}
-                className="flex-1 accent-primary"
-              />
-              <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {currentDashSpacing}px
-              </span>
-            </div>
-          </Field>
+            {/* Connector color */}
+            <Field label="Connector Color">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={strokeColor}
+                  onChange={(e) => update({ color: e.target.value })}
+                  className="w-8 h-8 rounded border border-border cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={strokeColor}
+                  onChange={(e) => update({ color: e.target.value })}
+                  className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                             dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                             focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+            </Field>
+
+            {/* Thickness */}
+            <Field label="Thickness">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={1}
+                  max={6}
+                  step={0.5}
+                  value={thickness}
+                  onChange={(e) => update({ thickness: Number(e.target.value) })}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-xs text-text-muted w-8 text-right font-mono">
+                  {thickness}px
+                </span>
+              </div>
+            </Field>
+
+            {/* Opacity */}
+            <Field label="Opacity">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={edgeData.opacity ?? 1}
+                  onChange={(e) => update({ opacity: Number(e.target.value) })}
+                  className="flex-1 h-1.5 accent-primary"
+                />
+                <span className="text-xs text-text-muted w-8 text-right font-mono">
+                  {Math.round((edgeData.opacity ?? 1) * 100)}%
+                </span>
+              </div>
+            </Field>
+
+            {/* Line style */}
+            <Field label="Line Style">
+              <div className="flex items-center gap-1">
+                {EDGE_STYLES.map(({ value, label: lbl }) => (
+                  <button
+                    key={value}
+                    onClick={() => {
+                      const dash = styleToStrokeDash(value);
+                      update({ strokeDasharray: dash } as Partial<FlowEdgeData>);
+                    }}
+                    className={`
+                      flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
+                      ${currentLineStyle === value
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
+                      }
+                    `}
+                  >
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {/* Dash spacing (only for dashed/dotted) */}
+            {currentLineStyle !== 'solid' && (
+              <Field label="Dash Spacing">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={currentLineStyle === 'dotted' ? 2 : 4}
+                    max={currentLineStyle === 'dotted' ? 16 : 24}
+                    step={1}
+                    value={currentDashSpacing}
+                    onChange={(e) => {
+                      const spacing = Number(e.target.value);
+                      const dash = styleToStrokeDash(currentLineStyle, spacing);
+                      update({ strokeDasharray: dash } as Partial<FlowEdgeData>);
+                    }}
+                    className="flex-1 accent-primary"
+                  />
+                  <span className="text-xs text-text-muted w-8 text-right font-mono">
+                    {currentDashSpacing}px
+                  </span>
+                </div>
+              </Field>
+            )}
+          </>
         )}
 
-        {/* Connector label */}
-        <Field label="Label">
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => update({ label: e.target.value })}
-            placeholder="Connector label..."
-            className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
-                       dark:bg-slate-800 dark:border-slate-600 dark:text-white
-                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
-        </Field>
+        {/* ================================================================
+            LABEL SECTION
+            ================================================================ */}
+        <SectionHeader
+          title="Label"
+          collapsed={isSectionCollapsed('label')}
+          onToggle={() => toggleSection('label')}
+        />
 
-        {/* Label color */}
-        {label && (
-          <Field label="Label Color">
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
-                onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
-              />
+        {!isSectionCollapsed('label') && (
+          <>
+            {/* Connector label */}
+            <Field label="Label">
               <input
                 type="text"
-                value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
-                onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
-                           dark:bg-slate-800 dark:border-slate-600 dark:text-white
+                value={label}
+                onChange={(e) => update({ label: e.target.value })}
+                placeholder="Connector label..."
+                className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                           dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
-            </div>
-          </Field>
+            </Field>
+
+            {/* Label color */}
+            {label && (
+              <Field label="Label Color">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
+                    onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
+                    className="w-8 h-8 rounded border border-border cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
+                    onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
+                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                               dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+              </Field>
+            )}
+          </>
         )}
 
-        {/* Arrowhead section header */}
-        <div className="border-t border-border dark:border-slate-600 pt-3 mt-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-            Arrowheads
-          </span>
-        </div>
+        {/* ================================================================
+            ARROWHEADS SECTION
+            ================================================================ */}
+        <SectionHeader
+          title="Arrowheads"
+          collapsed={isSectionCollapsed('arrowheads')}
+          onToggle={() => toggleSection('arrowheads')}
+        />
 
-        {/* Start arrowhead */}
-        <Field label="Start (Source)">
-          <select
-            value={currentMarkerStart}
-            onChange={(e) => updateMarkerStart(arrowheadToMarker(e.target.value))}
-            className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
-                       dark:bg-slate-800 dark:border-slate-600 dark:text-white
-                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
-          >
-            {ARROWHEAD_TYPES.map(({ value, label: lbl }) => (
-              <option key={value} value={value}>
-                {lbl}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!isSectionCollapsed('arrowheads') && (
+          <>
+            {/* Start arrowhead */}
+            <Field label="Start (Source)">
+              <select
+                value={currentMarkerStart}
+                onChange={(e) => updateMarkerStart(arrowheadToMarker(e.target.value))}
+                className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                           dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
+              >
+                {ARROWHEAD_TYPES.map(({ value, label: lbl }) => (
+                  <option key={value} value={value}>
+                    {lbl}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-        {/* End arrowhead */}
-        <Field label="End (Target)">
-          <select
-            value={currentMarkerEnd}
-            onChange={(e) => updateMarkerEnd(arrowheadToMarker(e.target.value))}
-            className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
-                       dark:bg-slate-800 dark:border-slate-600 dark:text-white
-                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
-          >
-            {ARROWHEAD_TYPES.map(({ value, label: lbl }) => (
-              <option key={value} value={value}>
-                {lbl}
-              </option>
-            ))}
-          </select>
-        </Field>
+            {/* End arrowhead */}
+            <Field label="End (Target)">
+              <select
+                value={currentMarkerEnd}
+                onChange={(e) => updateMarkerEnd(arrowheadToMarker(e.target.value))}
+                className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                           dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
+              >
+                {ARROWHEAD_TYPES.map(({ value, label: lbl }) => (
+                  <option key={value} value={value}>
+                    {lbl}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
 
-        {/* Dependency type -- only shown when meaningful */}
-        <div className="border-t border-border dark:border-slate-600 pt-3 mt-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-            Dependency
-          </span>
-        </div>
+        {/* ================================================================
+            DEPENDENCY SECTION
+            ================================================================ */}
+        <SectionHeader
+          title="Dependency"
+          collapsed={isSectionCollapsed('dependency')}
+          onToggle={() => toggleSection('dependency')}
+        />
 
-        <Field label="Dependency Type">
-          <select
-            value={dependencyType}
-            onChange={(e) =>
-              update({
-                dependencyType: e.target.value as FlowEdgeData['dependencyType'],
-              })
-            }
-            className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
-                       dark:bg-slate-800 dark:border-slate-600 dark:text-white
-                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
-          >
-            {DEPENDENCY_TYPES.map(({ value, label: lbl }) => (
-              <option key={value} value={value}>
-                {lbl}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!isSectionCollapsed('dependency') && (
+          <Field label="Dependency Type">
+            <select
+              value={dependencyType}
+              onChange={(e) =>
+                update({
+                  dependencyType: e.target.value as FlowEdgeData['dependencyType'],
+                })
+              }
+              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                         dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
+            >
+              {DEPENDENCY_TYPES.map(({ value, label: lbl }) => (
+                <option key={value} value={value}>
+                  {lbl}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
       </div>
     );
   },

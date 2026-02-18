@@ -17,6 +17,8 @@ A FlowCraft JSON file is a single object with these top-level keys:
   "styles": { ... },
   "swimlanes": { ... },
   "layers": [ ... ],
+  "nodeLegend": { ... },
+  "swimlaneLegend": { ... },
   "legend": { ... },
   "metadata": { ... }
 }
@@ -31,7 +33,9 @@ A FlowCraft JSON file is a single object with these top-level keys:
 | `styles` | No | Visual theme settings |
 | `swimlanes` | No | Swimlane configuration |
 | `layers` | No | Layer management data |
-| `legend` | No | Diagram legend overlay configuration |
+| `nodeLegend` | No | Node/edge legend overlay configuration (preferred) |
+| `swimlaneLegend` | No | Swimlane legend overlay configuration |
+| `legend` | No | Legacy single legend (imported as node legend if `nodeLegend` is absent) |
 | `metadata` | No | Informational only (node/edge counts) |
 
 ---
@@ -77,6 +81,7 @@ Each node represents a shape on the canvas.
 | `fontSize` | number | `14` | Font size in pixels |
 | `fontWeight` | number | `500` | Font weight (100-900) |
 | `fontFamily` | string | `"'Inter', sans-serif"` | CSS font-family |
+| `textAlign` | string | `"center"` | Text alignment: `"left"`, `"center"`, or `"right"` |
 | `width` | number | Shape default | Width in pixels |
 | `height` | number | Shape default | Height in pixels |
 | `opacity` | number | `1` | Opacity (0-1) |
@@ -117,6 +122,7 @@ Each node represents a shape on the canvas.
 | `document` | Document with wavy bottom | 160×60 |
 | `stickyNote` | Sticky note with folded corner | 160×60 |
 | `textbox` | Transparent text box with dashed border (ideal for annotations) | 160×60 |
+| `arrow` | Simple arrow shape | 160×80 |
 
 **Flowchart-specific shapes:**
 | Shape ID | Description | Default Size |
@@ -387,6 +393,7 @@ Apply a visual theme to the entire diagram.
 | `darkNeonGlow` | Dark theme with neon glow |
 | `notebook` | Lined notebook paper style |
 | `gradientCards` | Gradient card design |
+| `cyberC2` | Cyberpunk command & control |
 
 ### 6.2 Available Palette IDs
 
@@ -404,6 +411,7 @@ Color palettes control the colors assigned to nodes via number keys (1-9).
 | `earthTone` | Warm earth/terracotta |
 | `military` | Olive/khaki/navy |
 | `accessible` | High-contrast accessible colors |
+| `cyberC2` | Cyberpunk command & control colors |
 
 ---
 
@@ -456,10 +464,11 @@ Organize nodes into horizontal and/or vertical lanes.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `orientation` | string | `"horizontal"` | `"horizontal"`, `"vertical"`, or `"both"` |
+| `orientation` | string | `"horizontal"` | `"horizontal"` or `"vertical"` |
 | `containerTitle` | string | `""` | Title displayed above the swimlane container |
 | `horizontal` | array | `[]` | Array of horizontal lane objects |
 | `vertical` | array | `[]` | Array of vertical lane objects |
+| `containerOffset` | `{ x, y }` | `{ x: 0, y: 0 }` | Pixel offset of the swimlane container on the canvas |
 | `containerBorder` | object | — | Border customization for the swimlane container (see below) |
 | `dividerStyle` | object | — | Styling for lane divider lines (see below) |
 | `labelFontSize` | number | `10` | Font size for lane header labels (8-18) |
@@ -475,6 +484,7 @@ Organize nodes into horizontal and/or vertical lanes.
 | `size` | number | `200` | Lane width (vertical) or height (horizontal) in pixels |
 | `order` | number | `0` | Sort order (lower = first) |
 | `collapsed` | boolean | `false` | Whether the lane is collapsed |
+| `showLabel` | boolean | `true` | Whether the lane label is visible on the canvas |
 
 ### 7.3 Container Border (`containerBorder` object)
 
@@ -542,13 +552,15 @@ To assign a node to a layer, set `data.layerId` on the node to match a layer's `
 
 ---
 
-## 9. Legend
+## 9. Legends (Dual Legend System)
 
-A diagram legend overlay that displays a color-coded key on the canvas.
+FlowCraft supports **two independent legend overlays**: one for nodes/edges and one for swimlanes. Each has its own position, style, and items.
+
+Use `nodeLegend` for node fill colors, borders, status pucks, and edge colors. Use `swimlaneLegend` for swimlane lane colors. For backwards compatibility, the importer also accepts a single `legend` field (imported as the node legend if `nodeLegend` is absent).
 
 ```json
 {
-  "legend": {
+  "nodeLegend": {
     "title": "Legend",
     "visible": true,
     "position": { "x": 50, "y": 50 },
@@ -565,28 +577,53 @@ A diagram legend overlay that displays a color-coded key on the canvas.
         "id": "leg_1",
         "label": "Active",
         "color": "#10b981",
-        "shape": "rectangle",
-        "icon": "Check",
+        "kind": "fill",
         "order": 0
       },
       {
         "id": "leg_2",
-        "label": "Deprecated",
+        "label": "Dashed border",
         "color": "#ef4444",
+        "kind": "border",
+        "borderStyle": "dashed",
         "order": 1
+      },
+      {
+        "id": "leg_3",
+        "label": "In Progress",
+        "color": "#3b82f6",
+        "kind": "puck",
+        "order": 2
+      },
+      {
+        "id": "leg_4",
+        "label": "Data Flow",
+        "color": "#94a3b8",
+        "kind": "edge",
+        "order": 3
       }
+    ]
+  },
+  "swimlaneLegend": {
+    "title": "Swimlanes",
+    "visible": true,
+    "position": { "x": 50, "y": 300 },
+    "style": { "bgColor": "#ffffff", "borderColor": "#e2e8f0", "borderWidth": 1, "fontSize": 11, "opacity": 1, "width": 180 },
+    "items": [
+      { "id": "lane-design", "label": "Design", "color": "#dbeafe", "kind": "lane", "order": 0 },
+      { "id": "lane-dev", "label": "Development", "color": "#dcfce7", "kind": "lane", "order": 1 }
     ]
   }
 }
 ```
 
-### 9.1 Legend Fields
+### 9.1 Legend Fields (same structure for `nodeLegend` and `swimlaneLegend`)
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `title` | string | `"Legend"` | Title displayed at the top of the legend |
+| `title` | string | `"Legend"` / `"Swimlanes"` | Title displayed at the top of the legend |
 | `visible` | boolean | `true` | Whether the legend is visible on the canvas |
-| `position` | `{ x: number, y: number }` | `{ x: 50, y: 50 }` | Position in flow coordinates |
+| `position` | `{ x: number, y: number }` | Node: `{ x: 50, y: 50 }`, Swimlane: `{ x: 50, y: 300 }` | Position in flow coordinates |
 | `style` | object | — | Visual style settings (see below) |
 | `items` | array | `[]` | Array of legend item objects (see below) |
 
@@ -608,9 +645,15 @@ A diagram legend overlay that displays a color-coded key on the canvas.
 | `id` | string | Yes | Unique item identifier |
 | `label` | string | Yes | Display label text |
 | `color` | string (CSS color) | Yes | Color swatch shown beside the label |
+| `kind` | string | No | Visual indicator kind: `"fill"` (filled rectangle), `"border"` (outlined rectangle), `"puck"` (circle), `"edge"` (line with arrowhead), `"lane"` (filled rectangle for swimlanes). Default: `"fill"` |
+| `borderStyle` | string | No | Border style for `"border"` kind items: `"solid"`, `"dashed"`, or `"dotted"` |
 | `shape` | string | No | Shape name (renders a small shape icon) |
 | `icon` | string | No | Lucide icon name (renders inside the swatch) |
 | `order` | number | No | Display order (lower = first) |
+
+### 9.4 Backwards Compatibility
+
+If `nodeLegend` and `swimlaneLegend` are both absent, the importer falls back to reading the legacy `legend` field and imports it as the node legend. New exports always write all three fields (`nodeLegend`, `swimlaneLegend`, and `legend`) for maximum compatibility.
 
 ---
 

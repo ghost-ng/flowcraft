@@ -1,6 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Eye, EyeOff, Palette, Pencil, Trash2, EyeClosed } from 'lucide-react';
 import { useSwimlaneStore, type SwimlaneOrientation } from '../../store/swimlaneStore';
+
+// ---------------------------------------------------------------------------
+// Color palette for quick lane color changes
+// ---------------------------------------------------------------------------
+
+const LANE_COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
+  '#14b8a6', '#a855f7',
+];
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,7 +30,151 @@ interface LaneHeaderProps {
   fontSize?: number;
   /** Label rotation in degrees (-90 to 90, step 15). 0 = default for lane type */
   rotation?: number;
+  /** Whether the label is visible (default true) */
+  showLabel?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// LaneContextMenu
+// ---------------------------------------------------------------------------
+
+interface LaneContextMenuProps {
+  x: number;
+  y: number;
+  laneId: string;
+  orientation: SwimlaneOrientation;
+  darkMode: boolean;
+  onClose: () => void;
+  onStartEdit: () => void;
+}
+
+const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
+  x, y, laneId, orientation, darkMode, onClose, onStartEdit,
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const updateLane = useSwimlaneStore((s) => s.updateLane);
+  const removeLane = useSwimlaneStore((s) => s.removeLane);
+  const lane = useSwimlaneStore((s) => {
+    const lanes = orientation === 'horizontal' ? s.config.horizontal : s.config.vertical;
+    return lanes.find((l) => l.id === laneId);
+  });
+  const [showColors, setShowColors] = useState(false);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [onClose]);
+
+  if (!lane) return null;
+
+  const labelVisible = lane.showLabel ?? true;
+  const laneHidden = lane.hidden ?? false;
+
+  const menuW = 190;
+  const menuH = 260;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const adjustedX = x + menuW > vw ? vw - menuW - 8 : x;
+  const adjustedY = y + menuH > vh ? vh - menuH - 8 : y;
+
+  const btnClass = `flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors duration-75 cursor-pointer ${
+    darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
+  }`;
+  const dividerClass = `my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`;
+
+  return (
+    <div
+      ref={menuRef}
+      className={`fixed min-w-[180px] rounded-lg shadow-xl border p-1 ${
+        darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'
+      }`}
+      style={{ left: adjustedX, top: adjustedY, zIndex: 10000 }}
+    >
+      {/* Lane label at top */}
+      <div className={`px-3 py-1.5 text-xs font-semibold ${darkMode ? 'text-dk-muted' : 'text-slate-400'} uppercase tracking-wider`}>
+        {lane.label}
+      </div>
+      <div className={dividerClass} />
+
+      {/* Rename */}
+      <button className={btnClass} onClick={() => { onStartEdit(); onClose(); }}>
+        <Pencil size={14} />
+        Rename Lane
+      </button>
+
+      {/* Toggle label visibility */}
+      <button className={btnClass} onClick={() => {
+        updateLane(orientation, laneId, { showLabel: !labelVisible });
+        onClose();
+      }}>
+        {labelVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+        {labelVisible ? 'Hide Label' : 'Show Label'}
+      </button>
+
+      {/* Toggle lane visibility (hide lane + contents) */}
+      <button className={btnClass} onClick={() => {
+        updateLane(orientation, laneId, { hidden: !laneHidden });
+        onClose();
+      }}>
+        {laneHidden ? <Eye size={14} /> : <EyeClosed size={14} />}
+        {laneHidden ? 'Show Lane & Contents' : 'Hide Lane & Contents'}
+      </button>
+
+      <div className={dividerClass} />
+
+      {/* Color picker */}
+      <button className={btnClass} onClick={() => setShowColors(!showColors)}>
+        <Palette size={14} />
+        Change Color
+      </button>
+      {showColors && (
+        <div className="px-3 py-1.5 flex flex-wrap gap-1">
+          {LANE_COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => {
+                updateLane(orientation, laneId, { color: c });
+                onClose();
+              }}
+              className="w-5 h-5 rounded border border-slate-200 cursor-pointer transition-transform hover:scale-110"
+              style={{ backgroundColor: c, outline: c === lane.color ? '2px solid #3b82f6' : 'none', outlineOffset: 1 }}
+            />
+          ))}
+          <input
+            type="color"
+            value={lane.color}
+            onChange={(e) => {
+              updateLane(orientation, laneId, { color: e.target.value });
+            }}
+            className="w-5 h-5 rounded border border-slate-200 cursor-pointer"
+            title="Custom color"
+          />
+        </div>
+      )}
+
+      <div className={dividerClass} />
+
+      {/* Remove */}
+      <button className={`${btnClass} text-red-500`} onClick={() => {
+        removeLane(orientation, laneId);
+        onClose();
+      }}>
+        <Trash2 size={14} />
+        Remove Lane
+      </button>
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // LaneHeader
@@ -36,20 +190,23 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   darkMode,
   fontSize: fontSizeProp,
   rotation: rotationProp,
+  showLabel: showLabelProp,
 }) => {
+  const labelVisible = showLabelProp ?? true;
   const fs = fontSizeProp ?? 10;
   const rotDeg = rotationProp ?? 0;
   const isHorizontal = orientation === 'horizontal';
 
-  // For horizontal lanes: default (0) = vertical text via writingMode.
-  // Any non-zero rotation = use CSS transform: rotate() instead.
-  const useWritingMode = isHorizontal && rotDeg === 0;
+  // For horizontal lanes: rotation=-90 = vertical text via writingMode.
+  // rotation=0 (default) = horizontal text. Other angles use CSS rotate.
+  const useWritingMode = isHorizontal && rotDeg === -90;
   const rotateAngle = isHorizontal
-    ? (rotDeg === 0 ? 0 : rotDeg)  // non-zero: apply the angle directly
-    : rotDeg;                        // vertical lanes: apply angle directly
+    ? (rotDeg === -90 ? 0 : rotDeg)  // -90 uses writingMode; others use CSS rotate
+    : rotDeg;                          // vertical lanes: apply angle directly
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const updateLane = useSwimlaneStore((s) => s.updateLane);
 
@@ -95,6 +252,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   );
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left-click initiates drag
     e.stopPropagation();
     e.preventDefault();
     const startX = e.clientX;
@@ -119,41 +277,54 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
     document.addEventListener('mouseup', onMouseUp);
   }, []);
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  }, []);
+
   // For horizontal lanes: header on the left side, positioned vertically
   // For vertical lanes: header on top, positioned horizontally
+  // Widen the header when label is rotated so angled text has room
+  const rotBuffer = Math.abs(rotateAngle) > 0 ? Math.ceil(Math.abs(rotateAngle) * 0.3) : 0;
+
   const style: React.CSSProperties = isHorizontal
     ? {
         position: 'absolute',
         left: 0,
         top: offset,
-        width: 48,
+        width: 48 + rotBuffer,
         height: size,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         borderRight: `2px solid ${color}`,
-        backgroundColor: darkMode ? 'rgba(30,41,59,0.9)' : 'rgba(255,255,255,0.9)',
+        backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
         zIndex: 5,
-        overflow: 'hidden',
+        overflow: 'visible',
+        padding: '4px 2px',
+        pointerEvents: 'auto',
       }
     : {
         position: 'absolute',
         left: offset,
         top: 0,
         width: size,
-        height: 32,
+        height: 32 + rotBuffer,
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         borderBottom: `2px solid ${color}`,
-        backgroundColor: darkMode ? 'rgba(30,41,59,0.9)' : 'rgba(255,255,255,0.9)',
+        backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
         zIndex: 5,
-        overflow: 'hidden',
+        overflow: 'visible',
+        padding: '2px 4px',
+        pointerEvents: 'auto',
       };
 
-  const textColor = darkMode ? '#f1f5f9' : '#0f172a';
+  const textColor = darkMode ? '#c8d1dc' : '#0f172a';
 
   // Text styling depending on writing mode vs rotation
   const textStyle: React.CSSProperties = useWritingMode
@@ -177,12 +348,17 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         fontWeight: 600,
         color: textColor,
         transform: rotateAngle !== 0 ? `rotate(${rotateAngle}deg)` : undefined,
+        transformOrigin: 'center center',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        maxWidth: isHorizontal ? size - 10 : size - 50,
+        // Reduce maxWidth when rotated so the label stays within the header bounds
+        maxWidth: isHorizontal
+          ? Math.max(20, size - 10 - Math.abs(rotateAngle) * 0.4)
+          : Math.max(40, size - 50 - Math.abs(rotateAngle) * 0.5),
         userSelect: 'none' as const,
         lineHeight: 1.2,
+        padding: rotateAngle !== 0 ? '2px 4px' : undefined,
       };
 
   const editStyle: React.CSSProperties = useWritingMode
@@ -215,52 +391,79 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
       };
 
   return (
-    <div style={style} onDoubleClick={handleDoubleClick} title="Double-click to edit">
-      {/* Color indicator */}
+    <>
       <div
-        style={{
-          width: isHorizontal ? 24 : 8,
-          height: isHorizontal ? 8 : 20,
-          backgroundColor: color,
-          borderRadius: 2,
-          flexShrink: 0,
-          marginBottom: isHorizontal ? 4 : 0,
-          marginRight: isHorizontal ? 0 : 6,
-        }}
-      />
+        style={style}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+        data-tooltip="Double-click to edit · Right-click for options"
+        data-lane-header={laneId}
+      >
+        {/* Color indicator */}
+        {labelVisible && (
+          <div
+            style={{
+              width: isHorizontal ? 24 : 8,
+              height: isHorizontal ? 8 : 20,
+              backgroundColor: color,
+              borderRadius: 2,
+              flexShrink: 0,
+              marginBottom: isHorizontal ? 4 : 0,
+              marginRight: isHorizontal ? 0 : 6,
+            }}
+          />
+        )}
 
-      {/* Drag handle */}
-      <GripVertical
-        size={12}
-        onMouseDown={handleDragStart}
-        style={{
-          color: darkMode ? '#64748b' : '#94a3b8',
-          flexShrink: 0,
-          marginBottom: isHorizontal ? 2 : 0,
-          marginRight: isHorizontal ? 0 : 4,
-          transform: isHorizontal ? 'rotate(90deg)' : undefined,
-          pointerEvents: 'auto',
-          cursor: 'grab',
-        }}
-      />
-
-      {/* Label or edit input */}
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={handleKeyDown}
-          style={editStyle}
+        {/* Drag handle */}
+        <GripVertical
+          size={12}
+          onMouseDown={handleDragStart}
+          onContextMenu={handleContextMenu}
+          style={{
+            color: darkMode ? '#7e8d9f' : '#94a3b8',
+            flexShrink: 0,
+            marginBottom: isHorizontal ? 2 : 0,
+            marginRight: isHorizontal ? 0 : 4,
+            transform: isHorizontal ? 'rotate(90deg)' : undefined,
+            pointerEvents: 'auto',
+            cursor: 'grab',
+          }}
         />
-      ) : (
-        <span style={textStyle}>
-          {label}
-        </span>
+
+        {/* Label or edit input */}
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={handleKeyDown}
+            style={editStyle}
+          />
+        ) : (
+          <span style={textStyle}>
+            {label}
+          </span>
+        )}
+      </div>
+
+      {/* Context menu portal */}
+      {ctxMenu && (
+        <LaneContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          laneId={laneId}
+          orientation={orientation}
+          darkMode={darkMode}
+          onClose={() => setCtxMenu(null)}
+          onStartEdit={() => {
+            setEditValue(label);
+            setIsEditing(true);
+          }}
+        />
       )}
-    </div>
+    </>
   );
 };
 

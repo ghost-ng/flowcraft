@@ -7,11 +7,20 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
+  Minus,
   Trash2,
   Rows3,
   Columns3,
   Grid3X3,
   Copy,
+  ChevronsUpDown,
+  ChevronsLeft,
+  ChevronsRight,
+  AArrowUp,
+  AArrowDown,
+  ListOrdered,
+  Eye,
+  EyeClosed,
   icons,
 } from 'lucide-react';
 
@@ -78,6 +87,7 @@ const Field: React.FC<FieldProps> = ({ label, children }) => (
 interface NodePropsTabProps {
   nodeId: string;
   data: FlowNodeData;
+  toggleAllSignal?: number;
 }
 
 const SectionHeader: React.FC<{ label: string; collapsed: boolean; onToggle: () => void }> = ({ label, collapsed, onToggle }) => (
@@ -110,11 +120,27 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
 
   const pucks = useMemo(() => getStatusIndicators(data), [data]);
 
-  // The selected puck for this node's detail editor
+  // The selected puck for the detail editor — works for both local and global selection
   const selectedPuck = useMemo(() => {
-    if (selectedPuckNodeId !== nodeId || selectedPuckIds.length === 0) return null;
-    return pucks.find((p) => selectedPuckIds.includes(p.id)) ?? null;
+    if (selectedPuckIds.length === 0) return null;
+    // If selection is on this node, find from local pucks
+    if (selectedPuckNodeId === nodeId) {
+      return pucks.find((p) => selectedPuckIds.includes(p.id)) ?? null;
+    }
+    // Global selection (selectedPuckNodeId === null): find from all nodes
+    if (selectedPuckNodeId === null) {
+      const allNodes = useFlowStore.getState().nodes;
+      for (const n of allNodes) {
+        const nodePucks = getStatusIndicators(n.data as FlowNodeData);
+        const found = nodePucks.find((p) => selectedPuckIds.includes(p.id));
+        if (found) return found;
+      }
+    }
+    return null;
   }, [selectedPuckIds, selectedPuckNodeId, nodeId, pucks]);
+
+  // Count of how many pucks are selected (for showing multi-edit indicator)
+  const multiSelectCount = selectedPuckIds.length;
 
   const handleAddPuck = useCallback(() => {
     const newPuck: StatusIndicator = {
@@ -149,10 +175,26 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
 
   const handleUpdatePuck = useCallback(
     (patch: Partial<StatusIndicator>) => {
-      if (!selectedPuck) return;
-      useFlowStore.getState().updateStatusPuck(nodeId, selectedPuck.id, patch);
+      if (selectedPuckIds.length === 0) return;
+      const store = useFlowStore.getState();
+      // Apply the patch to ALL selected pucks, finding each puck's parent node
+      for (const pId of selectedPuckIds) {
+        // First check the current node
+        if (pucks.some((p) => p.id === pId)) {
+          store.updateStatusPuck(nodeId, pId, patch);
+        } else {
+          // Search other nodes for this puck
+          for (const n of store.nodes) {
+            const nodePucks = getStatusIndicators(n.data as FlowNodeData);
+            if (nodePucks.some((p) => p.id === pId)) {
+              store.updateStatusPuck(n.id, pId, patch);
+              break;
+            }
+          }
+        }
+      }
     },
-    [nodeId, selectedPuck],
+    [nodeId, selectedPuckIds, pucks],
   );
 
   const handleSelectAllOnNode = useCallback(() => {
@@ -198,7 +240,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
         <button
           onClick={handleAddPuck}
           className="p-1 rounded text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
-          title="Add a status puck"
+          data-tooltip-left="Add a status puck"
         >
           <Plus size={14} />
         </button>
@@ -228,9 +270,9 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                       `}
                       style={{
                         backgroundColor: puck.color || '#94a3b8',
-                        borderColor: puck.borderColor || '#ffffff',
+                        borderColor: puck.borderColor || '#000000',
                       }}
-                      title={`${puck.status} — click to select`}
+                      data-tooltip-left={`${puck.status} — click to select`}
                     />
                     {/* Remove button on hover */}
                     <button
@@ -241,7 +283,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                       className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white
                                  flex items-center justify-center opacity-0 group-hover:opacity-100
                                  transition-opacity cursor-pointer"
-                      title="Remove puck"
+                      data-tooltip-left="Remove puck"
                     >
                       <X size={8} />
                     </button>
@@ -271,9 +313,16 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
             </div>
           )}
 
-          {/* Detail editor for the selected puck */}
-          {selectedPuck && selectedPuckNodeId === nodeId && (
+          {/* Detail editor for the selected puck (single or bulk) */}
+          {selectedPuck && (selectedPuckNodeId === nodeId || selectedPuckNodeId === null) && (
             <div className="flex flex-col gap-3 mt-1 pt-2 border-t border-border">
+              {/* Multi-edit indicator */}
+              {multiSelectCount > 1 && (
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[11px] font-medium">
+                  <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-800/40 flex items-center justify-center text-[10px] font-bold">{multiSelectCount}</span>
+                  Editing {multiSelectCount} pucks — changes apply to all
+                </div>
+              )}
               {/* Status */}
               <Field label="Status">
                 <select
@@ -395,13 +444,13 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={selectedPuck.borderColor || '#ffffff'}
+                    value={selectedPuck.borderColor || '#000000'}
                     onChange={(e) => handleUpdatePuck({ borderColor: e.target.value })}
                     className="w-8 h-8 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
-                    value={selectedPuck.borderColor || '#ffffff'}
+                    value={selectedPuck.borderColor || '#000000'}
                     onChange={(e) => handleUpdatePuck({ borderColor: e.target.value })}
                     className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
@@ -417,12 +466,12 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     min={0}
                     max={4}
                     step={0.5}
-                    value={selectedPuck.borderWidth ?? 2}
+                    value={selectedPuck.borderWidth ?? 1}
                     onChange={(e) => handleUpdatePuck({ borderWidth: Number(e.target.value) })}
                     className="flex-1 accent-primary"
                   />
                   <span className="text-xs text-text-muted w-8 text-right font-mono">
-                    {selectedPuck.borderWidth ?? 2}px
+                    {selectedPuck.borderWidth ?? 1}px
                   </span>
                 </div>
               </Field>
@@ -436,8 +485,8 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                       onClick={() => handleUpdatePuck({ borderStyle: style })}
                       className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
                         ${(selectedPuck.borderStyle || 'solid') === style
-                          ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-900/30 dark:border-blue-500/50 dark:text-blue-400'
-                          : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                          ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                          : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
                         }`}
                     >
                       {style.charAt(0).toUpperCase() + style.slice(1)}
@@ -453,17 +502,20 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
   );
 };
 
-const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) => {
+const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, toggleAllSignal }) => {
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   const toggleSection = useCallback((section: string) => {
+    setAllExpanded(null); // Reset override when user manually toggles a section
     setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   }, []);
 
   // Auto-expand relevant sections based on node properties when selection changes
   useEffect(() => {
     const pucks = getStatusIndicators(data);
+    setAllExpanded(null);
     setCollapsedSections({
       block: false,  // always expanded
       label: false,  // always expanded (has text + icon settings)
@@ -471,6 +523,19 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
       icon: !data.icon,  // expanded only if node has an icon
     });
   }, [nodeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Compute effective collapsed state: allExpanded overrides individual sections
+  const isSectionCollapsed = useCallback((section: string) => {
+    if (allExpanded !== null) return !allExpanded;
+    return !!collapsedSections[section];
+  }, [allExpanded, collapsedSections]);
+
+  // React to toggle-all signal from the parent (button lives in the tab bar)
+  useEffect(() => {
+    if (toggleAllSignal && toggleAllSignal > 0) {
+      setAllExpanded((prev) => prev === null ? true : prev ? false : true);
+    }
+  }, [toggleAllSignal]);
 
   const update = useCallback(
     (patch: Partial<FlowNodeData>) => {
@@ -494,9 +559,9 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
   return (
     <div className="flex flex-col gap-3">
       {/* ============ BLOCK PROPERTIES ============ */}
-      <SectionHeader label="Block" collapsed={!!collapsedSections['block']} onToggle={() => toggleSection('block')} />
+      <SectionHeader label="Block" collapsed={isSectionCollapsed('block')} onToggle={() => toggleSection('block')} />
 
-      {!collapsedSections['block'] && (
+      {!isSectionCollapsed('block') && (
         <>
           {/* Shape type display */}
           <Field label="Shape">
@@ -571,8 +636,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                   onClick={() => update({ borderStyle: style })}
                   className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
                     ${(data.borderStyle || 'solid') === style
-                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-900/30 dark:border-blue-500/50 dark:text-blue-400'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
                     }`}
                 >
                   {style.charAt(0).toUpperCase() + style.slice(1)}
@@ -616,13 +681,57 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
               </span>
             </div>
           </Field>
+
+          {/* Block Size */}
+          <Field label="Block Size">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const nd = node.data as FlowNodeData;
+                      const curW = (nd as Record<string, unknown>).width as number || 160;
+                      const curH = (nd as Record<string, unknown>).height as number || 60;
+                      bulkUpdate(nid, { width: Math.max(40, curW - 20), height: Math.max(20, curH - 15) } as Partial<FlowNodeData>);
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
+                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Decrease block size"
+              >
+                <Minus size={12} /> Smaller
+              </button>
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const nd = node.data as FlowNodeData;
+                      const curW = (nd as Record<string, unknown>).width as number || 160;
+                      const curH = (nd as Record<string, unknown>).height as number || 60;
+                      bulkUpdate(nid, { width: curW + 20, height: curH + 15 } as Partial<FlowNodeData>);
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
+                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Increase block size"
+              >
+                <Plus size={12} /> Larger
+              </button>
+            </div>
+          </Field>
         </>
       )}
 
       {/* ============ LABEL PROPERTIES ============ */}
-      <SectionHeader label="Label" collapsed={!!collapsedSections['label']} onToggle={() => toggleSection('label')} />
+      <SectionHeader label="Label" collapsed={isSectionCollapsed('label')} onToggle={() => toggleSection('label')} />
 
-      {!collapsedSections['label'] && (
+      {!isSectionCollapsed('label') && (
         <>
           {/* Label */}
           <Field label="Text">
@@ -666,10 +775,12 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                   if (iconName === '') {
                     update({ icon: undefined });
                     // Collapse icon section when removing icon
+                    setAllExpanded(null);
                     setCollapsedSections((prev) => ({ ...prev, icon: true }));
                   } else {
                     update({ icon: iconName });
                     // Auto-expand icon style section when an icon is selected
+                    setAllExpanded(null);
                     setCollapsedSections((prev) => ({ ...prev, icon: false }));
                   }
                   setIconPickerOpen(false);
@@ -692,8 +803,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                     className={`
                       flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
                       ${(data.iconPosition || 'left') === pos.value
-                        ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-900/30 dark:border-blue-500/50 dark:text-blue-400'
-                        : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                        ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                        : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
                       }
                     `}
                   >
@@ -731,12 +842,52 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                 min={8}
                 max={32}
                 value={fontSize}
-                onChange={(e) => update({ fontSize: Number(e.target.value) })}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  update({ fontSize: newSize });
+                  // Apply to all other selected nodes too
+                  const { selectedNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    if (nid !== nodeId) bulkUpdate(nid, { fontSize: newSize });
+                  }
+                }}
                 className="flex-1 accent-primary"
               />
               <span className="text-xs text-text-muted w-8 text-right font-mono">
                 {fontSize}
               </span>
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const currentSize = (node.data as FlowNodeData).fontSize || 14;
+                      bulkUpdate(nid, { fontSize: Math.max(8, currentSize - 1) });
+                    }
+                  }
+                }}
+                className="p-1 rounded border border-border text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Decrease font size"
+              >
+                <AArrowDown size={14} />
+              </button>
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const currentSize = (node.data as FlowNodeData).fontSize || 14;
+                      bulkUpdate(nid, { fontSize: Math.min(32, currentSize + 1) });
+                    }
+                  }
+                }}
+                className="p-1 rounded border border-border text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Increase font size"
+              >
+                <AArrowUp size={14} />
+              </button>
             </div>
           </Field>
 
@@ -754,8 +905,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                   onClick={() => update({ fontWeight: opt.value })}
                   className={`flex-1 py-1.5 text-xs rounded border transition-colors cursor-pointer
                     ${fontWeight === opt.value
-                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-900/30 dark:border-blue-500/50 dark:text-blue-400'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
                     }`}
                   style={{ fontWeight: opt.value }}
                 >
@@ -797,8 +948,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
       {/* ============ ICON STYLING ============ */}
       {currentIcon && (
         <>
-          <SectionHeader label="Icon" collapsed={!!collapsedSections['icon']} onToggle={() => toggleSection('icon')} />
-          {!collapsedSections['icon'] && (
+          <SectionHeader label="Icon" collapsed={isSectionCollapsed('icon')} onToggle={() => toggleSection('icon')} />
+          {!isSectionCollapsed('icon') && (
             <>
               {/* Icon Color */}
               <Field label="Icon Color">
@@ -820,7 +971,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                     <button
                       onClick={() => update({ iconColor: undefined })}
                       className="text-xs text-red-500 hover:text-red-700 cursor-pointer shrink-0"
-                      title="Reset to default"
+                      data-tooltip-left="Reset to default"
                     >
                       Reset
                     </button>
@@ -849,7 +1000,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                     <button
                       onClick={() => update({ iconBgColor: undefined })}
                       className="text-xs text-red-500 hover:text-red-700 cursor-pointer shrink-0"
-                      title="Remove background"
+                      data-tooltip-left="Remove background"
                     >
                       Clear
                     </button>
@@ -914,7 +1065,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
                     <button
                       onClick={() => update({ iconSize: undefined })}
                       className="text-xs text-red-500 hover:text-red-700 cursor-pointer"
-                      title="Reset to auto"
+                      data-tooltip-left="Reset to auto"
                     >
                       Auto
                     </button>
@@ -927,7 +1078,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data }) 
       )}
 
       {/* ============ STATUS PUCKS ============ */}
-      <StatusPucksSection nodeId={nodeId} data={data} collapsed={!!collapsedSections['status']} onToggle={() => toggleSection('status')} />
+      <StatusPucksSection nodeId={nodeId} data={data} collapsed={isSectionCollapsed('status')} onToggle={() => toggleSection('status')} />
     </div>
   );
 });
@@ -1207,14 +1358,26 @@ const SwimlanePanel: React.FC = React.memo(() => {
       {[...lanes].sort((a, b) => a.order - b.order).map((lane) => (
         <div
           key={lane.id}
-          className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-white/50"
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-white/50 ${lane.hidden ? 'opacity-50' : ''}`}
         >
+          {/* Hide lane + all contents toggle */}
+          <button
+            onClick={() => updateLane(orientation, lane.id, { hidden: !lane.hidden })}
+            className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
+              ${lane.hidden
+                ? 'text-slate-300 hover:text-text-muted'
+                : 'text-text-muted hover:text-primary'
+              }`}
+            title={lane.hidden ? 'Show lane & contents' : 'Hide lane & contents'}
+          >
+            {lane.hidden ? <EyeClosed size={12} /> : <Eye size={12} />}
+          </button>
           {/* Color picker */}
           <input
             type="color"
             value={lane.color}
             onChange={(e) => updateLane(orientation, lane.id, { color: e.target.value })}
-            className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
+            className="w-4 h-4 rounded border border-border cursor-pointer shrink-0"
           />
           {/* Label input */}
           <input
@@ -1230,7 +1393,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
             onClick={() => removeLane(orientation, lane.id)}
             className="p-0.5 rounded text-text-muted hover:text-danger hover:bg-danger/10
                        transition-colors cursor-pointer shrink-0"
-            title="Remove lane"
+            data-tooltip-left="Remove lane"
           >
             <Trash2 size={12} />
           </button>
@@ -1500,6 +1663,24 @@ const SwimlanePanel: React.FC = React.memo(() => {
         </>
       )}
 
+      {/* Generate Lane Legend button */}
+      {hasAnyLanes && (
+        <div className="border-t border-border pt-3 mt-1">
+          <button
+            onClick={() => {
+              const allLanes = [...config.horizontal, ...config.vertical];
+              useLegendStore.getState().generateSwimlaneLegend(allLanes);
+            }}
+            className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-medium
+                       rounded-md border border-primary/30 text-primary hover:bg-primary/5
+                       transition-colors cursor-pointer"
+          >
+            <ListOrdered size={14} />
+            Generate Lane Legend
+          </button>
+        </div>
+      )}
+
     </div>
   );
 });
@@ -1507,147 +1688,265 @@ const SwimlanePanel: React.FC = React.memo(() => {
 SwimlanePanel.displayName = 'SwimlanePanel';
 
 // ---------------------------------------------------------------------------
-// LegendPanel (separate from swimlanes)
+// BulkPuckEditor — standalone puck editor shown when pucks are selected
+//   without a node being selected (e.g. global "Select All" via context menu)
 // ---------------------------------------------------------------------------
 
-const LegendPanel: React.FC = React.memo(() => {
-  const legendConfig = useLegendStore((s) => s.config);
-  const addLegendItem = useLegendStore((s) => s.addItem);
-  const removeLegendItem = useLegendStore((s) => s.removeItem);
-  const updateLegendItem = useLegendStore((s) => s.updateItem);
-  const setLegendTitle = useLegendStore((s) => s.setTitle);
-  const setLegendVisible = useLegendStore((s) => s.setVisible);
-  const updateLegendStyle = useLegendStore((s) => s.updateStyle);
+const BulkPuckEditor: React.FC = () => {
+  const selectedPuckIds = useUIStore((s) => s.selectedPuckIds);
+  const allNodes = useFlowStore((s) => s.nodes);
+
+  // Find the first selected puck as the "representative" for displaying values
+  const representativePuck = useMemo(() => {
+    for (const n of allNodes) {
+      const pucks = getStatusIndicators(n.data as FlowNodeData);
+      const found = pucks.find((p) => selectedPuckIds.includes(p.id));
+      if (found) return found;
+    }
+    return null;
+  }, [allNodes, selectedPuckIds]);
+
+  const handleUpdate = useCallback(
+    (patch: Partial<StatusIndicator>) => {
+      const store = useFlowStore.getState();
+      for (const pId of selectedPuckIds) {
+        for (const n of store.nodes) {
+          const pucks = getStatusIndicators(n.data as FlowNodeData);
+          if (pucks.some((p) => p.id === pId)) {
+            store.updateStatusPuck(n.id, pId, patch);
+            break;
+          }
+        }
+      }
+    },
+    [selectedPuckIds],
+  );
+
+  const handleClearSelection = useCallback(() => {
+    useUIStore.getState().clearPuckSelection();
+  }, []);
+
+  if (!representativePuck) return null;
+
+  const defaultColors: Record<string, string> = {
+    'not-started': '#94a3b8',
+    'in-progress': '#3b82f6',
+    'completed': '#10b981',
+    'blocked': '#ef4444',
+    'review': '#f59e0b',
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-          <input
-            type="checkbox"
-            checked={legendConfig.visible}
-            onChange={(e) => setLegendVisible(e.target.checked)}
-            className="rounded"
-          />
-          Show Legend
-        </label>
+    <div className="flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40">
+        <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-800/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
+          {selectedPuckIds.length}
+        </span>
+        <span className="text-xs font-medium text-blue-700 dark:text-blue-300 flex-1">
+          {selectedPuckIds.length === 1 ? '1 puck selected' : `${selectedPuckIds.length} pucks selected`}
+        </span>
+        <button
+          onClick={handleClearSelection}
+          className="p-0.5 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors cursor-pointer"
+          data-tooltip-left="Clear selection"
+        >
+          <X size={14} />
+        </button>
       </div>
-      <Field label="Title">
-        <input
-          type="text"
-          value={legendConfig.title}
-          onChange={(e) => setLegendTitle(e.target.value)}
-          placeholder="Legend title"
+
+      {/* Status */}
+      <Field label="Status">
+        <select
+          value={representativePuck.status || 'not-started'}
+          onChange={(e) => {
+            const status = e.target.value as StatusIndicator['status'];
+            handleUpdate({ status, color: defaultColors[status] || '#94a3b8' });
+          }}
           className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-        />
+        >
+          <option value="not-started">Not Started</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="blocked">Blocked</option>
+          <option value="review">Review</option>
+        </select>
       </Field>
-      {/* Legend items */}
-      <Field label={`Items (${legendConfig.items.length})`}>
-        <div className="flex flex-col gap-1.5">
-          {[...legendConfig.items].sort((a, b) => a.order - b.order).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-white/50"
-            >
-              <input
-                type="color"
-                value={item.color}
-                onChange={(e) => updateLegendItem(item.id, { color: e.target.value })}
-                className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
-              />
-              <input
-                type="text"
-                value={item.label}
-                onChange={(e) => updateLegendItem(item.id, { label: e.target.value })}
-                className="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded border border-transparent
-                           hover:border-border focus:border-primary focus:outline-none bg-transparent"
-              />
-              <button
-                onClick={() => removeLegendItem(item.id)}
-                className="p-0.5 rounded text-text-muted hover:text-danger hover:bg-danger/10
-                           transition-colors cursor-pointer shrink-0"
-                title="Remove item"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={() => {
-              const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
-              addLegendItem({
-                id: generateId('legend'),
-                label: `Item ${legendConfig.items.length + 1}`,
-                color: colors[legendConfig.items.length % colors.length],
-                order: legendConfig.items.length,
-              });
-            }}
-            className="flex items-center justify-center gap-1 py-1.5 text-[11px] font-medium
-                       text-primary hover:bg-primary/5 rounded-md border border-dashed border-primary/30
-                       transition-colors cursor-pointer"
-          >
-            <Plus size={12} />
-            Add Item
-          </button>
+
+      {/* Color */}
+      <Field label="Color">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={representativePuck.color || '#94a3b8'}
+            onChange={(e) => handleUpdate({ color: e.target.value })}
+            className="w-8 h-8 rounded border border-border cursor-pointer"
+          />
+          <input
+            type="text"
+            value={representativePuck.color || '#94a3b8'}
+            onChange={(e) => handleUpdate({ color: e.target.value })}
+            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
         </div>
       </Field>
-      {/* Legend style controls */}
-      {legendConfig.items.length > 0 && (
-        <>
-          <Field label="Style">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-text-muted w-10">BG</span>
-                <input
-                  type="color"
-                  value={legendConfig.style.bgColor}
-                  onChange={(e) => updateLegendStyle({ bgColor: e.target.value })}
-                  className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
-                />
-                <span className="text-[10px] text-text-muted w-10 ml-2">Border</span>
-                <input
-                  type="color"
-                  value={legendConfig.style.borderColor}
-                  onChange={(e) => updateLegendStyle({ borderColor: e.target.value })}
-                  className="w-5 h-5 rounded border border-border cursor-pointer shrink-0"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-text-muted w-10">Font</span>
-                <input
-                  type="range"
-                  min={8}
-                  max={16}
-                  step={1}
-                  value={legendConfig.style.fontSize}
-                  onChange={(e) => updateLegendStyle({ fontSize: Number(e.target.value) })}
-                  className="flex-1"
-                />
-                <span className="text-xs text-text-muted w-4 text-right">{legendConfig.style.fontSize}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-text-muted w-10">Width</span>
-                <input
-                  type="range"
-                  min={120}
-                  max={300}
-                  step={10}
-                  value={legendConfig.style.width}
-                  onChange={(e) => updateLegendStyle({ width: Number(e.target.value) })}
-                  className="flex-1"
-                />
-                <span className="text-xs text-text-muted w-4 text-right">{legendConfig.style.width}</span>
-              </div>
-            </div>
-          </Field>
-        </>
-      )}
+
+      {/* Size */}
+      <Field label="Size">
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={8}
+            max={20}
+            step={1}
+            value={representativePuck.size || 12}
+            onChange={(e) => handleUpdate({ size: Number(e.target.value) })}
+            className="flex-1 accent-primary"
+          />
+          <span className="text-xs text-text-muted w-8 text-right font-mono">
+            {representativePuck.size || 12}px
+          </span>
+        </div>
+      </Field>
+
+      {/* Position */}
+      <Field label="Position">
+        <div className="grid grid-cols-4 gap-1">
+          {([
+            { value: 'top-left', label: 'TL' },
+            { value: 'top-right', label: 'TR' },
+            { value: 'bottom-left', label: 'BL' },
+            { value: 'bottom-right', label: 'BR' },
+          ] as const).map((pos) => (
+            <button
+              key={pos.value}
+              onClick={() => handleUpdate({ position: pos.value })}
+              className={`
+                py-1.5 text-[10px] font-semibold rounded border transition-colors cursor-pointer
+                ${(representativePuck.position || 'top-right') === pos.value
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'border-border text-text-muted hover:bg-slate-50'
+                }
+              `}
+            >
+              {pos.label}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {/* Icon */}
+      <Field label="Icon">
+        <select
+          value={representativePuck.icon || ''}
+          onChange={(e) => handleUpdate({ icon: e.target.value || undefined })}
+          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+        >
+          <option value="">Default (Auto)</option>
+          <option value="blank">Blank (No Icon)</option>
+          <option value="Check">Checkmark</option>
+          <option value="Clock">Clock</option>
+          <option value="X">X Mark</option>
+          <option value="Eye">Eye</option>
+          <option value="AlertTriangle">Warning</option>
+          <option value="Star">Star</option>
+          <option value="Heart">Heart</option>
+          <option value="Flag">Flag</option>
+          <option value="Zap">Lightning</option>
+          <option value="ThumbsUp">Thumbs Up</option>
+          <option value="ThumbsDown">Thumbs Down</option>
+          <option value="Circle">Circle</option>
+          <option value="Square">Square</option>
+          <option value="Bell">Bell</option>
+          <option value="Bookmark">Bookmark</option>
+          <option value="Pin">Pin</option>
+        </select>
+      </Field>
+
+      {/* Border Color */}
+      <Field label="Border Color">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={representativePuck.borderColor || '#000000'}
+            onChange={(e) => handleUpdate({ borderColor: e.target.value })}
+            className="w-8 h-8 rounded border border-border cursor-pointer"
+          />
+          <input
+            type="text"
+            value={representativePuck.borderColor || '#000000'}
+            onChange={(e) => handleUpdate({ borderColor: e.target.value })}
+            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                       focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        </div>
+      </Field>
+
+      {/* Border Width */}
+      <Field label="Border Width">
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={0}
+            max={4}
+            step={0.5}
+            value={representativePuck.borderWidth ?? 1}
+            onChange={(e) => handleUpdate({ borderWidth: Number(e.target.value) })}
+            className="flex-1 accent-primary"
+          />
+          <span className="text-xs text-text-muted w-8 text-right font-mono">
+            {representativePuck.borderWidth ?? 1}px
+          </span>
+        </div>
+      </Field>
+
+      {/* Border Style */}
+      <Field label="Border Style">
+        <div className="flex items-center gap-1">
+          {(['solid', 'dashed', 'dotted', 'none'] as const).map((style) => (
+            <button
+              key={style}
+              onClick={() => handleUpdate({ borderStyle: style })}
+              className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
+                ${(representativePuck.borderStyle || 'solid') === style
+                  ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                  : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
+                }`}
+            >
+              {style.charAt(0).toUpperCase() + style.slice(1)}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {/* Delete selected pucks */}
+      <button
+        onClick={() => {
+          const store = useFlowStore.getState();
+          for (const pId of selectedPuckIds) {
+            for (const n of store.nodes) {
+              const pucks = getStatusIndicators(n.data as FlowNodeData);
+              if (pucks.some((p) => p.id === pId)) {
+                store.removeStatusPuck(n.id, pId);
+                break;
+              }
+            }
+          }
+          useUIStore.getState().clearPuckSelection();
+        }}
+        className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-medium rounded border
+                   border-red-200 text-red-500 hover:bg-red-50 dark:border-red-700/40 dark:text-red-400
+                   dark:hover:bg-red-900/20 transition-colors cursor-pointer mt-1"
+      >
+        <Trash2 size={12} />
+        Delete {selectedPuckIds.length > 1 ? `${selectedPuckIds.length} pucks` : 'puck'}
+      </button>
     </div>
   );
-});
-
-LegendPanel.displayName = 'LegendPanel';
+};
 
 // ---------------------------------------------------------------------------
 // Main PropertiesPanel
@@ -1658,6 +1957,7 @@ const PropertiesPanel: React.FC = () => {
   const activePanelTab = useUIStore((s) => s.activePanelTab);
   const setActivePanelTab = useUIStore((s) => s.setActivePanelTab);
   const propertiesPanelOpen = useUIStore((s) => s.propertiesPanelOpen);
+  const togglePropertiesPanel = useUIStore((s) => s.togglePropertiesPanel);
 
   // Selection
   const selectedNodes = useFlowStore((s) => s.selectedNodes);
@@ -1677,6 +1977,13 @@ const PropertiesPanel: React.FC = () => {
     return edges.find((e) => e.id === selectedEdges[0]) ?? null;
   }, [selectedEdges, edges]);
 
+  // Toggle-all signal for collapsible sections (counter increments to trigger)
+  const [toggleAllSignal, setToggleAllSignal] = useState(0);
+  const [edgeToggleAllSignal, setEdgeToggleAllSignal] = useState(0);
+
+  // Puck selection state
+  const selectedPuckIds = useUIStore((s) => s.selectedPuckIds);
+
   // Auto-switch to the Connector tab when an edge is selected
   useEffect(() => {
     if (selectedEdges.length > 0 && activePanelTab !== 'edge') {
@@ -1686,9 +1993,29 @@ const PropertiesPanel: React.FC = () => {
     }
   }, [selectedEdges.length, selectedNodes.length, activePanelTab, setActivePanelTab]);
 
-  if (!propertiesPanelOpen) return null;
-
   return (
+    <div className="flex shrink-0">
+      {/* Collapse / expand toggle on the left edge */}
+      <button
+        onClick={togglePropertiesPanel}
+        className={`
+          flex items-center justify-center w-5 h-10 self-center shrink-0
+          rounded-l-md border border-r-0 cursor-pointer
+          transition-colors duration-100
+          ${darkMode
+            ? 'bg-surface-alt-dark border-border-dark hover:bg-dk-hover text-text-muted-dark'
+            : 'bg-surface-alt border-border hover:bg-slate-100 text-text-muted'
+          }
+        `}
+        title={propertiesPanelOpen ? 'Collapse panel' : 'Expand panel'}
+      >
+        {propertiesPanelOpen
+          ? <ChevronsRight size={14} />
+          : <ChevronsLeft size={14} />
+        }
+      </button>
+
+      {!propertiesPanelOpen ? null : (
     <div
       className={`
         flex flex-col w-[280px] shrink-0 border-l overflow-hidden
@@ -1700,27 +2027,58 @@ const PropertiesPanel: React.FC = () => {
     >
       {/* Tab bar */}
       <div className="flex border-b border-inherit shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActivePanelTab(tab.id)}
-            className={`
-              flex-1 py-2 text-[11px] font-medium tracking-wide uppercase
-              transition-colors cursor-pointer
-              ${activePanelTab === tab.id
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-text-muted hover:text-text'
-              }
-            `}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {/* Close panel button — always visible */}
+        <button
+          onClick={() => useUIStore.getState().setPropertiesPanelOpen(false)}
+          className="px-1 flex items-center text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
+          data-tooltip="Close panel"
+        >
+          <ChevronsRight size={14} />
+        </button>
+        {TABS.map((tab) => {
+          const isActive = activePanelTab === tab.id;
+          // Show collapse/expand chevron for tabs that have collapsible sections
+          const showToggle = isActive && (
+            (tab.id === 'node' && !!selectedNode) ||
+            (tab.id === 'edge' && !!selectedEdge)
+          );
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActivePanelTab(tab.id)}
+              className={`
+                flex-1 py-2 text-[11px] font-medium tracking-wide uppercase
+                transition-colors cursor-pointer flex items-center justify-center gap-0.5
+                ${isActive
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-text-muted hover:text-text'
+                }
+              `}
+            >
+              {showToggle && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (tab.id === 'edge') setEdgeToggleAllSignal((c) => c + 1);
+                    else setToggleAllSignal((c) => c + 1);
+                  }}
+                  className="hover:bg-primary/20 rounded p-0.5 transition-colors"
+                  data-tooltip="Expand / Collapse all sections"
+                >
+                  <ChevronsUpDown size={12} />
+                </span>
+              )}
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto panel-scroll p-4 pb-8">
-        {!selectedNode && activePanelTab === 'node' ? (
+        {!selectedNode && activePanelTab === 'node' && selectedPuckIds.length > 0 ? (
+          <BulkPuckEditor />
+        ) : !selectedNode && activePanelTab === 'node' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-12">
             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
               <ChevronRight size={20} className="text-text-muted" />
@@ -1733,6 +2091,7 @@ const PropertiesPanel: React.FC = () => {
           <NodePropsTab
             nodeId={selectedNode.id}
             data={selectedNode.data as FlowNodeData}
+            toggleAllSignal={toggleAllSignal}
           />
         ) : activePanelTab === 'edge' ? (
           selectedEdge ? (
@@ -1740,6 +2099,8 @@ const PropertiesPanel: React.FC = () => {
               edgeId={selectedEdge.id}
               edgeData={(selectedEdge.data || {}) as FlowEdgeData}
               edgeType={selectedEdge.type}
+              selectedEdgeIds={selectedEdges}
+              toggleAllSignal={edgeToggleAllSignal}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-12">
@@ -1768,13 +2129,7 @@ const PropertiesPanel: React.FC = () => {
             </div>
           )
         ) : activePanelTab === 'lane' ? (
-          <>
-            <SwimlanePanel />
-            <div className="border-t-2 border-border mt-4 pt-4">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-3">Legend</h3>
-              <LegendPanel />
-            </div>
-          </>
+          <SwimlanePanel />
         ) : activePanelTab === 'data' ? (
           selectedNode ? (
             <DataTab
@@ -1797,6 +2152,8 @@ const PropertiesPanel: React.FC = () => {
           <PlaceholderTab name="Data" />
         )}
       </div>
+    </div>
+      )}
     </div>
   );
 };

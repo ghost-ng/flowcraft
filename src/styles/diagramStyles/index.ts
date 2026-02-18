@@ -18,6 +18,7 @@ import { colorfulGradient } from './colorfulGradient';
 import { darkNeonGlow } from './darkNeonGlow';
 import { notebook } from './notebook';
 import { gradientCards } from './gradientCards';
+import { cyberC2 } from './cyberC2';
 
 export const diagramStyles: Record<string, DiagramStyle> = {
   cleanMinimal,
@@ -38,6 +39,7 @@ export const diagramStyles: Record<string, DiagramStyle> = {
   darkNeonGlow,
   notebook,
   gradientCards,
+  cyberC2,
 };
 
 export const defaultStyleId = 'cleanMinimal';
@@ -61,4 +63,5 @@ export {
   darkNeonGlow,
   notebook,
   gradientCards,
+  cyberC2,
 };

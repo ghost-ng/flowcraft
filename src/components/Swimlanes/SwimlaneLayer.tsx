@@ -34,6 +34,10 @@ function computeBounds(
   let cursor = headerOffset;
 
   for (const lane of sorted) {
+    if (lane.hidden) {
+      result.push({ lane, offset: cursor, size: 0 });
+      continue;
+    }
     const effectiveSize = lane.collapsed ? 32 : lane.size;
     result.push({ lane, offset: cursor, size: effectiveSize });
     cursor += effectiveSize;
@@ -223,7 +227,7 @@ const SwimlaneLayer: React.FC = () => {
               paddingLeft: 8,
               fontSize: 13,
               fontWeight: 700,
-              color: darkMode ? '#f1f5f9' : '#0f172a',
+              color: darkMode ? '#c8d1dc' : '#0f172a',
               whiteSpace: 'nowrap',
               userSelect: 'none',
             }}
@@ -235,10 +239,13 @@ const SwimlaneLayer: React.FC = () => {
         {/* ---- Horizontal lane backgrounds and dividers ---- */}
         {hasHLanes &&
           hBounds.map(({ lane, offset, size }, idx) => {
+            if (lane.hidden) return null;
             const ds = config.dividerStyle;
-            const divColor = ds?.color || (darkMode ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)');
+            const divColor = ds?.color || (darkMode ? 'rgba(132,148,167,0.25)' : 'rgba(100,116,139,0.25)');
             const divWidth = ds?.width ?? 1;
             const divStyle = ds?.style ?? 'solid';
+            // Check if there's a visible lane before this one (for divider rendering)
+            const hasPrevVisible = hBounds.slice(0, idx).some((b) => !b.lane.hidden);
             return (
               <React.Fragment key={`h-${lane.id}`}>
                 {/* Background band */}
@@ -254,8 +261,8 @@ const SwimlaneLayer: React.FC = () => {
                     pointerEvents: 'none',
                   }}
                 />
-                {/* Divider line (between lanes, not before the first) */}
-                {idx > 0 && divStyle !== 'none' && (
+                {/* Divider line (between visible lanes, not before the first visible) */}
+                {hasPrevVisible && divStyle !== 'none' && (
                   <div
                     style={{
                       position: 'absolute',
@@ -277,10 +284,12 @@ const SwimlaneLayer: React.FC = () => {
         {/* ---- Vertical lane backgrounds and dividers ---- */}
         {hasVLanes &&
           vBounds.map(({ lane, offset, size }, idx) => {
+            if (lane.hidden) return null;
             const ds = config.dividerStyle;
-            const divColor = ds?.color || (darkMode ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)');
+            const divColor = ds?.color || (darkMode ? 'rgba(132,148,167,0.25)' : 'rgba(100,116,139,0.25)');
             const divWidth = ds?.width ?? 1;
             const divStyle = ds?.style ?? 'solid';
+            const hasPrevVisible = vBounds.slice(0, idx).some((b) => !b.lane.hidden);
             return (
               <React.Fragment key={`v-${lane.id}`}>
                 {/* Background band */}
@@ -296,8 +305,8 @@ const SwimlaneLayer: React.FC = () => {
                     pointerEvents: 'none',
                   }}
                 />
-                {/* Divider line */}
-                {idx > 0 && divStyle !== 'none' && (
+                {/* Divider line (between visible lanes) */}
+                {hasPrevVisible && divStyle !== 'none' && (
                   <div
                     style={{
                       position: 'absolute',
@@ -319,64 +328,36 @@ const SwimlaneLayer: React.FC = () => {
         {/* ---- Matrix cell borders (when both H and V exist) ---- */}
         {isMatrix &&
           hBounds.map(({ lane: hLane, offset: hOffset, size: hSize }) =>
-            vBounds.map(({ lane: vLane, offset: vOffset, size: vSize }) => (
-              <div
-                key={`cell-${hLane.id}-${vLane.id}`}
-                style={{
-                  position: 'absolute',
-                  left: vOffset,
-                  top: hOffset,
-                  width: vSize,
-                  height: hSize,
-                  border: `1px solid ${
-                    darkMode
-                      ? 'rgba(148,163,184,0.12)'
-                      : 'rgba(100,116,139,0.1)'
-                  }`,
-                  pointerEvents: 'none',
-                }}
-              />
-            )),
+            vBounds.map(({ lane: vLane, offset: vOffset, size: vSize }) => {
+              if (hLane.hidden || vLane.hidden) return null;
+              return (
+                <div
+                  key={`cell-${hLane.id}-${vLane.id}`}
+                  style={{
+                    position: 'absolute',
+                    left: vOffset,
+                    top: hOffset,
+                    width: vSize,
+                    height: hSize,
+                    border: `1px solid ${
+                      darkMode
+                        ? 'rgba(148,163,184,0.12)'
+                        : 'rgba(100,116,139,0.1)'
+                    }`,
+                    pointerEvents: 'none',
+                  }}
+                />
+              );
+            }),
           )}
 
-        {/* ---- Horizontal lane headers (left side) ---- */}
-        {hasHLanes &&
-          hBounds.map(({ lane, offset, size }) => (
-            <LaneHeader
-              key={`hdr-h-${lane.id}`}
-              laneId={lane.id}
-              label={lane.label}
-              color={lane.color}
-              orientation="horizontal"
-              offset={offset}
-              size={size}
-              darkMode={darkMode}
-              fontSize={config.labelFontSize}
-              rotation={config.labelRotation}
-            />
-          ))}
-
-        {/* ---- Vertical lane headers (top side) ---- */}
-        {hasVLanes &&
-          vBounds.map(({ lane, offset, size }) => (
-            <LaneHeader
-              key={`hdr-v-${lane.id}`}
-              laneId={lane.id}
-              label={lane.label}
-              color={lane.color}
-              orientation="vertical"
-              offset={offset}
-              size={size}
-              darkMode={darkMode}
-              fontSize={config.labelFontSize}
-              rotation={config.labelRotation}
-            />
-          ))}
+        {/* Lane headers are rendered in SwimlaneResizeOverlay (above ReactFlow)
+            so they receive mouse events for right-click context menus and drag. */}
 
         {/* ---- Outer border ---- */}
         {(() => {
           const cb = config.containerBorder;
-          const cbColor = cb?.color || (darkMode ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.2)');
+          const cbColor = cb?.color || (darkMode ? 'rgba(132,148,167,0.2)' : 'rgba(100,116,139,0.2)');
           const cbWidth = cb?.width ?? 1;
           const cbStyle = cb?.style ?? 'solid';
           const cbRadius = cb?.radius ?? 4;
@@ -410,6 +391,7 @@ export default React.memo(SwimlaneLayer);
 const SwimlaneResizeOverlayInner: React.FC = () => {
   const config = useSwimlaneStore((s) => s.config);
   const containerOffset = useSwimlaneStore((s) => s.containerOffset);
+  const darkMode = useStyleStore((s) => s.darkMode);
   const viewport = useViewport();
 
   const hLanes = config.horizontal;
@@ -452,39 +434,85 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           height: totalHeight,
         }}
       >
-        {/* Handle at the top edge of the first horizontal lane */}
-        {hasHLanes && hBounds.length > 0 && !hBounds[0].lane.collapsed && (
-          <LaneResizeHandle
-            key={`resize-h-first-${hBounds[0].lane.id}`}
-            orientation="horizontal"
-            laneId={hBounds[0].lane.id}
-            dividerOffset={hBounds[0].offset}
-            span={totalWidth}
-            zoom={viewport.zoom}
-            reverse
-          />
-        )}
-        {/* Horizontal lane resize handles (between lanes) */}
+        {/* ---- Lane headers (rendered here so they sit above ReactFlow pane) ---- */}
+        {hasHLanes &&
+          hBounds.map(({ lane, offset, size }) => {
+            if (lane.hidden) return null;
+            return (
+              <LaneHeader
+                key={`hdr-h-${lane.id}`}
+                laneId={lane.id}
+                label={lane.label}
+                color={lane.color}
+                orientation="horizontal"
+                offset={offset}
+                size={size}
+                darkMode={darkMode}
+                fontSize={config.labelFontSize}
+                rotation={config.labelRotation}
+                showLabel={lane.showLabel}
+              />
+            );
+          })}
+        {hasVLanes &&
+          vBounds.map(({ lane, offset, size }) => {
+            if (lane.hidden) return null;
+            return (
+              <LaneHeader
+                key={`hdr-v-${lane.id}`}
+                laneId={lane.id}
+                label={lane.label}
+                color={lane.color}
+                orientation="vertical"
+                offset={offset}
+                size={size}
+                darkMode={darkMode}
+                fontSize={config.labelFontSize}
+                showLabel={lane.showLabel}
+              />
+            );
+          })}
+
+        {/* Handle at the top edge of the first visible horizontal lane */}
+        {hasHLanes && (() => {
+          const first = hBounds.find((b) => !b.lane.hidden && !b.lane.collapsed);
+          if (!first) return null;
+          return (
+            <LaneResizeHandle
+              key={`resize-h-first-${first.lane.id}`}
+              orientation="horizontal"
+              laneId={first.lane.id}
+              dividerOffset={first.offset}
+              span={totalWidth}
+              zoom={viewport.zoom}
+              reverse
+            />
+          );
+        })()}
+        {/* Horizontal lane resize handles (between visible lanes) */}
         {hasHLanes &&
           hBounds.map(({ lane, offset }, idx) => {
-            if (idx === 0 || lane.collapsed) return null;
-            const prevLane = hBounds[idx - 1];
-            if (prevLane.lane.collapsed) return null;
+            if (idx === 0 || lane.collapsed || lane.hidden) return null;
+            // Find the previous visible lane
+            let prevIdx = idx - 1;
+            while (prevIdx >= 0 && (hBounds[prevIdx].lane.hidden || hBounds[prevIdx].lane.collapsed)) prevIdx--;
+            if (prevIdx < 0) return null;
             return (
               <LaneResizeHandle
                 key={`resize-h-${lane.id}`}
                 orientation="horizontal"
-                laneId={prevLane.lane.id}
+                laneId={hBounds[prevIdx].lane.id}
                 dividerOffset={offset}
                 span={totalWidth}
                 zoom={viewport.zoom}
               />
             );
           })}
-        {/* Handle at the bottom edge of the last horizontal lane */}
-        {hasHLanes && hBounds.length > 0 && (() => {
-          const last = hBounds[hBounds.length - 1];
-          if (last.lane.collapsed) return null;
+        {/* Handle at the bottom edge of the last visible horizontal lane */}
+        {hasHLanes && (() => {
+          const visibleH = hBounds.filter((b) => !b.lane.hidden && !b.lane.collapsed);
+          if (visibleH.length === 0) return null;
+          const last = visibleH[visibleH.length - 1];
           return (
             <LaneResizeHandle
               key={`resize-h-last-${last.lane.id}`}
@@ -497,39 +525,45 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           );
         })()}
 
-        {/* Handle at the left edge of the first vertical lane */}
-        {hasVLanes && vBounds.length > 0 && !vBounds[0].lane.collapsed && (
-          <LaneResizeHandle
-            key={`resize-v-first-${vBounds[0].lane.id}`}
-            orientation="vertical"
-            laneId={vBounds[0].lane.id}
-            dividerOffset={vBounds[0].offset}
-            span={totalHeight}
-            zoom={viewport.zoom}
-            reverse
-          />
-        )}
-        {/* Vertical lane resize handles (between lanes) */}
+        {/* Handle at the left edge of the first visible vertical lane */}
+        {hasVLanes && (() => {
+          const first = vBounds.find((b) => !b.lane.hidden && !b.lane.collapsed);
+          if (!first) return null;
+          return (
+            <LaneResizeHandle
+              key={`resize-v-first-${first.lane.id}`}
+              orientation="vertical"
+              laneId={first.lane.id}
+              dividerOffset={first.offset}
+              span={totalHeight}
+              zoom={viewport.zoom}
+              reverse
+            />
+          );
+        })()}
+        {/* Vertical lane resize handles (between visible lanes) */}
         {hasVLanes &&
           vBounds.map(({ lane, offset }, idx) => {
-            if (idx === 0 || lane.collapsed) return null;
-            const prevLane = vBounds[idx - 1];
-            if (prevLane.lane.collapsed) return null;
+            if (idx === 0 || lane.collapsed || lane.hidden) return null;
+            let prevIdx = idx - 1;
+            while (prevIdx >= 0 && (vBounds[prevIdx].lane.hidden || vBounds[prevIdx].lane.collapsed)) prevIdx--;
+            if (prevIdx < 0) return null;
             return (
               <LaneResizeHandle
                 key={`resize-v-${lane.id}`}
                 orientation="vertical"
-                laneId={prevLane.lane.id}
+                laneId={vBounds[prevIdx].lane.id}
                 dividerOffset={offset}
                 span={totalHeight}
                 zoom={viewport.zoom}
               />
             );
           })}
-        {/* Handle at the right edge of the last vertical lane */}
-        {hasVLanes && vBounds.length > 0 && (() => {
-          const last = vBounds[vBounds.length - 1];
-          if (last.lane.collapsed) return null;
+        {/* Handle at the right edge of the last visible vertical lane */}
+        {hasVLanes && (() => {
+          const visibleV = vBounds.filter((b) => !b.lane.hidden && !b.lane.collapsed);
+          if (visibleV.length === 0) return null;
+          const last = visibleV[visibleV.length - 1];
           return (
             <LaneResizeHandle
               key={`resize-v-last-${last.lane.id}`}

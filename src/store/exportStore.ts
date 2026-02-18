@@ -88,7 +88,7 @@ export interface ExportState {
 
 const DEFAULT_OPTIONS: ExportOptions = {
   png: {
-    scale: 2,
+    scale: 3,
     transparentBackground: false,
     includeWatermark: false,
     padding: 20,

@@ -49,10 +49,14 @@ export interface KeyboardShortcutCallbacks {
   onMirrorHorizontal?: () => void;
   /** Ctrl+Shift+F - mirror vertical (flip) */
   onMirrorVertical?: () => void;
-  /** Ctrl+] - rotate 90° CW */
-  onRotateCW?: () => void;
-  /** Ctrl+[ - rotate 90° CCW */
-  onRotateCCW?: () => void;
+  /** Ctrl+] - bring forward one step */
+  onBringForward?: () => void;
+  /** Ctrl+[ - send backward one step */
+  onSendBackward?: () => void;
+  /** Ctrl+Shift+] - bring to front */
+  onBringToFront?: () => void;
+  /** Ctrl+Shift+[ - send to back */
+  onSendToBack?: () => void;
   /** 1-9 - apply palette colour by index */
   onApplyPaletteColor?: (index: number) => void;
   /** Ctrl+/ - show keyboard shortcuts dialog */
@@ -135,6 +139,27 @@ export function useKeyboardShortcuts(
             e.preventDefault();
             callbacks.onMirrorVertical?.();
             return;
+          case ']':
+          case '}':
+            e.preventDefault();
+            callbacks.onBringToFront?.();
+            return;
+          case '[':
+          case '{':
+            e.preventDefault();
+            callbacks.onSendToBack?.();
+            return;
+        }
+        // Also check e.code for bracket keys (some layouts produce { and } for Shift+[ and Shift+])
+        if (e.code === 'BracketRight') {
+          e.preventDefault();
+          callbacks.onBringToFront?.();
+          return;
+        }
+        if (e.code === 'BracketLeft') {
+          e.preventDefault();
+          callbacks.onSendToBack?.();
+          return;
         }
       }
 
@@ -188,11 +213,11 @@ export function useKeyboardShortcuts(
             return;
           case ']':
             e.preventDefault();
-            callbacks.onRotateCW?.();
+            callbacks.onBringForward?.();
             return;
           case '[':
             e.preventDefault();
-            callbacks.onRotateCCW?.();
+            callbacks.onSendBackward?.();
             return;
           case '/':
           case '?':

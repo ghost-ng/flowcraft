@@ -15,9 +15,10 @@ import { useSettingsStore } from './store/settingsStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useAutoLayout } from './hooks/useAutoLayout';
+import ScreenshotOverlay from './components/Screenshot/ScreenshotOverlay';
 import { log } from './utils/logger';
 import { computeBoundingBox } from './utils/groupUtils';
-import { mirrorHorizontal, mirrorVertical, rotateArrangement } from './utils/transformUtils';
+import { mirrorHorizontal, mirrorVertical } from './utils/transformUtils';
 import type { FlowNode, FlowEdge, FlowNodeData, StatusIndicator } from './store/flowStore';
 import { newPuckId, getStatusIndicators } from './store/flowStore';
 
@@ -204,19 +205,50 @@ const App: React.FC = () => {
     applyPositions(mirrorVertical(nodes));
   }, [takeSnapshotNow, getSelectedFlowNodes, applyPositions]);
 
-  const handleRotateCW = useCallback(() => {
-    takeSnapshotNow();
-    const nodes = getSelectedFlowNodes();
-    if (nodes.length < 2) return;
-    applyPositions(rotateArrangement(nodes, 90));
-  }, [takeSnapshotNow, getSelectedFlowNodes, applyPositions]);
+  // Z-order: keyboard shortcut handlers (operate on all selected nodes)
+  const handleSendBackward = useCallback(() => {
+    const { nodes, selectedNodes, setNodes } = useFlowStore.getState();
+    if (selectedNodes.length === 0) return;
+    const moved = [...nodes];
+    const idSet = new Set(selectedNodes);
+    for (let i = 1; i < moved.length; i++) {
+      if (idSet.has(moved[i].id) && !idSet.has(moved[i - 1].id)) {
+        [moved[i - 1], moved[i]] = [moved[i], moved[i - 1]];
+      }
+    }
+    setNodes(moved);
+  }, []);
 
-  const handleRotateCCW = useCallback(() => {
-    takeSnapshotNow();
-    const nodes = getSelectedFlowNodes();
-    if (nodes.length < 2) return;
-    applyPositions(rotateArrangement(nodes, -90));
-  }, [takeSnapshotNow, getSelectedFlowNodes, applyPositions]);
+  const handleBringForward = useCallback(() => {
+    const { nodes, selectedNodes, setNodes } = useFlowStore.getState();
+    if (selectedNodes.length === 0) return;
+    const moved = [...nodes];
+    const idSet = new Set(selectedNodes);
+    for (let i = moved.length - 2; i >= 0; i--) {
+      if (idSet.has(moved[i].id) && !idSet.has(moved[i + 1].id)) {
+        [moved[i], moved[i + 1]] = [moved[i + 1], moved[i]];
+      }
+    }
+    setNodes(moved);
+  }, []);
+
+  const handleSendToBack = useCallback(() => {
+    const { nodes, selectedNodes, setNodes } = useFlowStore.getState();
+    if (selectedNodes.length === 0) return;
+    const idSet = new Set(selectedNodes);
+    const selected = nodes.filter((n) => idSet.has(n.id));
+    const rest = nodes.filter((n) => !idSet.has(n.id));
+    setNodes([...selected, ...rest]);
+  }, []);
+
+  const handleBringToFront = useCallback(() => {
+    const { nodes, selectedNodes, setNodes } = useFlowStore.getState();
+    if (selectedNodes.length === 0) return;
+    const idSet = new Set(selectedNodes);
+    const selected = nodes.filter((n) => idSet.has(n.id));
+    const rest = nodes.filter((n) => !idSet.has(n.id));
+    setNodes([...rest, ...selected]);
+  }, []);
 
   // Duplicate selected nodes
   const handleDuplicate = useCallback(() => {
@@ -446,8 +478,10 @@ const App: React.FC = () => {
     onLinkGroup: handleLinkGroup,
     onMirrorHorizontal: handleMirrorH,
     onMirrorVertical: handleMirrorV,
-    onRotateCW: handleRotateCW,
-    onRotateCCW: handleRotateCCW,
+    onBringForward: handleBringForward,
+    onSendBackward: handleSendBackward,
+    onBringToFront: handleBringToFront,
+    onSendToBack: handleSendToBack,
     onShowShortcuts: () => setShortcutsDialogOpen(true),
     onDuplicate: handleDuplicate,
     onEditLabel: handleEditLabel,
@@ -516,8 +550,6 @@ const App: React.FC = () => {
 
   const toolbarEl = !presentationMode && (
     <Toolbar
-      onZoomIn={() => viewControlsRef.current?.zoomIn()}
-      onZoomOut={() => viewControlsRef.current?.zoomOut()}
       onFitView={() => viewControlsRef.current?.fitView()}
       onUndo={handleUndo}
       onRedo={handleRedo}
@@ -548,7 +580,7 @@ const App: React.FC = () => {
 
         {/* Center: Canvas */}
         <div className="flex-1 min-w-0 relative">
-          <FlowCanvas onInit={handleCanvasInit} />
+          <FlowCanvas onInit={handleCanvasInit} onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo} />
         </div>
 
         {/* Right: Properties panel - hidden in presentation mode */}
@@ -574,6 +606,9 @@ const App: React.FC = () => {
         open={shortcutsDialogOpen}
         onClose={() => setShortcutsDialogOpen(false)}
       />
+
+      {/* Screenshot region selector overlay */}
+      <ScreenshotOverlay />
 
       {/* Toast notification */}
       <Toast />
@@ -627,19 +662,19 @@ const ConfirmDialog: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-sm mx-4 overflow-hidden">
+      <div className="bg-white dark:bg-dk-panel rounded-xl shadow-2xl border border-gray-200 dark:border-dk-border w-full max-w-sm mx-4 overflow-hidden">
         <div className="px-5 pt-5 pb-3">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-dk-text">
             {confirmDialog.title || 'Confirm'}
           </h3>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-2 text-sm text-gray-600 dark:text-dk-muted">
             {confirmDialog.message}
           </p>
         </div>
-        <div className="flex justify-end gap-2 px-5 py-3 bg-gray-50 dark:bg-slate-900/50">
+        <div className="flex justify-end gap-2 px-5 py-3 bg-gray-50 dark:bg-dk/50">
           <button
             onClick={() => resolveConfirm(false)}
-            className="px-4 py-1.5 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+            className="px-4 py-1.5 rounded-md text-sm font-medium text-gray-600 dark:text-dk-muted hover:bg-gray-200 dark:hover:bg-dk-hover transition-colors"
           >
             {confirmDialog.cancelLabel || 'Cancel'}
           </button>

@@ -6,11 +6,15 @@ import {
   Trash2,
   ArrowDownToLine,
   ArrowUpToLine,
+  ChevronDown,
+  ChevronUp,
+  Layers,
   Shapes,
   Palette,
   Ungroup,
   Circle,
   MousePointerClick,
+  Link,
   AlignLeft,
   AlignCenterHorizontal,
   AlignRight,
@@ -52,6 +56,10 @@ export interface NodeContextMenuProps {
   onSendToBack: () => void;
   /** Bring the node to front (highest z-index) */
   onBringToFront: () => void;
+  /** Send the node backward one step */
+  onSendBackward: () => void;
+  /** Bring the node forward one step */
+  onBringForward: () => void;
   /** Whether the right-clicked node is a group node */
   isGroupNode?: boolean;
   /** Ungroup a group node (release children) */
@@ -60,6 +68,10 @@ export interface NodeContextMenuProps {
   onAlign?: (fn: (nodes: any[]) => Map<string, {x: number; y: number}>) => void;
   /** Whether multiple nodes are currently selected */
   hasMultipleSelected?: boolean;
+  /** Whether the node is part of a link group */
+  isInLinkGroup?: boolean;
+  /** Open the link group editor for this node's group */
+  onEditLinkGroup?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,7 +151,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
       transition-colors duration-75 cursor-pointer
       disabled:opacity-40 disabled:cursor-not-allowed
       ${darkMode
-        ? 'hover:bg-slate-700 text-slate-200'
+        ? 'hover:bg-dk-hover text-dk-text'
         : 'hover:bg-slate-100 text-slate-700'
       }
     `}
@@ -158,7 +170,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 );
 
 const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
-  <div className={`my-1 h-px ${darkMode ? 'bg-slate-700' : 'bg-slate-200'}`} />
+  <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
 );
 
 // ---------------------------------------------------------------------------
@@ -178,14 +190,18 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onChangeColor,
   onSendToBack,
   onBringToFront,
+  onSendBackward,
+  onBringForward,
   isGroupNode,
   onUngroup,
   onAlign,
   hasMultipleSelected,
+  isInLinkGroup,
+  onEditLinkGroup,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | null>(null);
+  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'order' | null>(null);
 
   // Close on click-outside or Escape
   useEffect(() => {
@@ -205,19 +221,25 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     };
   }, [onClose]);
 
-  const adjustedStyle = useCallback((): React.CSSProperties => {
-    const menuW = 200;
-    const menuH = 320;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+  // Compute menu position + whether submenus should flip left
+  const menuW = 200;
+  const subW = 210;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const menuLeft = x + menuW > vw ? vw - menuW - 8 : x;
+  const flipSub = menuLeft + menuW + subW > vw; // flip submenus left if no room on right
 
+  const adjustedStyle = useCallback((): React.CSSProperties => {
+    const menuH = 400;
     return {
       position: 'fixed',
       top: y + menuH > vh ? vh - menuH - 8 : y,
-      left: x + menuW > vw ? vw - menuW - 8 : x,
+      left: menuLeft,
       zIndex: 9999,
     };
-  }, [x, y]);
+  }, [y, vh, menuLeft]);
+
+  const subPos = flipSub ? 'right-full mr-1' : 'left-full ml-1';
 
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const handleSetStatus = useCallback((status: StatusIndicator['status']) => {
@@ -251,7 +273,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
       <div
         className={`
           min-w-[180px] rounded-lg shadow-xl border p-1
-          ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
+          ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
         `}
       >
         <MenuItem
@@ -260,6 +282,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           onClick={() => { onEditLabel(); onClose(); }}
           darkMode={darkMode}
           shortcut="F2"
+          onMouseEnter={() => setSubmenu(null)}
         />
         <MenuItem
           icon={<CopyPlus size={14} />}
@@ -267,12 +290,14 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           onClick={() => { onDuplicate(); onClose(); }}
           darkMode={darkMode}
           shortcut="Ctrl+D"
+          onMouseEnter={() => setSubmenu(null)}
         />
         <MenuItem
           icon={<Copy size={14} />}
           label="Copy"
           onClick={() => { onCopy(); onClose(); }}
           darkMode={darkMode}
+          onMouseEnter={() => setSubmenu(null)}
         />
         <MenuItem
           icon={<Trash2 size={14} />}
@@ -280,49 +305,119 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           onClick={() => { onDelete(); onClose(); }}
           darkMode={darkMode}
           shortcut="Del"
+          onMouseEnter={() => setSubmenu(null)}
         />
 
         <MenuDivider darkMode={darkMode} />
 
-        <MenuItem
-          icon={<Shapes size={14} />}
-          label="Change Shape"
-          onClick={() => setSubmenu(submenu === 'shape' ? null : 'shape')}
-          darkMode={darkMode}
-          hasSubmenu
-          onMouseEnter={() => setSubmenu('shape')}
-        />
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Shapes size={14} />}
+            label="Change Shape"
+            onClick={() => setSubmenu(submenu === 'shape' ? null : 'shape')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('shape')}
+          />
+          {submenu === 'shape' && (
+            <div
+              className={`
+                absolute top-0 ${subPos} min-w-[160px] rounded-lg shadow-xl border p-1
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              {shapeOptions.map(({ value, label }) => (
+                <MenuItem
+                  key={value}
+                  icon={<Shapes size={14} />}
+                  label={label}
+                  onClick={() => { onChangeShape(value); onClose(); }}
+                  darkMode={darkMode}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-        <MenuItem
-          icon={<Circle size={14} />}
-          label="Add Status"
-          onClick={() => setSubmenu(submenu === 'status' ? null : 'status')}
-          darkMode={darkMode}
-          hasSubmenu
-          onMouseEnter={() => setSubmenu('status')}
-        />
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Circle size={14} />}
+            label="Add Status"
+            onClick={() => setSubmenu(submenu === 'status' ? null : 'status')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('status')}
+          />
+          {submenu === 'status' && (
+            <div
+              className={`
+                absolute top-0 ${subPos} min-w-[160px] rounded-lg shadow-xl border p-1
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              {statusOptions.map(({ value, label, color }) => (
+                <button
+                  key={value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetStatus(value);
+                  }}
+                  className={`
+                    flex items-center gap-2.5 w-full px-3 py-1.5 text-left text-sm rounded
+                    transition-colors duration-75 cursor-pointer
+                    ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}
+                  `}
+                >
+                  <span
+                    className="w-3 h-3 rounded-full shrink-0 border"
+                    style={{ backgroundColor: color, borderColor: color === 'transparent' ? '#94a3b8' : color }}
+                  />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {hasMultipleSelected && (
           <>
             <MenuDivider darkMode={darkMode} />
-            <MenuItem
-              icon={<AlignLeft size={14} />}
-              label="Align"
-              onClick={() => setSubmenu(submenu === 'align' ? null : 'align')}
-              darkMode={darkMode}
-              hasSubmenu
-              onMouseEnter={() => setSubmenu('align')}
-            />
+            <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+              <MenuItem
+                icon={<AlignLeft size={14} />}
+                label="Align"
+                onClick={() => setSubmenu(submenu === 'align' ? null : 'align')}
+                darkMode={darkMode}
+                hasSubmenu
+                onMouseEnter={() => setSubmenu('align')}
+              />
+              {submenu === 'align' && onAlign && (
+                <div
+                  className={`
+                    absolute top-0 ${subPos} min-w-[180px] rounded-lg shadow-xl border p-1
+                    ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+                  `}
+                >
+                  <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => { onAlign(alignment.alignLeft); onClose(); }} darkMode={darkMode} />
+                  <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (H)" onClick={() => { onAlign(alignment.alignCenterH); onClose(); }} darkMode={darkMode} />
+                  <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => { onAlign(alignment.alignRight); onClose(); }} darkMode={darkMode} />
+                  <MenuDivider darkMode={darkMode} />
+                  <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => { onAlign(alignment.alignTop); onClose(); }} darkMode={darkMode} />
+                  <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (V)" onClick={() => { onAlign(alignment.alignCenterV); onClose(); }} darkMode={darkMode} />
+                  <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => { onAlign(alignment.alignBottom); onClose(); }} darkMode={darkMode} />
+                </div>
+              )}
+            </div>
           </>
         )}
 
         {/* Inline color swatches */}
-        <div className="px-3 py-1.5">
+        <div className="px-3 py-1.5" onMouseEnter={() => setSubmenu(null)}>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400">
               <Palette size={14} />
             </span>
-            <span className={`text-sm ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>Color</span>
+            <span className={`text-sm ${darkMode ? 'text-dk-text' : 'text-slate-700'}`}>Color</span>
           </div>
           <div className="grid grid-cols-5 gap-1 ml-6">
             {quickColors.map((color) => (
@@ -343,36 +438,143 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
         <MenuDivider darkMode={darkMode} />
 
-        <MenuItem
-          icon={<MousePointerClick size={14} />}
-          label="Select Same Shape"
-          onClick={() => {
-            const { nodes, setSelectedNodes } = useFlowStore.getState();
-            const sourceNode = nodes.find((n) => n.id === nodeId);
-            if (!sourceNode) return;
-            const sameShapeIds = nodes
-              .filter((n) => n.data.shape === sourceNode.data.shape)
-              .map((n) => n.id);
-            setSelectedNodes(sameShapeIds);
-            onClose();
-          }}
-          darkMode={darkMode}
-        />
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<MousePointerClick size={14} />}
+            label="Select"
+            onClick={() => setSubmenu(submenu === 'select' ? null : 'select')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('select')}
+          />
+          {submenu === 'select' && (
+            <div
+              className={`
+                absolute top-0 ${subPos} min-w-[180px] rounded-lg shadow-xl border p-1
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              <MenuItem
+                icon={<Shapes size={14} />}
+                label="Same Shape"
+                onClick={() => {
+                  const { nodes, setSelectedNodes } = useFlowStore.getState();
+                  const sourceNode = nodes.find((n) => n.id === nodeId);
+                  if (!sourceNode) return;
+                  const ids = nodes.filter((n) => n.data.shape === sourceNode.data.shape).map((n) => n.id);
+                  setSelectedNodes(ids);
+                  onClose();
+                }}
+                darkMode={darkMode}
+              />
+              <MenuItem
+                icon={<Palette size={14} />}
+                label="Same Color"
+                onClick={() => {
+                  const { nodes, setSelectedNodes } = useFlowStore.getState();
+                  const sourceNode = nodes.find((n) => n.id === nodeId);
+                  if (!sourceNode) return;
+                  const srcColor = sourceNode.data.color || '#3b82f6';
+                  const ids = nodes.filter((n) => (n.data.color || '#3b82f6') === srcColor).map((n) => n.id);
+                  setSelectedNodes(ids);
+                  onClose();
+                }}
+                darkMode={darkMode}
+              />
+              <MenuItem
+                icon={<Circle size={14} />}
+                label="Same Outline"
+                onClick={() => {
+                  const { nodes, setSelectedNodes } = useFlowStore.getState();
+                  const sourceNode = nodes.find((n) => n.id === nodeId);
+                  if (!sourceNode) return;
+                  const srcBorder = sourceNode.data.borderColor || '';
+                  const srcStyle = sourceNode.data.borderStyle || 'solid';
+                  const ids = nodes.filter((n) => {
+                    return (n.data.borderColor || '') === srcBorder && (n.data.borderStyle || 'solid') === srcStyle;
+                  }).map((n) => n.id);
+                  setSelectedNodes(ids);
+                  onClose();
+                }}
+                darkMode={darkMode}
+              />
+              <MenuDivider darkMode={darkMode} />
+              <MenuItem
+                icon={<MousePointerClick size={14} />}
+                label="All Nodes"
+                onClick={() => {
+                  const { nodes, setSelectedNodes } = useFlowStore.getState();
+                  setSelectedNodes(nodes.map((n) => n.id));
+                  onClose();
+                }}
+                darkMode={darkMode}
+              />
+            </div>
+          )}
+        </div>
 
         <MenuDivider darkMode={darkMode} />
 
-        <MenuItem
-          icon={<ArrowDownToLine size={14} />}
-          label="Send to Back"
-          onClick={() => { onSendToBack(); onClose(); }}
-          darkMode={darkMode}
-        />
-        <MenuItem
-          icon={<ArrowUpToLine size={14} />}
-          label="Bring to Front"
-          onClick={() => { onBringToFront(); onClose(); }}
-          darkMode={darkMode}
-        />
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Layers size={14} />}
+            label="Order"
+            onClick={() => setSubmenu(submenu === 'order' ? null : 'order')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('order')}
+          />
+          {submenu === 'order' && (
+            <div
+              className={`
+                absolute top-0 ${subPos} min-w-[200px] rounded-lg shadow-xl border p-1
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              <MenuItem
+                icon={<ChevronUp size={14} />}
+                label="Forward"
+                shortcut="Ctrl+]"
+                onClick={() => { onBringForward(); }}
+                darkMode={darkMode}
+              />
+              <MenuItem
+                icon={<ChevronDown size={14} />}
+                label="Backward"
+                shortcut="Ctrl+["
+                onClick={() => { onSendBackward(); }}
+                darkMode={darkMode}
+              />
+              <MenuDivider darkMode={darkMode} />
+              <MenuItem
+                icon={<ArrowUpToLine size={14} />}
+                label="Front"
+                shortcut="Ctrl+Shift+]"
+                onClick={() => { onBringToFront(); }}
+                darkMode={darkMode}
+              />
+              <MenuItem
+                icon={<ArrowDownToLine size={14} />}
+                label="Back"
+                shortcut="Ctrl+Shift+["
+                onClick={() => { onSendToBack(); }}
+                darkMode={darkMode}
+              />
+            </div>
+          )}
+        </div>
+
+        {isInLinkGroup && onEditLinkGroup && (
+          <>
+            <MenuDivider darkMode={darkMode} />
+            <MenuItem
+              icon={<Link size={14} />}
+              label="Edit Link Group"
+              onClick={() => { onEditLinkGroup(); onClose(); }}
+              darkMode={darkMode}
+            />
+          </>
+        )}
 
         {isGroupNode && onUngroup && (
           <>
@@ -386,90 +588,6 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           </>
         )}
       </div>
-
-      {/* Shape submenu */}
-      {submenu === 'shape' && (
-        <div
-          className={`
-            absolute top-0 left-full ml-1 min-w-[160px] rounded-lg shadow-xl border p-1
-            ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
-          `}
-        >
-          {shapeOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChangeShape(opt.value);
-                onClose();
-              }}
-              className={`
-                flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
-                transition-colors duration-75 cursor-pointer
-                ${darkMode
-                  ? 'hover:bg-slate-700 text-slate-200'
-                  : 'hover:bg-slate-100 text-slate-700'
-                }
-              `}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {submenu === 'status' && (
-        <div
-          className={`
-            absolute top-0 left-full ml-1 min-w-[160px] rounded-lg shadow-xl border p-1
-            ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
-          `}
-        >
-          {statusOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSetStatus(opt.value);
-              }}
-              className={`
-                flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
-                transition-colors duration-75 cursor-pointer
-                ${darkMode
-                  ? 'hover:bg-slate-700 text-slate-200'
-                  : 'hover:bg-slate-100 text-slate-700'
-                }
-              `}
-            >
-              {opt.color !== 'transparent' && (
-                <span
-                  className="w-3 h-3 rounded-full shrink-0 border border-white/50"
-                  style={{ backgroundColor: opt.color }}
-                />
-              )}
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {submenu === 'align' && onAlign && (
-        <div
-          className={`
-            absolute top-0 left-full ml-1 min-w-[180px] rounded-lg shadow-xl border p-1
-            ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}
-          `}
-        >
-          <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => { onAlign(alignment.alignLeft); onClose(); }} darkMode={darkMode} />
-          <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (H)" onClick={() => { onAlign(alignment.alignCenterH); onClose(); }} darkMode={darkMode} />
-          <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => { onAlign(alignment.alignRight); onClose(); }} darkMode={darkMode} />
-          <MenuDivider darkMode={darkMode} />
-          <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => { onAlign(alignment.alignTop); onClose(); }} darkMode={darkMode} />
-          <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (V)" onClick={() => { onAlign(alignment.alignCenterV); onClose(); }} darkMode={darkMode} />
-          <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => { onAlign(alignment.alignBottom); onClose(); }} darkMode={darkMode} />
-        </div>
-      )}
-
     </div>
   );
 };
