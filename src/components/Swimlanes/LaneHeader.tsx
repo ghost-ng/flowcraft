@@ -416,7 +416,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         style={style}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
-        data-tooltip="Double-click to edit · Right-click for options"
+        title="Double-click to edit · Right-click for options"
         data-lane-header={laneId}
       >
         {/* Color indicator */}

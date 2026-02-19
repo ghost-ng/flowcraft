@@ -9,7 +9,7 @@ build:
   stage: build
   image: node:${NODE_VERSION}
   script:
-    - npm ci
+    - tar xzf node_modules.tar.gz
     - npm run build
   artifacts:
     paths:
@@ -20,7 +20,7 @@ pages:
   stage: deploy
   image: node:${NODE_VERSION}
   script:
-    - npm ci
+    - tar xzf node_modules.tar.gz
     - npm run build
     # GitLab Pages requires output in 'public/' directory
     - rm -rf public
@@ -31,8 +31,12 @@ pages:
   only:
     - main
 
-# NOTE: vite.config.ts currently has base: '/flowcraft/' for GitHub Pages.
-# For GitLab Pages, if this project is in a repository root at https://gitlab.com/username/flowcraft/,
-# the base path should remain '/flowcraft/'. However, if deployed to a user/group Pages site
-# (like https://username.gitlab.io/), adjust vite.config.ts to base: '/'.
-# Update as needed based on your GitLab Pages deployment URL.
+# DEPENDENCY MANAGEMENT:
+# node_modules.tar.gz is committed to the repo so CI doesn't need registry access.
+# To update dependencies:
+#   1. Edit package.json locally
+#   2. Run: bash scripts/bundle-deps.sh
+#   3. Commit the updated node_modules.tar.gz
+#
+# NOTE: vite.config.ts has base: '/flowcraft/' for GitHub Pages.
+# For GitLab Pages, adjust the base path in vite.config.ts to match your deployment URL.
