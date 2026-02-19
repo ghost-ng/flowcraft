@@ -120,6 +120,7 @@ const DependencyEdge: React.FC<EdgeProps> = ({
   void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
   const ev = useEdgeVisuals(id);
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const selectionThickness = useUIStore((s) => s.selectionThickness);
 
   const depType: DependencyType = (ev.dependencyType as DependencyType) ?? 'depends-on';
   const depStyle = DEPENDENCY_STYLES[depType];
@@ -176,7 +177,7 @@ const DependencyEdge: React.FC<EdgeProps> = ({
           d={edgePath}
           fill="none"
           stroke={selectionColor}
-          strokeWidth={strokeWidth + 3}
+          strokeWidth={strokeWidth + selectionThickness + 1}
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.25}

@@ -62,6 +62,7 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
   // Read visual properties from Zustand via useShallow for reliable re-renders
   const ev = useEdgeVisuals(id);
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const selectionThickness = useUIStore((s) => s.selectionThickness);
 
   // Resolve visual properties — read from store via useEdgeVisuals (reliable re-renders)
   const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? DEFAULT_STROKE;
@@ -131,7 +132,7 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
           d={edgePath}
           fill="none"
           stroke={selectionColor}
-          strokeWidth={strokeWidth + 3}
+          strokeWidth={strokeWidth + selectionThickness + 1}
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.25}

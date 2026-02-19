@@ -35,10 +35,19 @@ pages:
 
 # DEPENDENCY MANAGEMENT:
 # node_modules.tar.gz is committed to the repo so CI doesn't need registry access.
+# The tarball includes both Windows and Linux native binaries (rollup, esbuild,
+# lightningcss, tailwindcss/oxide) so it works cross-platform.
+#
 # To update dependencies:
 #   1. Edit package.json locally
-#   2. Run: bash scripts/bundle-deps.sh
-#   3. Commit the updated node_modules.tar.gz
+#   2. Run: bash scripts/bundle-deps.sh   (installs deps + Linux native binaries)
+#   3. Commit the updated node_modules.tar.gz alongside package.json/package-lock.json
 #
-# NOTE: vite.config.ts has base: '/flowcraft/' for GitHub Pages.
-# GitLab Pages uses --base=/ to override the base path at build time.
+# PERMISSIONS:
+# Windows tarballs don't preserve Unix executable bits. The chmod line above
+# restores +x on native binaries (esbuild, rollup) after extraction.
+#
+# BASE PATH:
+# vite.config.ts has base: '/flowcraft/' for GitHub Pages.
+# GitLab Pages uses --base=/ to override the base path at build time,
+# so assets are served from the root (e.g. https://yoursite.gitlab.io/).

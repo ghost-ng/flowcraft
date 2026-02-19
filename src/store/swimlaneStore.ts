@@ -46,6 +46,16 @@ export interface SwimlaneConfig {
   dividerStyle?: DividerConfig;
   labelFontSize?: number;
   labelRotation?: number;
+  /** Width of horizontal lane headers in px (default 48) */
+  hHeaderWidth?: number;
+  /** Height of vertical lane headers in px (default 32) */
+  vHeaderHeight?: number;
+  /** Container title font size in px (default 13) */
+  titleFontSize?: number;
+  /** Container title color (default auto based on dark mode) */
+  titleColor?: string;
+  /** Container title font family */
+  titleFontFamily?: string;
 }
 
 export interface SwimlaneState {
@@ -71,7 +81,8 @@ export interface SwimlaneState {
 
   updateContainerBorder: (patch: Partial<BorderConfig>) => void;
   updateDividerStyle: (patch: Partial<DividerConfig>) => void;
-  updateLabelConfig: (patch: { labelFontSize?: number; labelRotation?: number }) => void;
+  updateLabelConfig: (patch: { labelFontSize?: number; labelRotation?: number; hHeaderWidth?: number; vHeaderHeight?: number }) => void;
+  updateTitleConfig: (patch: { titleFontSize?: number; titleColor?: string; titleFontFamily?: string }) => void;
 
   setIsCreating: (creating: boolean) => void;
   setEditingLaneId: (laneId: string | null) => void;
@@ -228,6 +239,26 @@ export const useSwimlaneStore = create<SwimlaneState>()(
         }
         if (patch.labelRotation !== undefined) {
           state.config.labelRotation = patch.labelRotation;
+        }
+        if (patch.hHeaderWidth !== undefined) {
+          state.config.hHeaderWidth = patch.hHeaderWidth;
+        }
+        if (patch.vHeaderHeight !== undefined) {
+          state.config.vHeaderHeight = patch.vHeaderHeight;
+        }
+      });
+    },
+
+    updateTitleConfig: (patch) => {
+      set((state) => {
+        if (patch.titleFontSize !== undefined) {
+          state.config.titleFontSize = patch.titleFontSize;
+        }
+        if (patch.titleColor !== undefined) {
+          state.config.titleColor = patch.titleColor;
+        }
+        if (patch.titleFontFamily !== undefined) {
+          state.config.titleFontFamily = patch.titleFontFamily;
         }
       });
     },

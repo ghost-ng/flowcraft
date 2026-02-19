@@ -491,6 +491,7 @@ const App: React.FC = () => {
     onApplyPaletteColor: handleApplyPaletteColor,
     onCopyStyle: handleCopyStyle,
     onPasteStyle: handlePasteStyle,
+    onStraightenEdges: () => useFlowStore.getState().straightenEdges(),
   }, !presentationMode);
 
   // Global format painter cursor – inject a <style> with !important so it

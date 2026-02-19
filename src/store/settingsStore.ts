@@ -226,7 +226,7 @@ export const useSettingsStore = create<SettingsState>()(
       autoSave: { ...DEFAULT_AUTOSAVE },
       accessibility: { ...DEFAULT_ACCESSIBILITY },
       debugMode: false,
-      toolbarGroupOrder: ['file', 'edit', 'view', 'layout', 'transform', 'panels', 'export'],
+      toolbarGroupOrder: ['file', 'arrange', 'edit', 'view', 'panels', 'export'],
       toolbarLocked: true,
       toolbarOrientation: 'horizontal' as ToolbarOrientation,
 

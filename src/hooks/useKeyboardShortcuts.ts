@@ -59,6 +59,8 @@ export interface KeyboardShortcutCallbacks {
   onSendToBack?: () => void;
   /** 1-9 - apply palette colour by index */
   onApplyPaletteColor?: (index: number) => void;
+  /** Ctrl+Shift+S - straighten all edges */
+  onStraightenEdges?: () => void;
   /** Ctrl+/ - show keyboard shortcuts dialog */
   onShowShortcuts?: () => void;
 }
@@ -138,6 +140,11 @@ export function useKeyboardShortcuts(
           case 'f':
             e.preventDefault();
             callbacks.onMirrorVertical?.();
+            return;
+          case 'S':
+          case 's':
+            e.preventDefault();
+            callbacks.onStraightenEdges?.();
             return;
           case ']':
           case '}':

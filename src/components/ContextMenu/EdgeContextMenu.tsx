@@ -198,8 +198,9 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
                 absolute top-0 left-full ml-1 rounded-lg shadow-xl border p-3
                 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
               `}
+              style={{ minWidth: 170 }}
             >
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-5 gap-2">
                 {quickColors.map((color) => (
                   <button
                     key={color}

@@ -13,8 +13,8 @@ import LaneHeader from './LaneHeader';
 // Constants
 // ---------------------------------------------------------------------------
 
-const H_HEADER_WIDTH = 48; // px - width of horizontal lane headers (left column)
-const V_HEADER_HEIGHT = 32; // px - height of vertical lane headers (top row)
+const DEFAULT_H_HEADER_WIDTH = 48; // px - default width of horizontal lane headers (left column)
+const DEFAULT_V_HEADER_HEIGHT = 32; // px - default height of vertical lane headers (top row)
 const TITLE_HEIGHT = 28; // px - container title bar height
 const MIN_LANE_SIZE = 60; // px - minimum lane size when resizing
 const RESIZE_HIT_AREA = 8; // px - width of the resize grab zone
@@ -172,6 +172,9 @@ const SwimlaneLayer: React.FC = () => {
   const hasHLanes = hLanes.length > 0;
   const hasVLanes = vLanes.length > 0;
 
+  const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
+  const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
+
   // Determine the active rendering mode
   const isMatrix = hasHLanes && hasVLanes;
 
@@ -180,13 +183,13 @@ const SwimlaneLayer: React.FC = () => {
     if (!hasHLanes) return [];
     const headerOffset = hasVLanes ? V_HEADER_HEIGHT : 0;
     return computeBounds(hLanes, 'horizontal', headerOffset);
-  }, [hLanes, hasVLanes, hasHLanes]);
+  }, [hLanes, hasVLanes, hasHLanes, V_HEADER_HEIGHT]);
 
   const vBounds = useMemo(() => {
     if (!hasVLanes) return [];
     const headerOffset = hasHLanes ? H_HEADER_WIDTH : 0;
     return computeBounds(vLanes, 'vertical', headerOffset);
-  }, [vLanes, hasHLanes, hasVLanes]);
+  }, [vLanes, hasHLanes, hasVLanes, H_HEADER_WIDTH]);
 
   // If no lanes at all, render nothing
   if (!hasHLanes && !hasVLanes) return null;
@@ -215,26 +218,31 @@ const SwimlaneLayer: React.FC = () => {
         }}
       >
         {/* ---- Container title ---- */}
-        {config.containerTitle && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -TITLE_HEIGHT,
-              left: hasHLanes ? H_HEADER_WIDTH : 0,
-              height: TITLE_HEIGHT,
-              display: 'flex',
-              alignItems: 'center',
-              paddingLeft: 8,
-              fontSize: 13,
-              fontWeight: 700,
-              color: darkMode ? '#c8d1dc' : '#0f172a',
-              whiteSpace: 'nowrap',
-              userSelect: 'none',
-            }}
-          >
-            {config.containerTitle}
-          </div>
-        )}
+        {config.containerTitle && (() => {
+          const titleFs = config.titleFontSize ?? 13;
+          const titleH = Math.max(TITLE_HEIGHT, titleFs + 14);
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                top: -titleH,
+                left: hasHLanes ? H_HEADER_WIDTH : 0,
+                height: titleH,
+                display: 'flex',
+                alignItems: 'center',
+                paddingLeft: 8,
+                fontSize: titleFs,
+                fontWeight: 700,
+                fontFamily: config.titleFontFamily || undefined,
+                color: config.titleColor || (darkMode ? '#c8d1dc' : '#0f172a'),
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+              }}
+            >
+              {config.containerTitle}
+            </div>
+          );
+        })()}
 
         {/* ---- Horizontal lane backgrounds and dividers ---- */}
         {hasHLanes &&
@@ -399,17 +407,20 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
   const hasHLanes = hLanes.length > 0;
   const hasVLanes = vLanes.length > 0;
 
+  const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
+  const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
+
   const hBounds = useMemo(() => {
     if (!hasHLanes) return [];
     const headerOffset = hasVLanes ? V_HEADER_HEIGHT : 0;
     return computeBounds(hLanes, 'horizontal', headerOffset);
-  }, [hLanes, hasVLanes, hasHLanes]);
+  }, [hLanes, hasVLanes, hasHLanes, V_HEADER_HEIGHT]);
 
   const vBounds = useMemo(() => {
     if (!hasVLanes) return [];
     const headerOffset = hasHLanes ? H_HEADER_WIDTH : 0;
     return computeBounds(vLanes, 'vertical', headerOffset);
-  }, [vLanes, hasHLanes, hasVLanes]);
+  }, [vLanes, hasHLanes, hasVLanes, H_HEADER_WIDTH]);
 
   if (!hasHLanes && !hasVLanes) return null;
 
@@ -452,6 +463,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
                 rotation={config.labelRotation}
                 showLabel={lane.showLabel}
                 showColor={lane.showColor}
+                headerSize={H_HEADER_WIDTH}
               />
             );
           })}
@@ -471,6 +483,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
                 fontSize={config.labelFontSize}
                 showLabel={lane.showLabel}
                 showColor={lane.showColor}
+                headerSize={V_HEADER_HEIGHT}
               />
             );
           })}

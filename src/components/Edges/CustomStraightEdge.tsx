@@ -33,6 +33,7 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
   void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
   const ev = useEdgeVisuals(id);
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const selectionThickness = useUIStore((s) => s.selectionThickness);
   const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? DEFAULT_STROKE;
   const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? DEFAULT_STROKE_WIDTH;
   const strokeDasharray = ev.strokeDasharray ?? ev.overrideDash ?? ev.styleDash ?? undefined;
@@ -91,7 +92,7 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
           d={edgePath}
           fill="none"
           stroke={selectionColor}
-          strokeWidth={strokeWidth + 3}
+          strokeWidth={strokeWidth + selectionThickness + 1}
           strokeLinecap="round"
           opacity={0.25}
           className="pointer-events-none"

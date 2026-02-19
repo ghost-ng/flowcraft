@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { List, Plus, Trash2, Eye, EyeOff, X, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useLegendStore, type LegendItemKind, type LegendItem } from '../../store/legendStore';
 import { useStyleStore } from '../../store/styleStore';
+import { useUIStore } from '../../store/uiStore';
 import { generateId } from '../../utils/idGenerator';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -77,6 +78,7 @@ const LegendButton: React.FC = () => {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const darkMode = useStyleStore((s) => s.darkMode);
+  const rulerVisible = useUIStore((s) => s.rulerVisible);
 
   // All selectors target nodeLegend only
   const legendConfig = useLegendStore((s) => s.nodeLegend);
@@ -139,7 +141,7 @@ const LegendButton: React.FC = () => {
     }`;
 
   return (
-    <div className="absolute top-3 right-3 z-10" ref={popoverRef}>
+    <div className="absolute right-3 z-10" style={{ top: rulerVisible ? 'calc(0.75rem + 24px)' : '0.75rem' }} ref={popoverRef}>
       {/* Toggle button row */}
       <div className="flex gap-1">
         {/* Visibility toggle */}

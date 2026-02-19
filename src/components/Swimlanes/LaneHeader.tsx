@@ -35,6 +35,8 @@ interface LaneHeaderProps {
   showLabel?: boolean;
   /** Whether the color indicator is visible (default true) */
   showColor?: boolean;
+  /** Header width for horizontal lanes / height for vertical lanes (from store) */
+  headerSize?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -210,12 +212,14 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   rotation: rotationProp,
   showLabel: showLabelProp,
   showColor: showColorProp,
+  headerSize: headerSizeProp,
 }) => {
   const labelVisible = showLabelProp ?? true;
   const colorVisible = showColorProp ?? true;
   const fs = fontSizeProp ?? 10;
   const rotDeg = rotationProp ?? 0;
   const isHorizontal = orientation === 'horizontal';
+  const hdrSize = headerSizeProp ?? (isHorizontal ? 48 : 32);
 
   // For horizontal lanes: rotation=-90 = vertical text via writingMode.
   // rotation=0 (default) = horizontal text. Other angles use CSS rotate.
@@ -313,7 +317,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         position: 'absolute',
         left: 0,
         top: offset,
-        width: 48 + rotBuffer,
+        width: hdrSize + rotBuffer,
         height: size,
         display: 'flex',
         flexDirection: 'column',
@@ -331,7 +335,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         left: offset,
         top: 0,
         width: size,
-        height: 32 + rotBuffer,
+        height: hdrSize + rotBuffer,
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
@@ -357,7 +361,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'normal',
-        maxWidth: 32,
+        maxWidth: hdrSize - 16,
         maxHeight: size - 20,
         lineHeight: 1.2,
         textAlign: 'center',
@@ -383,7 +387,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
 
   const editStyle: React.CSSProperties = useWritingMode
     ? {
-        width: 36,
+        width: hdrSize - 12,
         fontSize: fs,
         fontWeight: 600,
         textAlign: 'center' as const,
@@ -397,7 +401,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         textOrientation: 'mixed',
       }
     : {
-        width: isHorizontal ? 36 : Math.max(60, size - 60),
+        width: isHorizontal ? hdrSize - 12 : Math.max(60, size - 60),
         fontSize: fs,
         fontWeight: 600,
         textAlign: 'center' as const,

@@ -500,6 +500,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const isEditingNode = useUIStore((s) => s.isEditingNode);
   const setIsEditingNode = useUIStore((s) => s.setIsEditingNode);
   const selectionColor = useUIStore((s) => s.selectionColor);
+  const selectionThickness = useUIStore((s) => s.selectionThickness);
   const linkGroupEditorId = useUIStore((s) => s.linkGroupEditorId);
   const presentationMode = useUIStore((s) => s.presentationMode);
   const defaultFontFamily = useSettingsStore((s) => s.nodeDefaults.fontFamily);
@@ -631,7 +632,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     ? `0 0 0 ${borderW}px ${borderColor}`
     : '';
   const selectionShadow = isSelected
-    ? `0 0 0 2.5px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
+    ? `0 0 0 ${selectionThickness + 0.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
     : '';
   const isInEditedGroup = !!(linkGroupEditorId && nodeData.linkGroupId === linkGroupEditorId);
   const linkGroupShadow = isInEditedGroup && !isSelected
@@ -650,6 +651,9 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     overflow: 'visible',
   };
 
+  // Visual rotation angle (CSS transform on inner shape — keeps handles in original positions)
+  const rotation = nodeData.rotation || 0;
+
   // Inner shape: has the visual styling, clips text overflow
   const nodeStyle: React.CSSProperties = {
     width: '100%',
@@ -667,12 +671,14 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     fontWeight: nodeData.fontWeight || 500,
     fontFamily: nodeData.fontFamily || defaultFontFamily || "'Inter', sans-serif",
     boxShadow: combinedShadow,
-    transition: 'box-shadow 0.15s',
+    transition: 'box-shadow 0.15s, transform 0.2s',
     overflow: noBox ? 'visible' : 'hidden',
     position: 'relative',
     ...(noBox ? {} : shapeStyles[shape]),
     // User-set border radius overrides the shape default
     ...(userBorderRadius !== undefined && !noBox ? { borderRadius: userBorderRadius } : {}),
+    // Apply visual rotation
+    ...(rotation !== 0 ? { transform: `rotate(${rotation}deg)` } : {}),
   };
 
   const labelStyle: React.CSSProperties = isDiamond
@@ -689,8 +695,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         isVisible={!!isSelected}
         minWidth={40}
         minHeight={30}
-        lineStyle={{ borderColor: selectionColor, borderWidth: 1 }}
-        handleStyle={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'white', border: `1.5px solid ${selectionColor}` }}
+        lineStyle={{ borderColor: selectionColor, borderWidth: selectionThickness * 0.5 }}
+        handleStyle={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'white', border: `${Math.max(1, selectionThickness * 0.75)}px solid ${selectionColor}` }}
         onResize={(_event, params) => {
           updateNodeData(id, { width: params.width, height: params.height });
           // Propagate resize to all other selected nodes
@@ -734,11 +740,15 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         });
       })()}
 
-      {/* Connection handles */}
-      <Handle type="target" position={Position.Top} id="top" />
-      <Handle type="source" position={Position.Bottom} id="bottom" />
-      <Handle type="target" position={Position.Left} id="left" />
-      <Handle type="source" position={Position.Right} id="right" />
+      {/* Connection handles — each position has both source + target for bidirectional edges */}
+      <Handle type="target" position={Position.Top} id="top" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Top} id="top" style={{ left: '50%', opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Bottom} id="bottom" style={{ left: '50%', opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="left" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="right" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
 
       {/* Inner shape div */}
       <div style={nodeStyle}>
@@ -755,7 +765,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <ArrowSvg
             fill={fillColor}
             stroke={isSelected ? selectionColor : borderColor}
-            strokeW={isSelected ? Math.max(borderW, 2) : borderColor !== 'transparent' ? borderW : 0}
+            strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
           />
         </svg>
       )}
@@ -772,7 +782,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <ShapeSvg
             fill={fillColor}
             stroke={isSelected ? selectionColor : borderColor}
-            strokeW={isSelected ? Math.max(borderW, 2) : borderColor !== 'transparent' ? borderW : 0}
+            strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
           />
         </svg>
       )}

@@ -52,6 +52,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       { keys: 'Ctrl+Shift+G', description: 'Link group' },
       { keys: 'Ctrl+Shift+H', description: 'Mirror horizontal' },
       { keys: 'Ctrl+Shift+F', description: 'Mirror vertical' },
+      { keys: 'Ctrl+Shift+S', description: 'Straighten all edges' },
     ],
   },
   {
@@ -59,6 +60,9 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
     shortcuts: [
       { keys: 'Ctrl+Shift+C', description: 'Copy style' },
       { keys: 'Ctrl+Shift+V', description: 'Paste style' },
+      { keys: 'Ctrl+C', description: 'Copy selected' },
+      { keys: 'Ctrl+V', description: 'Paste' },
+      { keys: 'Ctrl+/', description: 'Show shortcuts' },
     ],
   },
 ];

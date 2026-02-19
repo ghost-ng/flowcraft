@@ -67,9 +67,11 @@ export interface UIState {
     labelColor?: string;
   } | null;
 
-  // ---- selection color -----------------------------------------
+  // ---- selection color / thickness -----------------------------------------
   /** Highlight color for selected nodes, edges, pucks, resize handles */
   selectionColor: string;
+  /** Selection outline thickness in px (default 2) */
+  selectionThickness: number;
 
   // ---- presentation mode --------------------------------------
   presentationMode: boolean;
@@ -152,6 +154,7 @@ export interface UIState {
   clearFormatPainter: () => void;
 
   setSelectionColor: (color: string) => void;
+  setSelectionThickness: (thickness: number) => void;
 
   setPresentationMode: (on: boolean) => void;
   setPresentationTool: (tool: UIState['presentationTool']) => void;
@@ -206,6 +209,7 @@ export const useUIStore = create<UIState>()((set) => ({
   formatPainterEdgeStyle: null,
 
   selectionColor: '#d946ef', // magenta-500
+  selectionThickness: 2,
 
   presentationMode: false,
   presentationTool: 'pointer',
@@ -288,6 +292,7 @@ export const useUIStore = create<UIState>()((set) => ({
   }),
 
   setSelectionColor: (color) => set({ selectionColor: color }),
+  setSelectionThickness: (thickness) => set({ selectionThickness: thickness }),
 
   setPresentationMode: (on) => set({ presentationMode: on, presentationTool: 'pointer' }),
   setPresentationTool: (tool) => set({ presentationTool: tool }),

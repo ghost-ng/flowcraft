@@ -23,6 +23,7 @@ import { useSwimlaneStore } from '../../store/swimlaneStore';
 import GenericShapeNode from './GenericShapeNode';
 import GroupNode from './GroupNode';
 import Ruler, { RulerCorner } from './Ruler';
+import StatusBar from './StatusBar';
 import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
@@ -93,9 +94,12 @@ function assignSwimlaneToNode(
   const localX = position.x - containerOffset.x;
   const localY = position.y - containerOffset.y;
 
+  const hHeaderW = config.hHeaderWidth ?? 48;
+  const vHeaderH = config.vHeaderHeight ?? 32;
+
   let assignedLaneId: string | null = null;
   if (hLanes.length > 0) {
-    const headerOffset = vLanes.length > 0 ? 32 : 0;
+    const headerOffset = vLanes.length > 0 ? vHeaderH : 0;
     const laneDefs: LaneDefinition[] = hLanes.map((l) => ({
       id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
     }));
@@ -103,7 +107,7 @@ function assignSwimlaneToNode(
     assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
   }
   if (!assignedLaneId && vLanes.length > 0) {
-    const headerOffset = hLanes.length > 0 ? 40 : 0;
+    const headerOffset = hLanes.length > 0 ? hHeaderW : 0;
     const laneDefs: LaneDefinition[] = vLanes.map((l) => ({
       id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
     }));
@@ -1046,7 +1050,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         elevateNodesOnSelect={false}
         fitView
         attributionPosition="bottom-left"
-        className={darkMode ? 'dark' : ''}
+        className={`${darkMode ? 'dark' : ''}${rulerVisible ? ' ruler-active' : ''}`}
         defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       >
         {gridVisible && (
@@ -1078,13 +1082,14 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
             showFitView
             showInteractive={false}
             position="top-left"
+            style={rulerVisible ? { left: 28, top: 28 } : undefined}
           />
         )}
       </ReactFlow>
 
       {/* Floating undo/redo buttons */}
       {!presentationMode && onUndo && onRedo && (
-        <div className="absolute top-28 left-2 z-10 flex gap-1">
+        <div className="absolute z-10 flex gap-1" style={{ top: rulerVisible ? 'calc(7rem + 24px)' : '7rem', left: rulerVisible ? 'calc(0.5rem + 24px)' : '0.5rem' }}>
           <button
             onClick={onUndo}
             disabled={!canUndo}
@@ -1212,6 +1217,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
       {/* Presentation mode overlay (inside ReactFlowProvider for viewport access) */}
       <PresentationOverlay />
+
+      {/* Status bar at bottom of canvas */}
+      {!presentationMode && <StatusBar />}
     </div>
   );
 };

@@ -1294,7 +1294,6 @@ export function exportAsJson(options: JsonExportOptions): void {
     exportData.styles = {
       activeStyleId: styleState.activeStyleId,
       activePaletteId: styleState.activePaletteId,
-      darkMode: styleState.darkMode,
     };
   }
 
@@ -1325,6 +1324,12 @@ export function exportAsJson(options: JsonExportOptions): void {
     }
     if (typeof swimlaneState.config.labelRotation === 'number') {
       swimlaneExport.labelRotation = swimlaneState.config.labelRotation;
+    }
+    if (typeof swimlaneState.config.hHeaderWidth === 'number') {
+      swimlaneExport.hHeaderWidth = swimlaneState.config.hHeaderWidth;
+    }
+    if (typeof swimlaneState.config.vHeaderHeight === 'number') {
+      swimlaneExport.vHeaderHeight = swimlaneState.config.vHeaderHeight;
     }
     exportData.swimlanes = swimlaneExport;
   }
@@ -1516,7 +1521,7 @@ export function importFromJson(
 
     // Optional number fields
     for (const key of ['fontSize', 'fontWeight', 'iconBorderWidth', 'iconSize',
-      'width', 'height', 'opacity', 'borderWidth', 'borderRadius'] as const) {
+      'width', 'height', 'opacity', 'borderWidth', 'borderRadius', 'rotation'] as const) {
       if (typeof rawData[key] === 'number') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
       }
@@ -1676,7 +1681,7 @@ export function importFromJson(
     const s = data.styles as Record<string, unknown>;
     if (typeof s.activeStyleId === 'string') useStyleStore.getState().setStyle(s.activeStyleId);
     if (typeof s.activePaletteId === 'string') useStyleStore.getState().setPalette(s.activePaletteId);
-    if (typeof s.darkMode === 'boolean') useStyleStore.getState().setDarkMode(s.darkMode);
+    // darkMode is on pause — ignore it during import to prevent UI from switching
   }
 
   // Swimlanes — clear existing, then apply imported (or leave empty if none)
@@ -1767,6 +1772,12 @@ export function importFromJson(
       if (typeof sw.labelRotation === 'number') {
         store.updateLabelConfig({ labelRotation: sw.labelRotation });
       }
+      if (typeof sw.hHeaderWidth === 'number') {
+        store.updateLabelConfig({ hHeaderWidth: sw.hHeaderWidth });
+      }
+      if (typeof sw.vHeaderHeight === 'number') {
+        store.updateLabelConfig({ vHeaderHeight: sw.vHeaderHeight });
+      }
     }
   }
 
@@ -1828,9 +1839,21 @@ export function importFromJson(
       }
       if (lg.style && typeof lg.style === 'object') {
         const s = lg.style as Record<string, unknown>;
+        // Always import legends in light-mode colors — the renderer handles dark mode dynamically.
+        // Dark-mode bg/border colors (low luminance) get reset to light defaults.
+        const isColorDark = (hex: string): boolean => {
+          const c = hex.replace('#', '');
+          if (c.length < 6) return false;
+          const r = parseInt(c.slice(0, 2), 16) / 255;
+          const g = parseInt(c.slice(2, 4), 16) / 255;
+          const b = parseInt(c.slice(4, 6), 16) / 255;
+          return 0.299 * r + 0.587 * g + 0.114 * b < 0.5;
+        };
+        const importedBg = typeof s.bgColor === 'string' ? s.bgColor : '#ffffff';
+        const importedBorder = typeof s.borderColor === 'string' ? s.borderColor : '#e2e8f0';
         lgStore.updateStyle(which, {
-          ...(typeof s.bgColor === 'string' ? { bgColor: s.bgColor } : {}),
-          ...(typeof s.borderColor === 'string' ? { borderColor: s.borderColor } : {}),
+          bgColor: isColorDark(importedBg) ? '#ffffff' : importedBg,
+          borderColor: isColorDark(importedBorder) ? '#e2e8f0' : importedBorder,
           ...(typeof s.borderWidth === 'number' ? { borderWidth: s.borderWidth } : {}),
           ...(typeof s.fontSize === 'number' ? { fontSize: s.fontSize } : {}),
           ...(typeof s.opacity === 'number' ? { opacity: s.opacity } : {}),

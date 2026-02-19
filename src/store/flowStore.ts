@@ -96,6 +96,8 @@ export interface FlowNodeData {
   swimlaneId?: string;
   width?: number;
   height?: number;
+  /** Visual rotation angle in degrees (applied via CSS transform) */
+  rotation?: number;
   opacity?: number;
   borderStyle?: 'solid' | 'dashed' | 'dotted';
   borderWidth?: number;
@@ -159,6 +161,8 @@ export interface FlowState {
   removeNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: Partial<FlowNodeData>) => void;
   updateNodePosition: (nodeId: string, position: XYPosition) => void;
+  /** Batch-update positions for multiple nodes in a single immer draft */
+  batchUpdatePositions: (positions: Map<string, { x: number; y: number }>) => void;
   setNodes: (nodes: FlowNode[]) => void;
   getNode: (nodeId: string) => FlowNode | undefined;
 
@@ -168,6 +172,8 @@ export interface FlowState {
   updateEdgeData: (edgeId: string, data: Partial<FlowEdgeData>) => void;
   /** Patch any edge properties (data, style, markers, type) via immer draft mutation */
   updateEdge: (edgeId: string, patch: Partial<FlowEdge>) => void;
+  /** Straighten all (or selected) edges by aligning connected nodes */
+  straightenEdges: (edgeIds?: string[]) => void;
 
   // ---- status puck CRUD --------------------------------------
   addStatusPuck: (nodeId: string, puck: StatusIndicator) => void;
@@ -369,6 +375,15 @@ export const useFlowStore = create<FlowState>()(
       });
     },
 
+    batchUpdatePositions: (positions) => {
+      set((state) => {
+        for (const [id, pos] of positions) {
+          const node = state.nodes.find((n) => n.id === id);
+          if (node) node.position = pos;
+        }
+      });
+    },
+
     setNodes: (nodes) => {
       set((state) => {
         state.nodes = nodes;
@@ -412,6 +427,38 @@ export const useFlowStore = create<FlowState>()(
         if (patch.type !== undefined) edge.type = patch.type;
         if ('markerEnd' in patch) edge.markerEnd = patch.markerEnd;
         if ('markerStart' in patch) edge.markerStart = patch.markerStart;
+      });
+    },
+
+    straightenEdges: (edgeIds) => {
+      set((state) => {
+        const targetEdges = edgeIds
+          ? state.edges.filter((e) => edgeIds.includes(e.id))
+          : state.edges;
+        // Track which nodes have already been moved so later edges don't conflict
+        const moved = new Set<string>();
+        for (const edge of targetEdges) {
+          const source = state.nodes.find((n) => n.id === edge.source);
+          const target = state.nodes.find((n) => n.id === edge.target);
+          if (!source || !target) continue;
+          // Don't move a node that was already repositioned
+          if (moved.has(target.id)) continue;
+          const srcW = source.data.width || 160;
+          const srcH = source.data.height || 60;
+          const tgtW = target.data.width || 160;
+          const tgtH = target.data.height || 60;
+          const sh = edge.sourceHandle || '';
+          const th = edge.targetHandle || '';
+          const isVert = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+          if (isVert) {
+            const srcCenterX = source.position.x + srcW / 2;
+            target.position = { x: srcCenterX - tgtW / 2, y: target.position.y };
+          } else {
+            const srcCenterY = source.position.y + srcH / 2;
+            target.position = { x: target.position.x, y: srcCenterY - tgtH / 2 };
+          }
+          moved.add(target.id);
+        }
       });
     },
 

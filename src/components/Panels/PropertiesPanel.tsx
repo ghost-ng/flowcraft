@@ -57,7 +57,7 @@ const toHexColor = (c: string | undefined, fallback = '#ffffff'): string => {
 
 const TABS: { id: PanelTab; label: string; collapsible?: boolean }[] = [
   { id: 'node', label: 'Node', collapsible: true },
-  { id: 'edge', label: 'Connector', collapsible: true },
+  { id: 'edge', label: 'Edge', collapsible: true },
   { id: 'deps', label: 'Deps' },
   { id: 'lane', label: 'Lane' },
   { id: 'data', label: 'Data' },
@@ -540,6 +540,13 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
   const update = useCallback(
     (patch: Partial<FlowNodeData>) => {
       updateNodeData(nodeId, patch);
+      // Propagate to all other selected nodes
+      const { selectedNodes } = useFlowStore.getState();
+      if (selectedNodes.length > 1) {
+        for (const nid of selectedNodes) {
+          if (nid !== nodeId) updateNodeData(nid, patch);
+        }
+      }
     },
     [nodeId, updateNodeData],
   );
@@ -1217,8 +1224,8 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
         )}
       </Field>
 
-      {/* Upstream (depends on) */}
-      <Field label={`Upstream - Depends On (${upstream.length})`}>
+      {/* Upstream (prerequisites) */}
+      <Field label={`Upstream - Prerequisites (${upstream.length})`}>
         {upstream.length === 0 ? (
           <span className="text-xs text-text-muted italic px-2 py-1.5">None</span>
         ) : (
@@ -1235,8 +1242,8 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
         )}
       </Field>
 
-      {/* Downstream (blocked by) */}
-      <Field label={`Downstream - Blocked By (${downstream.length})`}>
+      {/* Downstream (this enables) */}
+      <Field label={`Downstream - Enables (${downstream.length})`}>
         {downstream.length === 0 ? (
           <span className="text-xs text-text-muted italic px-2 py-1.5">None</span>
         ) : (
@@ -1289,6 +1296,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
   const updateContainerBorder = useSwimlaneStore((s) => s.updateContainerBorder);
   const updateDividerStyle = useSwimlaneStore((s) => s.updateDividerStyle);
   const updateLabelConfig = useSwimlaneStore((s) => s.updateLabelConfig);
+  const updateTitleConfig = useSwimlaneStore((s) => s.updateTitleConfig);
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;
@@ -1495,6 +1503,56 @@ const SwimlanePanel: React.FC = React.memo(() => {
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
         />
       </Field>
+      {config.containerTitle && (
+        <>
+          <Field label="Title Font Size">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={8}
+                max={40}
+                step={1}
+                value={config.titleFontSize ?? 13}
+                onChange={(e) => updateTitleConfig({ titleFontSize: Number(e.target.value) })}
+                className="flex-1"
+              />
+              <span className="text-xs text-text-muted w-6 text-right">{config.titleFontSize ?? 13}</span>
+            </div>
+          </Field>
+          <Field label="Title Color">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={config.titleColor ?? '#0f172a'}
+                onChange={(e) => updateTitleConfig({ titleColor: e.target.value })}
+                className="w-7 h-7 rounded border border-border cursor-pointer shrink-0"
+              />
+              <span className="text-xs text-text-muted">{config.titleColor ?? 'Auto'}</span>
+            </div>
+          </Field>
+          <Field label="Title Font">
+            <select
+              value={config.titleFontFamily ?? ''}
+              onChange={(e) => updateTitleConfig({ titleFontFamily: e.target.value || undefined })}
+              className="w-full px-2 py-1.5 text-xs rounded border border-border bg-white focus:outline-none"
+            >
+              <option value="">Default (Inter)</option>
+              <option value="Inter, system-ui, sans-serif">Inter</option>
+              <option value="Aptos, Calibri, sans-serif">Aptos</option>
+              <option value="Calibri, 'Gill Sans', sans-serif">Calibri</option>
+              <option value="'Segoe UI', Tahoma, sans-serif">Segoe UI</option>
+              <option value="Arial, Helvetica, sans-serif">Arial</option>
+              <option value="Verdana, Geneva, sans-serif">Verdana</option>
+              <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+              <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+              <option value="Cambria, Georgia, serif">Cambria</option>
+              <option value="'Courier New', Courier, monospace">Courier New</option>
+              <option value="Consolas, 'Courier New', monospace">Consolas</option>
+              <option value="Impact, Haettenschweiler, sans-serif">Impact</option>
+            </select>
+          </Field>
+        </>
+      )}
 
       {/* Orientation toggle (only if not matrix) */}
       {!isMatrix && (
@@ -1573,7 +1631,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
               <input
                 type="range"
                 min={8}
-                max={18}
+                max={40}
                 step={1}
                 value={config.labelFontSize ?? 10}
                 onChange={(e) => updateLabelConfig({ labelFontSize: Number(e.target.value) })}
@@ -1595,6 +1653,90 @@ const SwimlanePanel: React.FC = React.memo(() => {
               />
               <span className="text-xs text-text-muted w-8 text-right">{config.labelRotation ?? 0}°</span>
             </div>
+          </Field>
+          <Field label="Header Size">
+            <button
+              onClick={() => {
+                const fs = config.labelFontSize ?? 10;
+                const rot = config.labelRotation ?? 0;
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+                ctx.font = `600 ${fs}px Inter, system-ui, sans-serif`;
+                const padding = 28;
+
+                // Calculate horizontal lane header width separately
+                if (hasHLanes) {
+                  let maxTextW = 0;
+                  for (const l of hLanes) {
+                    maxTextW = Math.max(maxTextW, ctx.measureText(l.label).width);
+                  }
+                  const textH = fs * 1.3; // approximate line height
+                  // For horizontal lanes: header is on the LEFT. Rotation affects layout:
+                  // rot=-90: text is vertical, header width = text height, lane height needs text width
+                  // rot=0: text is horizontal, header width = text width
+                  let hWidth: number;
+                  if (rot === -90) {
+                    hWidth = Math.max(48, Math.ceil(textH + padding));
+                  } else if (Math.abs(rot) > 0) {
+                    const radians = Math.abs(rot) * Math.PI / 180;
+                    hWidth = Math.max(48, Math.ceil(
+                      maxTextW * Math.abs(Math.cos(radians)) + textH * Math.abs(Math.sin(radians)) + padding
+                    ));
+                  } else {
+                    hWidth = Math.max(48, Math.ceil(textH + padding));
+                  }
+                  updateLabelConfig({ hHeaderWidth: hWidth });
+
+                  // Ensure each lane is tall enough to contain the rotated label
+                  if (rot === -90) {
+                    for (const l of hLanes) {
+                      const lw = ctx.measureText(l.label).width;
+                      const minLaneH = Math.ceil(lw + padding + 8);
+                      if (l.size < minLaneH) {
+                        updateLane('horizontal', l.id, { size: minLaneH });
+                      }
+                    }
+                  } else if (Math.abs(rot) > 0) {
+                    const radians = Math.abs(rot) * Math.PI / 180;
+                    for (const l of hLanes) {
+                      const lw = ctx.measureText(l.label).width;
+                      const minLaneH = Math.ceil(
+                        lw * Math.abs(Math.sin(radians)) + textH * Math.abs(Math.cos(radians)) + padding
+                      );
+                      if (l.size < minLaneH) {
+                        updateLane('horizontal', l.id, { size: minLaneH });
+                      }
+                    }
+                  }
+                }
+
+                // Calculate vertical lane header height separately
+                if (hasVLanes) {
+                  let maxTextW = 0;
+                  for (const l of vLanes) {
+                    maxTextW = Math.max(maxTextW, ctx.measureText(l.label).width);
+                  }
+                  const textH = fs * 1.3;
+                  // For vertical lanes: header is on TOP. Text is usually horizontal.
+                  const vHeight = Math.max(32, Math.ceil(textH + padding));
+                  updateLabelConfig({ vHeaderHeight: vHeight });
+
+                  // Ensure each lane is wide enough to contain its label
+                  for (const l of vLanes) {
+                    const lw = ctx.measureText(l.label).width;
+                    const minLaneW = Math.ceil(lw + padding + 16);
+                    if (l.size < minLaneW) {
+                      updateLane('vertical', l.id, { size: minLaneW });
+                    }
+                  }
+                }
+              }}
+              className="px-3 py-1.5 text-[11px] font-medium rounded-md border border-border
+                         text-text-muted hover:bg-slate-50 hover:text-primary transition-colors cursor-pointer w-full"
+            >
+              Auto-fit to Labels
+            </button>
           </Field>
         </>
       )}
@@ -2083,6 +2225,21 @@ const PropertiesPanel: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Multi-selection banner */}
+      {(selectedNodes.length > 1 || selectedEdges.length > 1) && (
+        <div className={`flex items-center gap-2 px-4 py-1.5 text-[11px] font-medium border-b shrink-0 ${
+          darkMode
+            ? 'bg-primary/10 border-dk-border text-primary'
+            : 'bg-primary/5 border-primary/20 text-primary'
+        }`}>
+          <Copy size={12} />
+          {selectedNodes.length > 1 && `${selectedNodes.length} nodes`}
+          {selectedNodes.length > 1 && selectedEdges.length > 1 && ', '}
+          {selectedEdges.length > 1 && `${selectedEdges.length} edges`}
+          {' '}selected — changes apply to all
+        </div>
+      )}
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto panel-scroll p-4 pb-8">

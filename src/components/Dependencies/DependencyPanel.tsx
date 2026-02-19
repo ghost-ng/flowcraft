@@ -43,8 +43,16 @@ interface DependencyRow {
 // Constants
 // ---------------------------------------------------------------------------
 
-const DEP_TYPE_OPTIONS: { value: DependencyLinkType; label: string }[] = [
-  { value: 'depends-on', label: 'Depends On' },
+// Upstream: selected node depends on X → "Prerequisite", "Blocked By", "Related"
+const UPSTREAM_TYPE_OPTIONS: { value: DependencyLinkType; label: string }[] = [
+  { value: 'depends-on', label: 'Prerequisite' },
+  { value: 'blocks', label: 'Blocked By' },
+  { value: 'related', label: 'Related' },
+];
+
+// Downstream: X depends on selected node → "Enables", "Blocks", "Related"
+const DOWNSTREAM_TYPE_OPTIONS: { value: DependencyLinkType; label: string }[] = [
+  { value: 'depends-on', label: 'Enables' },
   { value: 'blocks', label: 'Blocks' },
   { value: 'related', label: 'Related' },
 ];
@@ -56,12 +64,14 @@ const DEP_TYPE_OPTIONS: { value: DependencyLinkType; label: string }[] = [
 interface DepRowProps {
   row: DependencyRow;
   darkMode: boolean;
+  direction: 'upstream' | 'downstream';
   onRemove: (edgeId: string) => void;
   onChangeType: (edgeId: string, newType: DependencyLinkType) => void;
 }
 
 const DepRow: React.FC<DepRowProps> = React.memo(
-  ({ row, darkMode, onRemove, onChangeType }) => {
+  ({ row, darkMode, direction, onRemove, onChangeType }) => {
+    const typeOptions = direction === 'upstream' ? UPSTREAM_TYPE_OPTIONS : DOWNSTREAM_TYPE_OPTIONS;
     const bgHover = darkMode ? 'hover:bg-dk-hover/50' : 'hover:bg-slate-50';
     const borderClr = darkMode ? 'border-dk-border' : 'border-slate-200';
     const textClr = darkMode ? 'text-dk-text' : 'text-slate-700';
@@ -94,7 +104,7 @@ const DepRow: React.FC<DepRowProps> = React.memo(
             focus:outline-none focus:ring-1 focus:ring-blue-400
           `}
         >
-          {DEP_TYPE_OPTIONS.map((opt) => (
+          {typeOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -354,7 +364,7 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
       <div className={`pb-3 border-b ${sectionBorder}`}>
         <SectionHeader
           icon={<ArrowUp size={13} />}
-          title="Upstream (depends on)"
+          title="Upstream (prerequisites)"
           count={upstreamRows.length}
           darkMode={darkMode}
         />
@@ -369,6 +379,7 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
                 key={row.edgeId}
                 row={row}
                 darkMode={darkMode}
+                direction="upstream"
                 onRemove={handleRemove}
                 onChangeType={handleChangeType}
               />
@@ -391,7 +402,7 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
       <div className={`pb-3 border-b ${sectionBorder}`}>
         <SectionHeader
           icon={<ArrowDown size={13} />}
-          title="Downstream (depends on this)"
+          title="Downstream (this enables)"
           count={downstreamRows.length}
           darkMode={darkMode}
         />
@@ -406,6 +417,7 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
                 key={row.edgeId}
                 row={row}
                 darkMode={darkMode}
+                direction="downstream"
                 onRemove={handleRemove}
                 onChangeType={handleChangeType}
               />
@@ -443,6 +455,7 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
                 key={row.edgeId}
                 row={row}
                 darkMode={darkMode}
+                direction="downstream"
                 onRemove={handleRemove}
                 onChangeType={handleChangeType}
               />
