@@ -17,7 +17,8 @@ echo "Adding Linux x64 native binaries for CI..."
 npm install --no-save --force \
   @rollup/rollup-linux-x64-gnu@4.57.1 \
   @esbuild/linux-x64@0.27.3 \
-  lightningcss-linux-x64-gnu@1.30.2
+  lightningcss-linux-x64-gnu@1.30.2 \
+  @tailwindcss/oxide-linux-x64-gnu@4.1.18
 
 echo "Creating node_modules.tar.gz..."
 tar czf node_modules.tar.gz node_modules/

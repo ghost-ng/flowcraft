@@ -11,7 +11,7 @@ build:
   script:
     - tar xzf node_modules.tar.gz
     - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node 2>/dev/null || true
-    - npm run build
+    - npx tsc -b && npx vite build --base=/
   artifacts:
     paths:
       - dist/
@@ -23,7 +23,7 @@ pages:
   script:
     - tar xzf node_modules.tar.gz
     - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node 2>/dev/null || true
-    - npm run build
+    - npx tsc -b && npx vite build --base=/
     # GitLab Pages requires output in 'public/' directory
     - rm -rf public
     - mv dist public
@@ -41,4 +41,4 @@ pages:
 #   3. Commit the updated node_modules.tar.gz
 #
 # NOTE: vite.config.ts has base: '/flowcraft/' for GitHub Pages.
-# For GitLab Pages, adjust the base path in vite.config.ts to match your deployment URL.
+# GitLab Pages uses --base=/ to override the base path at build time.
