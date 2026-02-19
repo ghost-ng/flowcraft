@@ -1,6 +1,9 @@
 // ---------------------------------------------------------------------------
 // Keyboard Shortcuts Hook
 // ---------------------------------------------------------------------------
+// Shortcuts are chosen to avoid browser conflicts and mirror PowerPoint
+// where possible. See CLAUDE.md "Common Issues" for the rationale.
+// ---------------------------------------------------------------------------
 
 import { useEffect, useCallback } from 'react';
 
@@ -25,9 +28,9 @@ export interface KeyboardShortcutCallbacks {
   onAddNode?: () => void;
   /** Ctrl+S - save */
   onSave?: () => void;
-  /** Ctrl+E - open export dialog */
+  /** Ctrl+Shift+E - open export dialog */
   onExport?: () => void;
-  /** Ctrl+L - auto layout */
+  /** Ctrl+Shift+L - auto layout */
   onAutoLayout?: () => void;
   /** F2 - edit label of selected node */
   onEditLabel?: () => void;
@@ -37,17 +40,17 @@ export interface KeyboardShortcutCallbacks {
   onCopy?: () => void;
   /** Ctrl+V - paste copied nodes/pucks */
   onPaste?: () => void;
-  /** Ctrl+Shift+C - copy style */
+  /** Ctrl+Alt+C - copy style */
   onCopyStyle?: () => void;
   /** Ctrl+Shift+V - paste style */
   onPasteStyle?: () => void;
-  /** Ctrl+Shift+D - toggle dark mode */
+  /** Ctrl+Shift+K - toggle dark mode */
   onToggleDarkMode?: () => void;
   /** Ctrl+Shift+G - link group selected */
   onLinkGroup?: () => void;
   /** Ctrl+Shift+H - mirror horizontal */
   onMirrorHorizontal?: () => void;
-  /** Ctrl+Shift+F - mirror vertical (flip) */
+  /** Ctrl+Alt+V - mirror vertical (flip) */
   onMirrorVertical?: () => void;
   /** Ctrl+] - bring forward one step */
   onBringForward?: () => void;
@@ -59,7 +62,7 @@ export interface KeyboardShortcutCallbacks {
   onSendToBack?: () => void;
   /** 1-9 - apply palette colour by index */
   onApplyPaletteColor?: (index: number) => void;
-  /** Ctrl+Shift+S - straighten all edges */
+  /** Ctrl+Alt+S - straighten all edges */
   onStraightenEdges?: () => void;
   /** Ctrl+/ - show keyboard shortcuts dialog */
   onShowShortcuts?: () => void;
@@ -102,27 +105,44 @@ export function useKeyboardShortcuts(
 
       const ctrl = e.ctrlKey || e.metaKey;
       const shift = e.shiftKey;
+      const alt = e.altKey;
 
-      // ----- Ctrl+Shift combos -----
-      if (ctrl && shift) {
+      // ----- Ctrl+Alt combos (no browser conflicts) -----
+      if (ctrl && alt && !shift) {
+        switch (e.key) {
+          case 'c':
+          case 'C':
+            e.preventDefault();
+            callbacks.onCopyStyle?.();
+            return;
+          case 'v':
+          case 'V':
+            e.preventDefault();
+            callbacks.onMirrorVertical?.();
+            return;
+          case 's':
+          case 'S':
+            e.preventDefault();
+            callbacks.onStraightenEdges?.();
+            return;
+        }
+      }
+
+      // ----- Ctrl+Shift combos (no alt) -----
+      if (ctrl && shift && !alt) {
         switch (e.key) {
           case 'Z':
           case 'z':
             e.preventDefault();
             callbacks.onRedo?.();
             return;
-          case 'C':
-          case 'c':
-            e.preventDefault();
-            callbacks.onCopyStyle?.();
-            return;
           case 'V':
           case 'v':
             e.preventDefault();
             callbacks.onPasteStyle?.();
             return;
-          case 'D':
-          case 'd':
+          case 'K':
+          case 'k':
             e.preventDefault();
             callbacks.onToggleDarkMode?.();
             return;
@@ -136,15 +156,15 @@ export function useKeyboardShortcuts(
             e.preventDefault();
             callbacks.onMirrorHorizontal?.();
             return;
-          case 'F':
-          case 'f':
+          case 'E':
+          case 'e':
             e.preventDefault();
-            callbacks.onMirrorVertical?.();
+            callbacks.onExport?.();
             return;
-          case 'S':
-          case 's':
+          case 'L':
+          case 'l':
             e.preventDefault();
-            callbacks.onStraightenEdges?.();
+            callbacks.onAutoLayout?.();
             return;
           case ']':
           case '}':
@@ -170,8 +190,8 @@ export function useKeyboardShortcuts(
         }
       }
 
-      // ----- Ctrl combos (without shift) -----
-      if (ctrl && !shift) {
+      // ----- Ctrl combos (without shift or alt) -----
+      if (ctrl && !shift && !alt) {
         switch (e.key) {
           case 'c':
           case 'C':
@@ -207,16 +227,6 @@ export function useKeyboardShortcuts(
           case 'S':
             e.preventDefault();
             callbacks.onSave?.();
-            return;
-          case 'e':
-          case 'E':
-            e.preventDefault();
-            callbacks.onExport?.();
-            return;
-          case 'l':
-          case 'L':
-            e.preventDefault();
-            callbacks.onAutoLayout?.();
             return;
           case ']':
             e.preventDefault();

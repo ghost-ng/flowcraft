@@ -335,7 +335,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           label="Auto-Format Selected"
           onClick={handleAutoFormat}
           darkMode={darkMode}
-          shortcut="Ctrl+L"
+          shortcut="Ctrl+Shift+L"
           onMouseEnter={() => setSubmenu(null)}
         />
 
@@ -455,7 +455,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
               `}
             >
               <MenuItem icon={<FlipHorizontal2 size={14} />} label="Flip Horizontal" onClick={() => handleMirror(mirrorHorizontal)} darkMode={darkMode} shortcut="Ctrl+Shift+H" />
-              <MenuItem icon={<FlipVertical2 size={14} />} label="Flip Vertical" onClick={() => handleMirror(mirrorVertical)} darkMode={darkMode} shortcut="Ctrl+Shift+F" />
+              <MenuItem icon={<FlipVertical2 size={14} />} label="Flip Vertical" onClick={() => handleMirror(mirrorVertical)} darkMode={darkMode} shortcut="Ctrl+Alt+V" />
             </div>
           )}
         </div>

@@ -1,9 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useViewport } from '@xyflow/react';
-import { Pipette } from 'lucide-react';
+import { Pipette, Map } from 'lucide-react';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
+
+const MinimapToggle: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
+  const minimapVisible = useUIStore((s) => s.minimapVisible);
+  const toggleMinimap = useUIStore((s) => s.toggleMinimap);
+  return (
+    <button
+      onClick={toggleMinimap}
+      className={`flex items-center gap-1 px-1.5 py-0.5 rounded cursor-pointer transition-colors text-[10px] ${
+        minimapVisible
+          ? 'text-primary'
+          : darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-slate-500 hover:bg-slate-100'
+      }`}
+      title={minimapVisible ? 'Hide Minimap' : 'Show Minimap'}
+    >
+      <Map size={10} />
+      <span>Minimap</span>
+    </button>
+  );
+};
 
 const StatusBar: React.FC = () => {
   const darkMode = useStyleStore((s) => s.darkMode);
@@ -172,6 +191,10 @@ const StatusBar: React.FC = () => {
           <div className={separatorClass} />
         </>
       )}
+
+      {/* Minimap toggle */}
+      <MinimapToggle darkMode={darkMode} />
+      <div className={separatorClass} />
 
       {/* Zoom */}
       <div className={itemClass} title="Zoom level">

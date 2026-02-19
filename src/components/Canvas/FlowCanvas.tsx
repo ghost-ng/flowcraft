@@ -301,6 +301,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       addNode(newNode);
       // Auto-assign to swimlane based on drop position
       assignSwimlaneToNode(newNode.id, position);
+      // Auto-select the new node
+      useFlowStore.getState().setSelectedNodes([newNode.id]);
       return newNode.id;
     },
     [screenToFlowPosition, addNode],
@@ -337,6 +339,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         };
         addNode(newNode);
         assignSwimlaneToNode(newNode.id, position, 300, 200);
+        useFlowStore.getState().setSelectedNodes([newNode.id]);
         return;
       }
 
@@ -359,6 +362,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         addNode(newNode);
         // Auto-assign to swimlane based on drop position
         assignSwimlaneToNode(newNode.id, position, isIconOnly ? 60 : 160, isIconOnly ? 60 : 60);
+        // Auto-select the new node
+        useFlowStore.getState().setSelectedNodes([newNode.id]);
 
         // Clear palette shape selection after icon drop
         useUIStore.getState().setSelectedPaletteShape(null);
@@ -853,6 +858,11 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           updateNodeData(id, patch as Partial<FlowNodeData>);
         }
       }
+
+      // In single-apply mode, deactivate after one use
+      if (!useUIStore.getState().formatPainterPersistent) {
+        useUIStore.getState().clearFormatPainter();
+      }
     },
     [formatPainterActive, formatPainterNodeStyle, updateNodeData],
   );
@@ -1069,7 +1079,12 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         {minimapVisible && (
           <MiniMap
             style={{ backgroundColor: activeStyle.canvas.background }}
-            nodeColor={() => activeStyle.nodeDefaults.fill === '#ffffff' || activeStyle.nodeDefaults.fill === '#fff' ? '#3b82f6' : activeStyle.nodeDefaults.fill}
+            nodeColor={(node) => {
+              const color = (node.data as Record<string, unknown>)?.color as string | undefined;
+              if (color) return color;
+              const fill = activeStyle.nodeDefaults.fill;
+              return fill === '#ffffff' || fill === '#fff' ? '#3b82f6' : fill;
+            }}
             maskColor={activeStyle.dark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(248, 250, 252, 0.7)'}
             pannable
             zoomable

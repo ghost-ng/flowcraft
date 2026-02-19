@@ -740,12 +740,12 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
 
       {!isSectionCollapsed('label') && (
         <>
-          {/* Label */}
+          {/* Label — show \n escape chars in the field, render as actual newlines on canvas */}
           <Field label="Text">
             <input
               type="text"
-              value={data.label}
-              onChange={(e) => update({ label: e.target.value })}
+              value={(data.label || '').replace(/\n/g, '\\n')}
+              onChange={(e) => update({ label: e.target.value.replace(/\\n/g, '\n') })}
               className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
                          focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />

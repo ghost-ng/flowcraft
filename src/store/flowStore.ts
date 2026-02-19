@@ -98,6 +98,10 @@ export interface FlowNodeData {
   height?: number;
   /** Visual rotation angle in degrees (applied via CSS transform) */
   rotation?: number;
+  /** Horizontal flip (mirror via CSS scaleX(-1)) */
+  flipH?: boolean;
+  /** Vertical flip (mirror via CSS scaleY(-1)) */
+  flipV?: boolean;
   opacity?: number;
   borderStyle?: 'solid' | 'dashed' | 'dotted';
   borderWidth?: number;

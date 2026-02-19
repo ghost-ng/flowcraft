@@ -10,7 +10,6 @@ import {
   Trash2,
   Maximize,
   Grid3X3,
-  Map,
   Magnet,
   LayoutDashboard,
   ArrowDownUp,
@@ -19,7 +18,7 @@ import {
   // Moon, Sun — keep for dark mode toggle (hidden for now)
   Image,
   Code,
-  Download,
+  Upload,
   Workflow,
   LayoutTemplate,
   Paintbrush,
@@ -113,6 +112,13 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = React.memo(
 
 ToolbarButton.displayName = 'ToolbarButton';
 
+/** Small right-aligned keyboard shortcut hint for dropdown menu items */
+const Kbd: React.FC<{ shortcut: string }> = ({ shortcut }) => (
+  <span className="ml-auto text-[10px] text-slate-400 dark:text-dk-faint font-mono whitespace-nowrap pl-3">
+    {shortcut}
+  </span>
+);
+
 // (Separators are rendered inline via the orientation-aware Sep component)
 
 // ---------------------------------------------------------------------------
@@ -134,6 +140,7 @@ const FONT_OPTIONS: FontOption[] = [
   { label: 'Tahoma', value: "Tahoma, Geneva, sans-serif", category: 'Sans-Serif' },
   { label: 'Trebuchet MS', value: "'Trebuchet MS', Helvetica, sans-serif", category: 'Sans-Serif' },
   { label: 'Franklin Gothic', value: "'Franklin Gothic Medium', 'Franklin Gothic', Arial, sans-serif", category: 'Sans-Serif' },
+  { label: 'Franklin Gothic Book', value: "'Franklin Gothic Book', 'Franklin Gothic', Arial, sans-serif", category: 'Sans-Serif' },
   { label: 'Century Gothic', value: "'Century Gothic', 'Apple Gothic', sans-serif", category: 'Sans-Serif' },
   { label: 'Candara', value: "Candara, Optima, sans-serif", category: 'Sans-Serif' },
   { label: 'Corbel', value: "Corbel, 'Lucida Grande', sans-serif", category: 'Sans-Serif' },
@@ -193,8 +200,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // UI store
   const gridVisible = useUIStore((s) => s.gridVisible);
   const toggleGrid = useUIStore((s) => s.toggleGrid);
-  const minimapVisible = useUIStore((s) => s.minimapVisible);
-  const toggleMinimap = useUIStore((s) => s.toggleMinimap);
   const snapEnabled = useUIStore((s) => s.snapEnabled);
   const toggleSnap = useUIStore((s) => s.toggleSnap);
   const propertiesPanelOpen = useUIStore((s) => s.propertiesPanelOpen);
@@ -280,7 +285,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [alignDropdownOpen, setAlignDropdownOpen] = useState(false);
   const [mirrorDropdownOpen, setMirrorDropdownOpen] = useState(false);
-  const [rotateDropdownOpen, setRotateDropdownOpen] = useState(false);
+  const [rotateCustomOpen, setRotateCustomOpen] = useState(false);
 
   // Selection color picker state
   const [selectionColorOpen, setSelectionColorOpen] = useState(false);
@@ -302,18 +307,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const dragRef = useRef<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
-  // Refs for layout/align/mirror/rotate menus to detect click-outside
+  // Refs for layout/align/mirror menus to detect click-outside
   const layoutMenuRef = useRef<HTMLDivElement>(null);
   const alignMenuRef = useRef<HTMLDivElement>(null);
   const mirrorMenuRef = useRef<HTMLDivElement>(null);
-  const rotateMenuRef = useRef<HTMLDivElement>(null);
 
-  // Custom rotation angle state
+  // Custom rotation angle state — persists between uses
   const [customRotateAngle, setCustomRotateAngle] = useState('');
+  const rotateIncrement = customRotateAngle ? parseFloat(customRotateAngle) : 15;
+  const rotateLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rotateCustomRef = useRef<HTMLDivElement>(null);
 
-  // Close layout/align/mirror/rotate dropdowns on click-outside
+  // Close layout/align/mirror dropdowns + rotate custom popover on click-outside
   useEffect(() => {
-    if (!layoutMenuOpen && !alignDropdownOpen && !mirrorDropdownOpen && !rotateDropdownOpen) return;
+    if (!layoutMenuOpen && !alignDropdownOpen && !mirrorDropdownOpen && !rotateCustomOpen) return;
     const handler = (e: MouseEvent) => {
       const target = e.target as Node;
       if (layoutMenuOpen && layoutMenuRef.current && !layoutMenuRef.current.contains(target)) {
@@ -325,13 +332,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
       if (mirrorDropdownOpen && mirrorMenuRef.current && !mirrorMenuRef.current.contains(target)) {
         setMirrorDropdownOpen(false);
       }
-      if (rotateDropdownOpen && rotateMenuRef.current && !rotateMenuRef.current.contains(target)) {
-        setRotateDropdownOpen(false);
+      if (rotateCustomOpen && rotateCustomRef.current && !rotateCustomRef.current.contains(target)) {
+        setRotateCustomOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [layoutMenuOpen, alignDropdownOpen, mirrorDropdownOpen, rotateDropdownOpen]);
+  }, [layoutMenuOpen, alignDropdownOpen, mirrorDropdownOpen, rotateCustomOpen]);
 
   // Close font picker on click-outside
   useEffect(() => {
@@ -515,34 +522,42 @@ const Toolbar: React.FC<ToolbarProps> = ({
     applyLayout('LR');
   }, [applyLayout]);
 
-  const handleFormatPainter = useCallback(() => {
-    if (formatPainterActive) {
-      // Toggle off
-      clearFormatPainter();
-      return;
-    }
-    // Copy format from the selected node or edge
+  // Double-click format painter = persistent mode (stays active after applying)
+  const setFormatPainterPersistent = useUIStore((s) => s.setFormatPainterPersistent);
+  const formatPainterClickCount = useRef(0);
+  const formatPainterClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const activateFormatPainter = useCallback(() => {
     const { nodes, edges } = useFlowStore.getState();
     if (selectedNodes.length > 0) {
       const node = nodes.find((n) => n.id === selectedNodes[0]);
       if (node) {
         const d = node.data;
+        // Resolve actual visual values — use explicit data, fall back to shape defaults
+        const shapeDefaults: Record<string, string> = {
+          rectangle: '#3b82f6', roundedRectangle: '#3b82f6', diamond: '#f59e0b',
+          circle: '#10b981', parallelogram: '#8b5cf6', hexagon: '#ef4444',
+          document: '#ec4899', cloud: '#6366f1', stickyNote: '#fbbf24',
+          blockArrow: '#3b82f6', chevronArrow: '#8b5cf6', doubleArrow: '#f59e0b',
+          circularArrow: '#10b981',
+        };
+        const resolvedColor = d.color || shapeDefaults[d.shape as string] || '#3b82f6';
         setFormatPainterNodeStyle({
-          color: d.color,
-          borderColor: d.borderColor,
-          textColor: d.textColor,
-          fontSize: d.fontSize,
-          fontWeight: d.fontWeight,
-          fontFamily: d.fontFamily,
-          borderStyle: d.borderStyle,
-          borderWidth: d.borderWidth,
-          borderRadius: d.borderRadius,
-          opacity: d.opacity,
+          color: resolvedColor,
+          borderColor: d.borderColor || undefined,
+          textColor: d.textColor || undefined,
+          fontSize: d.fontSize ?? undefined,
+          fontWeight: d.fontWeight ?? undefined,
+          fontFamily: d.fontFamily || undefined,
+          borderStyle: d.borderStyle || undefined,
+          borderWidth: d.borderWidth ?? undefined,
+          borderRadius: d.borderRadius ?? undefined,
+          opacity: d.opacity ?? undefined,
           textAlign: (d as Record<string, unknown>).textAlign as string | undefined,
         });
         setFormatPainterActive(true);
       }
-    } else if (selectedEdges.length > 0) {
+    } else if (edges.length > 0 && selectedEdges.length > 0) {
       const edge = edges.find((e) => e.id === selectedEdges[0]);
       if (edge) {
         const d = (edge.data || {}) as Record<string, unknown>;
@@ -556,7 +571,36 @@ const Toolbar: React.FC<ToolbarProps> = ({
         setFormatPainterActive(true);
       }
     }
-  }, [formatPainterActive, selectedNodes, selectedEdges, clearFormatPainter, setFormatPainterActive, setFormatPainterNodeStyle, setFormatPainterEdgeStyle]);
+  }, [selectedNodes, selectedEdges, setFormatPainterActive, setFormatPainterNodeStyle, setFormatPainterEdgeStyle]);
+
+  const handleFormatPainter = useCallback(() => {
+    if (formatPainterActive) {
+      // Toggle off
+      clearFormatPainter();
+      formatPainterClickCount.current = 0;
+      return;
+    }
+
+    // Detect double-click for persistent mode
+    formatPainterClickCount.current += 1;
+    if (formatPainterClickCount.current === 1) {
+      formatPainterClickTimer.current = setTimeout(() => {
+        // Single click — activate in single-apply mode
+        formatPainterClickCount.current = 0;
+        setFormatPainterPersistent(false);
+        activateFormatPainter();
+        useUIStore.getState().showToast('Style copied — click a node to apply', 'info');
+      }, 250);
+    } else if (formatPainterClickCount.current >= 2) {
+      // Double click — activate in persistent mode
+      if (formatPainterClickTimer.current) clearTimeout(formatPainterClickTimer.current);
+      formatPainterClickCount.current = 0;
+      setFormatPainterPersistent(true);
+      activateFormatPainter();
+      useUIStore.getState().showToast('Persistent mode — click multiple nodes (Esc to stop)', 'info');
+    }
+  }, [formatPainterActive, clearFormatPainter, activateFormatPainter, setFormatPainterPersistent]);
+
 
   // ---- Transform helpers ---------------------------------------------------
 
@@ -589,13 +633,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const handleMirror = useCallback((fn: typeof mirrorHorizontal) => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length === 0) return;
-    if (nodes.length === 1) {
-      // Single node: swap width/height as a visual flip
-      const n = nodes[0];
-      const w = n.data.width ?? n.measured?.width ?? 160;
-      const h = n.data.height ?? n.measured?.height ?? 60;
-      useFlowStore.getState().updateNodeData(n.id, { width: h, height: w });
-    } else {
+    const isHorizontal = fn === mirrorHorizontal;
+    const store = useFlowStore.getState();
+    // Toggle CSS flip on each selected node
+    for (const n of nodes) {
+      if (isHorizontal) {
+        store.updateNodeData(n.id, { flipH: !n.data.flipH });
+      } else {
+        store.updateNodeData(n.id, { flipV: !n.data.flipV });
+      }
+    }
+    // For multi-node, also mirror positions
+    if (nodes.length >= 2) {
       applyPositions(fn(nodes));
     }
     setMirrorDropdownOpen(false);
@@ -614,8 +663,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
     if (nodes.length >= 2) {
       applyPositions(rotateArrangement(nodes, angleDeg));
     }
-    setRotateDropdownOpen(false);
   }, [getSelectedFlowNodes, applyPositions]);
+
+  const handleRotateLongPress = useCallback((_direction: 'cw' | 'ccw') => {
+    rotateLongPressTimer.current = setTimeout(() => {
+      rotateLongPressTimer.current = null;
+      setRotateCustomOpen(true);
+    }, 500);
+  }, []);
+
+  const handleRotateMouseUp = useCallback((direction: 'cw' | 'ccw') => {
+    if (rotateLongPressTimer.current !== null) {
+      // Short click — timer didn't fire, so do the rotation
+      clearTimeout(rotateLongPressTimer.current);
+      rotateLongPressTimer.current = null;
+      const angle = isNaN(rotateIncrement) || rotateIncrement === 0 ? 15 : Math.abs(rotateIncrement);
+      handleRotate(direction === 'cw' ? angle : -angle);
+    }
+  }, [handleRotate, rotateIncrement]);
 
   // ---- Drag-and-drop handlers ---------------------------------------------
 
@@ -684,7 +749,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 <FolderOpen size={14} className="text-slate-400" /> Open (.fc)
               </button>
               <button onClick={() => { handleSave(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                <Save size={14} className="text-slate-400" /> Save (.fc)
+                <Save size={14} className="text-slate-400" /> Save (.fc) <Kbd shortcut="Ctrl+S" />
               </button>
               <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
               <button onClick={() => { onOpenTemplates?.(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
@@ -707,7 +772,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {layoutMenuOpen && (
           <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { handleAutoArrange(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <LayoutDashboard size={13} className="text-slate-400" /> Auto Arrange
+              <LayoutDashboard size={13} className="text-slate-400" /> Auto Arrange <Kbd shortcut="Ctrl+Shift+L" />
             </button>
             <button onClick={() => { handleVerticalLayout(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <ArrowDownUp size={13} className="text-slate-400" /> Vertical Layout
@@ -728,7 +793,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton
           icon={<AlignCenterHorizontal size={iconSize} />}
           tooltip="Align & Distribute"
-          onClick={() => { setAlignDropdownOpen(!alignDropdownOpen); setMirrorDropdownOpen(false); setRotateDropdownOpen(false); }}
+          onClick={() => { setAlignDropdownOpen(!alignDropdownOpen); setMirrorDropdownOpen(false); setRotateCustomOpen(false); }}
           active={alignDropdownOpen}
           disabled={!multiSelected}
         />
@@ -775,92 +840,89 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <div ref={mirrorMenuRef} className="relative">
         <ToolbarButton
           icon={<FlipHorizontal2 size={iconSize} />}
-          tooltip="Mirror / Flip"
-          onClick={() => { setMirrorDropdownOpen(!mirrorDropdownOpen); setAlignDropdownOpen(false); setRotateDropdownOpen(false); }}
+          tooltip="Flip (Ctrl+Shift+H / Ctrl+Alt+V)"
+          onClick={() => { setMirrorDropdownOpen(!mirrorDropdownOpen); setAlignDropdownOpen(false); setRotateCustomOpen(false); }}
           active={mirrorDropdownOpen}
           disabled={selectedNodes.length === 0}
         />
         {mirrorDropdownOpen && (
           <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[170px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { handleMirror(mirrorHorizontal); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <FlipHorizontal2 size={13} className="text-slate-400" /> Flip Horizontal
+              <FlipHorizontal2 size={13} className="text-slate-400" /> Horizontal <Kbd shortcut="Ctrl+Shift+H" />
             </button>
             <button onClick={() => { handleMirror(mirrorVertical); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <FlipVertical2 size={13} className="text-slate-400" /> Flip Vertical
+              <FlipVertical2 size={13} className="text-slate-400" /> Vertical <Kbd shortcut="Ctrl+Alt+V" />
             </button>
           </div>
         )}
       </div>
 
-      {/* Rotate dropdown — 45° increments + custom */}
-      <div ref={rotateMenuRef} className="relative">
-        <ToolbarButton
-          icon={<RotateCw size={iconSize} />}
-          tooltip="Rotate"
-          onClick={() => { setRotateDropdownOpen(!rotateDropdownOpen); setAlignDropdownOpen(false); setMirrorDropdownOpen(false); }}
-          active={rotateDropdownOpen}
+      {/* Rotate left (CCW) — click = rotate, long-press = custom angle */}
+      <div ref={rotateCustomRef} className="relative flex items-center">
+        <button
+          data-tooltip={`Rotate Left ${isNaN(rotateIncrement) || rotateIncrement === 0 ? 15 : Math.abs(rotateIncrement)}°  (hold for custom)`}
           disabled={selectedNodes.length === 0}
-        />
-        {rotateDropdownOpen && (
-          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[170px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
-            <button onClick={() => handleRotate(45)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <RotateCw size={13} className="text-slate-400" /> 45° Clockwise
-            </button>
-            <button onClick={() => handleRotate(90)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <RotateCw size={13} className="text-slate-400" /> 90° Clockwise
-            </button>
-            <button onClick={() => handleRotate(135)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <RotateCw size={13} className="text-slate-400" /> 135° Clockwise
-            </button>
-            <button onClick={() => handleRotate(180)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <RotateCw size={13} className="text-slate-400" /> 180°
-            </button>
-            <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
-            <button onClick={() => handleRotate(-45)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <RotateCcw size={13} className="text-slate-400" /> 45° Counter-CW
-            </button>
-            <button onClick={() => handleRotate(-90)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <RotateCcw size={13} className="text-slate-400" /> 90° Counter-CW
-            </button>
-            <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
-            <div className="flex items-center gap-1 px-2 py-1">
-              <input
-                type="number"
-                value={customRotateAngle}
-                onChange={(e) => setCustomRotateAngle(e.target.value)}
-                placeholder="Custom°"
-                className={`w-20 text-xs px-1.5 py-1 rounded border ${darkMode ? 'bg-dk-input border-dk-border text-dk-text' : 'bg-white border-slate-200 text-slate-700'}`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const angle = parseFloat(customRotateAngle);
-                    if (!isNaN(angle) && angle !== 0) {
-                      handleRotate(angle);
-                      setCustomRotateAngle('');
+          onMouseDown={() => handleRotateLongPress('ccw')}
+          onMouseUp={() => handleRotateMouseUp('ccw')}
+          onMouseLeave={() => { if (rotateLongPressTimer.current) { clearTimeout(rotateLongPressTimer.current); rotateLongPressTimer.current = null; } }}
+          className={`
+            relative flex items-center gap-1 px-1.5 py-1 rounded text-xs transition-colors duration-100
+            ${selectedNodes.length === 0
+              ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
+              : 'cursor-pointer text-text-muted hover:bg-slate-100 hover:text-text'}
+          `}
+        >
+          <RotateCcw size={iconSize} />
+        </button>
+        <button
+          data-tooltip={`Rotate Right ${isNaN(rotateIncrement) || rotateIncrement === 0 ? 15 : Math.abs(rotateIncrement)}°  (hold for custom)`}
+          disabled={selectedNodes.length === 0}
+          onMouseDown={() => handleRotateLongPress('cw')}
+          onMouseUp={() => handleRotateMouseUp('cw')}
+          onMouseLeave={() => { if (rotateLongPressTimer.current) { clearTimeout(rotateLongPressTimer.current); rotateLongPressTimer.current = null; } }}
+          className={`
+            relative flex items-center gap-1 px-1.5 py-1 rounded text-xs transition-colors duration-100
+            ${selectedNodes.length === 0
+              ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
+              : 'cursor-pointer text-text-muted hover:bg-slate-100 hover:text-text'}
+          `}
+        >
+          <RotateCw size={iconSize} />
+        </button>
+
+        {/* Custom angle popover — shown on long-press */}
+        {rotateCustomOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setRotateCustomOpen(false)} />
+            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 rounded-lg shadow-xl border p-2 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+              <div className={`text-[10px] font-semibold uppercase tracking-wider mb-1.5 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+                Rotation Increment
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={customRotateAngle}
+                  onChange={(e) => setCustomRotateAngle(e.target.value)}
+                  placeholder="15"
+                  autoFocus
+                  className={`w-16 text-xs px-1.5 py-1 rounded border ${darkMode ? 'bg-dk-input border-dk-border text-dk-text' : 'bg-white border-slate-200 text-slate-700'}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      setRotateCustomOpen(false);
                     }
-                  }
-                }}
-              />
-              <button
-                onClick={() => {
-                  const angle = parseFloat(customRotateAngle);
-                  if (!isNaN(angle) && angle !== 0) {
-                    handleRotate(angle);
-                    setCustomRotateAngle('');
-                  }
-                }}
-                className={`text-xs px-2 py-1 rounded cursor-pointer ${darkMode ? 'bg-dk-hover text-dk-text hover:bg-dk-border' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-              >
-                Apply
-              </button>
+                  }}
+                />
+                <span className={`text-xs ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>deg</span>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
       {/* Straighten All Edges */}
       <ToolbarButton
         icon={<MoveHorizontal size={iconSize} />}
-        tooltip="Straighten All Edges (Ctrl+Shift+S)"
+        tooltip="Straighten All Edges (Ctrl+Alt+S)"
         onClick={() => useFlowStore.getState().straightenEdges()}
         disabled={useFlowStore.getState().edges.length === 0}
       />
@@ -871,9 +933,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <>
         <ToolbarButton icon={<Undo2 size={iconSize} />} tooltip="Undo (Ctrl+Z)" onClick={onUndo} disabled={!canUndo} />
         <ToolbarButton icon={<Redo2 size={iconSize} />} tooltip="Redo (Ctrl+Shift+Z)" onClick={onRedo} disabled={!canRedo} />
-        <ToolbarButton icon={<Copy size={iconSize} />} tooltip="Copy" disabled={!hasSelection} />
-        <ToolbarButton icon={<Clipboard size={iconSize} />} tooltip="Paste" disabled />
-        <ToolbarButton icon={<Trash2 size={iconSize} />} tooltip="Delete Selected" onClick={handleDelete} disabled={!hasSelection} />
+        <ToolbarButton icon={<Copy size={iconSize} />} tooltip="Copy (Ctrl+C)" disabled={!hasSelection} />
+        <ToolbarButton icon={<Clipboard size={iconSize} />} tooltip="Paste (Ctrl+V)" disabled />
+        <ToolbarButton icon={<Trash2 size={iconSize} />} tooltip="Delete Selected (Del)" onClick={handleDelete} disabled={!hasSelection} />
         <ToolbarButton icon={<ChevronDown size={iconSize} />} tooltip="Send Backward (Ctrl+[)" onClick={handleSendBackward} disabled={selectedNodes.length === 0} />
         <ToolbarButton icon={<ChevronUp size={iconSize} />} tooltip="Bring Forward (Ctrl+])" onClick={handleBringForward} disabled={selectedNodes.length === 0} />
       </>
@@ -947,7 +1009,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </div>
 
         <ToolbarButton icon={<Ruler size={iconSize} />} tooltip="Toggle Rulers" onClick={toggleRuler} active={rulerVisible} />
-        <ToolbarButton icon={<Map size={iconSize} />} tooltip="Toggle Minimap" onClick={toggleMinimap} active={minimapVisible} />
         <div className="relative" ref={snapDropdownRef}>
           <ToolbarButton icon={<Magnet size={iconSize} />} tooltip="Snap Options" onClick={() => setSnapOptionsOpen(!snapOptionsOpen)} active={snapEnabled} />
           {snapOptionsOpen && (
@@ -1134,7 +1195,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           )}
         </div>
 
-        <ToolbarButton icon={<Download size={iconSize} />} tooltip="Export (Ctrl+E)" onClick={handleOpenExport} />
+        <ToolbarButton icon={<Upload size={iconSize} />} tooltip="Export (Ctrl+Shift+E)" onClick={handleOpenExport} />
         <ToolbarButton icon={<ClipboardPaste size={iconSize} />} tooltip="Import JSON" onClick={() => setImportDialogOpen(true)} />
       </>
     ),

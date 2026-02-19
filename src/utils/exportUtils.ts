@@ -936,9 +936,11 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
     const fontFamily = d.fontFamily || globalFont;
     const textAlign = (d.textAlign as 'left' | 'center' | 'right') || 'center';
 
-    // Border properties — always render a border for visual fidelity.
-    // If no explicit border color, use a darkened version of the fill color.
-    const borderWidth = d.borderWidth ?? 1;
+    // Border properties — scale border width proportionally with the diagram.
+    // pptxgenjs line.width is in points (1pt = 1/72 inch).
+    // Convert canvas px -> inches -> points, with a minimum of 0.5pt.
+    const borderWidthPx = d.borderWidth ?? 1;
+    const scaledBorderWidth = Math.max(0.5, Math.round(borderWidthPx * scale * 72 * 10) / 10);
     const borderDash = toPptxDashType(d.borderStyle);
     const hasBorderColor = borderColorRaw && borderColorRaw !== 'transparent';
     const derivedBorderColor = hasBorderColor
@@ -956,9 +958,10 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       : { color: fillColor, transparency: fillTransparency };
     const lineOpts = isIconOnly
       ? ({ type: 'none' } as unknown as { color: string; width: number; dashType: 'solid' | 'dash' | 'sysDot' | 'lgDash' })
-      : { color: derivedBorderColor, width: borderWidth, dashType: borderDash };
+      : { color: derivedBorderColor, width: scaledBorderWidth, dashType: borderDash };
 
     // Build text options shared across all rendering paths
+    // Use tight margins so text fits better within shapes
     const textOpts = {
       fontSize: finalFontSize,
       color: textColor,
@@ -966,6 +969,8 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       valign: 'middle' as const,
       fontFace: fontFamily,
       bold: isBold,
+      margin: [0.02, 0.05, 0.02, 0.05] as [number, number, number, number],
+      shrinkText: true,
     };
 
     if (pptxShapeName) {
@@ -1004,7 +1009,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       // ---------- SVG image fallback for complex shapes ---------------
       const svgFill = d.color || '#3b82f6';
       const svgStroke = hasBorderColor ? borderColorRaw : '#' + darkenHex(fillColorRaw);
-      const svgStrokeWidth = borderWidth;
+      const svgStrokeWidth = borderWidthPx;
       const svgDash = d.borderStyle === 'dashed' ? '8 4' : d.borderStyle === 'dotted' ? '2 2' : '';
       const svgString = svgRenderer(
         Math.round(w), Math.round(h), svgFill, svgStroke, svgStrokeWidth, svgDash,
@@ -1529,6 +1534,8 @@ export function importFromJson(
 
     // Optional boolean fields
     if (typeof rawData.iconOnly === 'boolean') nodeData.iconOnly = rawData.iconOnly;
+    if (typeof rawData.flipH === 'boolean') nodeData.flipH = rawData.flipH;
+    if (typeof rawData.flipV === 'boolean') nodeData.flipV = rawData.flipV;
 
     // Dependencies
     if (Array.isArray(rawData.dependsOn)) {

@@ -512,7 +512,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const iconPosition = nodeData.iconPosition || 'left';
   const [editValue, setEditValue] = useState(nodeData.label);
   const [autoFitFontSize, setAutoFitFontSize] = useState<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
 
   const shape = nodeData.shape || 'rectangle';
@@ -562,6 +562,10 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && e.shiftKey) {
+        // Shift+Enter inserts a newline (textarea handles this natively)
+        return;
+      }
       if (e.key === 'Enter') {
         commitEdit();
       } else if (e.key === 'Escape') {
@@ -651,8 +655,10 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     overflow: 'visible',
   };
 
-  // Visual rotation angle (CSS transform on inner shape — keeps handles in original positions)
+  // Visual transforms (CSS transform on inner shape — keeps handles in original positions)
   const rotation = nodeData.rotation || 0;
+  const flipH = nodeData.flipH || false;
+  const flipV = nodeData.flipV || false;
 
   // Inner shape: has the visual styling, clips text overflow
   const nodeStyle: React.CSSProperties = {
@@ -677,8 +683,14 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     ...(noBox ? {} : shapeStyles[shape]),
     // User-set border radius overrides the shape default
     ...(userBorderRadius !== undefined && !noBox ? { borderRadius: userBorderRadius } : {}),
-    // Apply visual rotation
-    ...(rotation !== 0 ? { transform: `rotate(${rotation}deg)` } : {}),
+    // Apply visual transforms (rotation + flip)
+    ...(() => {
+      const parts: string[] = [];
+      if (rotation !== 0) parts.push(`rotate(${rotation}deg)`);
+      if (flipH) parts.push('scaleX(-1)');
+      if (flipV) parts.push('scaleY(-1)');
+      return parts.length > 0 ? { transform: parts.join(' ') } : {};
+    })(),
   };
 
   const labelStyle: React.CSSProperties = isDiamond
@@ -759,7 +771,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           width="100%"
           height="100%"
           viewBox={arrowViewBox}
-          preserveAspectRatio="xMidYMid meet"
+          preserveAspectRatio="none"
           className="absolute inset-0 pointer-events-none"
         >
           <ArrowSvg
@@ -842,17 +854,18 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           >
             {IconComponent && renderStyledIcon(actualIconSize)}
             {isEditing ? (
-              <input
+              <textarea
                 ref={inputRef}
-                className="bg-transparent text-center outline-none border-none w-full px-1"
-                style={{ color: textColor, fontSize: scaledFontSize }}
+                className="bg-transparent text-center outline-none border-none w-full px-1 resize-none overflow-hidden"
+                style={{ color: textColor, fontSize: scaledFontSize, lineHeight: 1.3 }}
                 value={editValue}
+                rows={Math.max(1, (editValue || '').split('\n').length)}
                 onChange={(e) => setEditValue(e.target.value)}
                 onBlur={commitEdit}
                 onKeyDown={handleKeyDown}
               />
             ) : (
-              <span className="text-center select-none break-words leading-tight" style={{ wordBreak: 'break-word' }}>
+              <span className="text-center select-none break-words leading-tight whitespace-pre-wrap" style={{ wordBreak: 'break-word' }}>
                 {nodeData.label}
               </span>
             )}

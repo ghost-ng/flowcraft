@@ -46,6 +46,8 @@ export interface UIState {
 
   // ---- format painter -----------------------------------------
   formatPainterActive: boolean;
+  /** When true, format painter stays active after applying (double-click to enable) */
+  formatPainterPersistent: boolean;
   formatPainterNodeStyle: {
     color?: string;
     borderColor?: string;
@@ -149,6 +151,7 @@ export interface UIState {
   selectPucks: (puckIds: string[], nodeId?: string | null) => void;
 
   setFormatPainterActive: (active: boolean) => void;
+  setFormatPainterPersistent: (persistent: boolean) => void;
   setFormatPainterNodeStyle: (style: UIState['formatPainterNodeStyle']) => void;
   setFormatPainterEdgeStyle: (style: UIState['formatPainterEdgeStyle']) => void;
   clearFormatPainter: () => void;
@@ -205,6 +208,7 @@ export const useUIStore = create<UIState>()((set) => ({
   selectedPuckNodeId: null,
 
   formatPainterActive: false,
+  formatPainterPersistent: false,
   formatPainterNodeStyle: null,
   formatPainterEdgeStyle: null,
 
@@ -283,10 +287,12 @@ export const useUIStore = create<UIState>()((set) => ({
   selectPucks: (puckIds, nodeId) => set({ selectedPuckIds: puckIds, selectedPuckNodeId: nodeId ?? null }),
 
   setFormatPainterActive: (active) => set({ formatPainterActive: active }),
+  setFormatPainterPersistent: (persistent) => set({ formatPainterPersistent: persistent }),
   setFormatPainterNodeStyle: (style) => set({ formatPainterNodeStyle: style }),
   setFormatPainterEdgeStyle: (style) => set({ formatPainterEdgeStyle: style }),
   clearFormatPainter: () => set({
     formatPainterActive: false,
+    formatPainterPersistent: false,
     formatPainterNodeStyle: null,
     formatPainterEdgeStyle: null,
   }),

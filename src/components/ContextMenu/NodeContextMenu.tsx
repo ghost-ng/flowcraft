@@ -21,6 +21,7 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
+  Type,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -100,6 +101,21 @@ const quickColors = [
   '#6b7280', // gray
   '#f97316', // orange
   '#14b8a6', // teal
+];
+
+const fontOptions: { label: string; value: string }[] = [
+  { label: 'Inter', value: "Inter, system-ui, sans-serif" },
+  { label: 'Aptos', value: "Aptos, Calibri, sans-serif" },
+  { label: 'Calibri', value: "Calibri, 'Gill Sans', sans-serif" },
+  { label: 'Segoe UI', value: "'Segoe UI', Tahoma, sans-serif" },
+  { label: 'Arial', value: "Arial, Helvetica, sans-serif" },
+  { label: 'Franklin Gothic', value: "'Franklin Gothic Medium', 'Franklin Gothic', Arial, sans-serif" },
+  { label: 'Franklin Gothic Book', value: "'Franklin Gothic Book', 'Franklin Gothic', Arial, sans-serif" },
+  { label: 'Verdana', value: "Verdana, Geneva, sans-serif" },
+  { label: 'Georgia', value: "Georgia, 'Times New Roman', serif" },
+  { label: 'Times New Roman', value: "'Times New Roman', Times, serif" },
+  { label: 'Consolas', value: "Consolas, 'Courier New', monospace" },
+  { label: 'Comic Sans MS', value: "'Comic Sans MS', cursive, sans-serif" },
 ];
 
 const statusOptions: { value: StatusIndicator['status']; label: string; color: string }[] = [
@@ -201,7 +217,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'order' | null>(null);
+  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'order' | 'font' | null>(null);
 
   // Close on click-outside or Escape
   useEffect(() => {
@@ -297,6 +313,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           label="Copy"
           onClick={() => { onCopy(); onClose(); }}
           darkMode={darkMode}
+          shortcut="Ctrl+C"
           onMouseEnter={() => setSubmenu(null)}
         />
         <MenuItem
@@ -434,6 +451,54 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
               />
             ))}
           </div>
+        </div>
+
+        {/* Change Font submenu */}
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Type size={14} />}
+            label="Change Font"
+            onClick={() => setSubmenu(submenu === 'font' ? null : 'font')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('font')}
+          />
+          {submenu === 'font' && (
+            <div
+              className={`
+                absolute top-0 ${subPos} min-w-[200px] max-h-[300px] overflow-y-auto rounded-lg shadow-xl border p-1
+                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
+              `}
+            >
+              {fontOptions.map(({ label, value }) => {
+                const node = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+                const currentFont = node?.data?.fontFamily || '';
+                const isActive = currentFont === value;
+                return (
+                  <button
+                    key={value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateNodeData(nodeId, { fontFamily: value });
+                      onClose();
+                    }}
+                    className={`
+                      flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
+                      transition-colors duration-75 cursor-pointer
+                      ${isActive
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
+                      }
+                    `}
+                  >
+                    <span className="text-sm w-[22px] text-center flex-shrink-0" style={{ fontFamily: value }}>Aa</span>
+                    <span style={{ fontFamily: value }}>{label}</span>
+                    {isActive && <span className="ml-auto text-primary text-[10px]">&#10003;</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <MenuDivider darkMode={darkMode} />
