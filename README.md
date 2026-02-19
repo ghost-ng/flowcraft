@@ -27,10 +27,13 @@ FlowCraft is a browser-based diagramming application for creating flowcharts, sy
 - Export to PNG, SVG, PDF, PPTX, and JSON with grid/minimap toggle
 - Copy diagram to clipboard as SVG vector (paste into Figma, Illustrator, etc.)
 - Import from JSON with full validation
-- Keyboard shortcuts for common operations
+- Multi-line node labels (Shift+Enter for newlines)
+- Per-node font selection via right-click context menu
+- Keyboard shortcuts for common operations (browser-safe, PPT-aligned)
 - Dark mode support
 - Alignment, distribution, and auto-layout
 - Snap-to-grid with configurable snap distance (4/8/16/32px)
+- Status bar with session timer, element count, cursor position, eyedropper, and minimap toggle
 
 ## JSON Import Rulebook
 

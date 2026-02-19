@@ -20,9 +20,10 @@
 16. [Exporting](#exporting)
 17. [Saving & Loading](#saving--loading)
 18. [Importing JSON](#importing-json)
-19. [Keyboard Shortcuts](#keyboard-shortcuts)
-20. [Toolbar Reference](#toolbar-reference)
-21. [Context Menus](#context-menus)
+19. [Status Bar](#status-bar)
+20. [Keyboard Shortcuts](#keyboard-shortcuts)
+21. [Toolbar Reference](#toolbar-reference)
+22. [Context Menus](#context-menus)
 
 ---
 
@@ -63,7 +64,7 @@ When you first open FlowCraft, you'll see:
 - **Snap Distance** - click the Snap button to see a dropdown with distance options: 4px, 8px, 16px, or 32px. The snap distance controls how far apart elements snap, independent of grid spacing.
 
 ### Overlays
-- **Minimap** - small overview in the corner, click to navigate
+- **Minimap** - small overview in the corner, click to navigate. Toggle via the **Minimap** button in the bottom status bar.
 - **Rulers** - pixel guides along top and left edges
 
 ---
@@ -97,7 +98,10 @@ Drag any shape from the left palette onto the canvas. Available shapes:
 - **Double-click** a node to edit its text
 - Press **F2** with a node selected to start editing
 - Press **Enter** or click elsewhere to confirm
+- Press **Shift + Enter** to insert a new line (multi-line labels)
 - Press **Escape** to cancel editing
+
+In the Properties Panel, multi-line labels display `\n` escape characters to represent line breaks. You can type `\n` directly in the panel's label field to add line breaks.
 
 ### Resizing Nodes
 - Hover over a node to reveal resize handles at the corners
@@ -122,6 +126,8 @@ Drag any shape from the left palette onto the canvas. Available shapes:
 
 ### Straighten Connector
 Right-click any edge and select **Straighten** to align the target node so that its center matches the source node's center along the connection axis. This works for both horizontal and vertical connections, producing a clean, perfectly straight connector path.
+
+You can also press **Ctrl + Alt + S** to straighten all edges in the diagram at once.
 
 ### Arrowheads
 Over 25 arrowhead styles including:
@@ -296,8 +302,8 @@ Available in the toolbar Align dropdown and context menu:
 - Distribute Vertically (equal vertical spacing)
 
 ### Mirror / Flip
-- **Ctrl + Shift + H** - Mirror horizontally (swap left-right positions)
-- **Ctrl + Shift + F** - Mirror vertically (swap top-bottom positions)
+- **Ctrl + Shift + H** - Flip horizontal (swap left-right positions)
+- **Ctrl + Alt + V** - Flip vertical (swap top-bottom positions)
 
 ### Z-Ordering
 Control the stacking order of nodes (like PowerPoint):
@@ -309,7 +315,7 @@ Control the stacking order of nodes (like PowerPoint):
 These are also available via right-click > **Order** submenu.
 
 ### Auto Layout
-- **Ctrl + L** - Automatically arrange nodes in a top-to-bottom hierarchy
+- **Ctrl + Shift + L** - Automatically arrange nodes in a top-to-bottom hierarchy
 - Also available as toolbar buttons for vertical and horizontal layout
 
 ### Nudging
@@ -446,7 +452,7 @@ Copy styling from one element and apply it to others.
 
 ### How to Use
 1. Select a node or edge whose style you want to copy
-2. Click the **Format Painter** button in the toolbar (or **Ctrl + Shift + C** to copy style)
+2. Click the **Format Painter** button in the toolbar (or **Ctrl + Alt + C** to copy style)
 3. Click on target nodes/edges to apply the style
 4. Press **Escape** or click the Format Painter button again to deactivate
 
@@ -505,13 +511,13 @@ Apply a complete visual theme to your entire diagram. Available in the toolbar S
 Apply palette colors quickly with number keys **1-9** to color selected nodes.
 
 ### Dark Mode
-Toggle dark mode with the toolbar button or **Ctrl + Shift + D**.
+Toggle dark mode with the toolbar button or **Ctrl + Shift + K**.
 
 ---
 
 ## Exporting
 
-Press **Ctrl + E** or click the Export button to open the export dialog.
+Press **Ctrl + Shift + E** or click the Export button to open the export dialog.
 
 ### Image Formats
 
@@ -602,6 +608,20 @@ The JSON format supports nodes, edges, swimlanes, layers, viewport, and styles. 
 
 ---
 
+## Status Bar
+
+The status bar runs along the bottom of the canvas, showing contextual information:
+
+- **Session timer** — time spent on the current diagram session
+- **Element count** — total nodes and edges on the canvas
+- **Selection info** — number and type of selected elements
+- **Cursor position** — mouse coordinates in flow space (X, Y)
+- **Eyedropper** — color picker from screen (visible when a node is selected, browser support required)
+- **Minimap toggle** — show/hide the minimap overlay
+- **Zoom level** — current zoom percentage
+
+---
+
 ## Keyboard Shortcuts
 
 Press **Ctrl + /** to view the full shortcuts dialog at any time.
@@ -612,12 +632,12 @@ Press **Ctrl + /** to view the full shortcuts dialog at any time.
 | Ctrl + Z | Undo |
 | Ctrl + Shift + Z | Redo |
 | Ctrl + S | Save to file |
-| Ctrl + E | Export dialog |
+| Ctrl + Shift + E | Export dialog |
 | Ctrl + A | Select all |
 | Delete / Backspace | Delete selected |
 | Escape | Cancel / Deselect |
 | Ctrl + Drag | Rectangle select |
-| Ctrl + Shift + D | Toggle dark mode |
+| Ctrl + Shift + K | Toggle dark mode |
 
 ### Nodes
 | Shortcut | Action |
@@ -637,17 +657,21 @@ Press **Ctrl + /** to view the full shortcuts dialog at any time.
 | Ctrl + [ | Send backward |
 | Ctrl + Shift + ] | Bring to front |
 | Ctrl + Shift + [ | Send to back |
-| Ctrl + L | Auto layout |
+| Ctrl + Shift + L | Auto layout |
 | Ctrl + G | Group in region |
 | Ctrl + Shift + G | Link group |
-| Ctrl + Shift + H | Mirror horizontal |
-| Ctrl + Shift + F | Mirror vertical |
+| Ctrl + Shift + H | Flip horizontal |
+| Ctrl + Alt + V | Flip vertical |
+| Ctrl + Alt + S | Straighten all edges |
 
 ### Style
 | Shortcut | Action |
 |----------|--------|
-| Ctrl + Shift + C | Copy style |
+| Ctrl + Alt + C | Copy style |
 | Ctrl + Shift + V | Paste style |
+| Ctrl + C | Copy selected |
+| Ctrl + V | Paste |
+| Ctrl + / | Show keyboard shortcuts |
 
 ---
 
@@ -674,11 +698,12 @@ The toolbar runs along the top (or left side) of the application, organized into
 - **Zoom In** / **Zoom Out** / **Fit View**
 - **Grid Options** - toggle grid, change style and spacing
 - **Rulers** - toggle ruler visibility
-- **Minimap** - toggle minimap
 - **Snap** - toggle snap to grid; click to open dropdown with snap distance options (4/8/16/32px)
 
+> **Note:** The **Minimap** toggle has moved to the bottom status bar for quick access.
+
 ### Layout Group
-- **Auto Arrange** (Ctrl+L)
+- **Auto Arrange** (Ctrl+Shift+L)
 - **Vertical Layout** / **Horizontal Layout**
 
 ### Transform Group (active with 2+ selections)
@@ -696,14 +721,14 @@ The toolbar runs along the top (or left side) of the application, organized into
 ### Export Group
 - **Copy as Image** - copy diagram as PNG to clipboard
 - **Copy as SVG** - copy diagram as SVG to clipboard
-- **Export** (Ctrl+E) - open export dialog
+- **Export** (Ctrl+Shift+E) - open export dialog
 - **Import** - open JSON import dialog
 
 ### Utilities Group
 - **Keyboard Shortcuts** (Ctrl+/) - view shortcuts dialog
 - **Selection Color** - change the highlight color for selected elements
 - **Presentation Mode** - full-screen presentation with annotation tools
-- **Dark Mode** (Ctrl+Shift+D)
+- **Dark Mode** (Ctrl+Shift+K)
 
 ---
 
@@ -712,10 +737,11 @@ The toolbar runs along the top (or left side) of the application, organized into
 ### Node Context Menu (right-click a node)
 - **Edit Label** (F2) - start inline editing
 - **Duplicate** (Ctrl+D) - create a copy
-- **Copy** / **Delete**
+- **Copy** (Ctrl+C) / **Delete**
 - **Change Shape** - submenu with all shape types
 - **Add Status** - submenu with status types
 - **Color** - quick color swatches
+- **Change Font** - submenu with 12 popular fonts to change the node's label font individually (shows "Aa" preview in each font, active font is highlighted)
 - **Select** - submenu to select nodes by: same Color, same Outline/Border, same Shape, or All Nodes
 - **Order** - submenu for z-ordering: Forward (Ctrl+]), Backward (Ctrl+[), Front (Ctrl+Shift+]), Back (Ctrl+Shift+[). These items stay open for multiple clicks.
 - **Edit Link Group** - opens the link group editor dialog (visible when node belongs to a link group)
@@ -726,11 +752,11 @@ The toolbar runs along the top (or left side) of the application, organized into
 
 ### Selection Context Menu (right-click with multiple selected)
 - **Delete** - remove all selected
-- **Auto-Format** - quick layout
-- **Group** - Group in Region or Link Group
+- **Auto-Format** (Ctrl+Shift+L) - quick layout
+- **Group** - Group in Region (Ctrl+G) or Link Group (Ctrl+Shift+G)
 - **Align** - alignment options
 - **Distribute** - spacing options
-- **Mirror** / **Rotate** - transform options
+- **Flip** - Horizontal (Ctrl+Shift+H) / Vertical (Ctrl+Alt+V)
 - **Change Color** - apply color to all selected
 
 ---
