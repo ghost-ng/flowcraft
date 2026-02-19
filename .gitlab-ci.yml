@@ -10,6 +10,7 @@ build:
   image: node:${NODE_VERSION}
   script:
     - tar xzf node_modules.tar.gz
+    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node 2>/dev/null || true
     - npm run build
   artifacts:
     paths:
@@ -21,6 +22,7 @@ pages:
   image: node:${NODE_VERSION}
   script:
     - tar xzf node_modules.tar.gz
+    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node 2>/dev/null || true
     - npm run build
     # GitLab Pages requires output in 'public/' directory
     - rm -rf public
