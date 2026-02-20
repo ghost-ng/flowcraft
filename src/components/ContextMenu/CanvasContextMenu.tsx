@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useMenuPosition } from './menuUtils';
 import {
   Plus,
   ClipboardPaste,
@@ -109,25 +110,12 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
     };
   }, [onClose]);
 
-  // Ensure menu stays within the viewport
-  const adjustedStyle = useCallback((): React.CSSProperties => {
-    const menuW = 200;
-    const menuH = 220;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    return {
-      position: 'fixed',
-      top: y + menuH > vh ? vh - menuH - 8 : y,
-      left: x + menuW > vw ? vw - menuW - 8 : x,
-      zIndex: 9999,
-    };
-  }, [x, y]);
+  const menuStyle = useMenuPosition(x, y, menuRef);
 
   return (
     <div
       ref={menuRef}
-      style={adjustedStyle()}
+      style={menuStyle}
       className={`
         min-w-[180px] rounded-lg shadow-xl border p-1
         ${darkMode

@@ -95,7 +95,7 @@ const ImportJsonDialog: React.FC<ImportJsonDialogProps> = ({ open, onClose }) =>
         {/* Content */}
         <div className="px-5 py-4 flex-1 flex flex-col gap-3">
           <p className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-            Paste a FlowCraft JSON diagram below, then click Import.
+            Paste a Chart Hero JSON diagram below, then click Import.
           </p>
           <textarea
             ref={textareaRef}

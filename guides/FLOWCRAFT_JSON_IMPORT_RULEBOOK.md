@@ -1,12 +1,12 @@
-# FlowCraft JSON Import Rulebook
+# Chart Hero JSON Import Rulebook
 
-> **Purpose:** This document is a complete specification for AI models to generate valid FlowCraft JSON files that can be imported and auto-build diagrams.
+> **Purpose:** This document is a complete specification for AI models to generate valid Chart Hero JSON files that can be imported and auto-build diagrams.
 
 > **CRITICAL: The output MUST be strict JSON.** No comments (`//`, `/* */`), no trailing commas, no unquoted keys. JSON does not support comments — the parser will reject the entire file if comments are present. If you need to annotate sections, use a `"_comment"` key inside an object (it will be silently ignored by the importer).
 
 ## 1. File Structure
 
-A FlowCraft JSON file is a single object with these top-level keys:
+A Chart Hero JSON file is a single object with these top-level keys:
 
 ```json
 {
@@ -556,7 +556,7 @@ To assign a node to a layer, set `data.layerId` on the node to match a layer's `
 
 ## 9. Legends (Dual Legend System)
 
-FlowCraft supports **two independent legend overlays**: one for nodes/edges and one for swimlanes. Each has its own position, style, and items.
+Chart Hero supports **two independent legend overlays**: one for nodes/edges and one for swimlanes. Each has its own position, style, and items.
 
 Use `nodeLegend` for node fill colors, borders, status pucks, and edge colors. Use `swimlaneLegend` for swimlane lane colors. For backwards compatibility, the importer also accepts a single `legend` field (imported as the node legend if `nodeLegend` is absent).
 
@@ -662,7 +662,7 @@ If `nodeLegend` and `swimlaneLegend` are both absent, the importer falls back to
 
 ## 10. Icons
 
-FlowCraft uses [Lucide icons](https://lucide.dev/icons/). When specifying an icon name, use the **PascalCase** component name from lucide-react.
+Chart Hero uses [Lucide icons](https://lucide.dev/icons/). When specifying an icon name, use the **PascalCase** component name from lucide-react.
 
 ### 10.1 Icon Properties on Nodes
 

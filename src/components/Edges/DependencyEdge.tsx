@@ -24,12 +24,12 @@ const DEPENDENCY_STYLES: Record<DependencyType, DependencyStyle> = {
   'depends-on': {
     stroke: '#94a3b8',
     opacity: 1,
-    markerEnd: 'url(#flowcraft-filledTriangle)',
+    markerEnd: 'url(#charthero-filledTriangle)',
   },
   blocks: {
     stroke: '#e53e3e',
     opacity: 1,
-    markerEnd: 'url(#flowcraft-filledTriangle)',
+    markerEnd: 'url(#charthero-filledTriangle)',
   },
   related: {
     stroke: '#a0aec0',
@@ -40,18 +40,18 @@ const DEPENDENCY_STYLES: Record<DependencyType, DependencyStyle> = {
   triggers: {
     stroke: '#6366f1',
     opacity: 1,
-    markerEnd: 'url(#flowcraft-filledTriangle)',
+    markerEnd: 'url(#charthero-filledTriangle)',
   },
   optional: {
     stroke: '#94a3b8',
     strokeDasharray: '3 3',
     opacity: 0.6,
-    markerEnd: 'url(#flowcraft-openTriangle)',
+    markerEnd: 'url(#charthero-openTriangle)',
   },
   'milestone-gate': {
     stroke: '#d69e2e',
     opacity: 1,
-    markerEnd: 'url(#flowcraft-filledDiamond)',
+    markerEnd: 'url(#charthero-filledDiamond)',
   },
   none: {
     stroke: '#94a3b8',
@@ -225,9 +225,9 @@ const DependencyEdge: React.FC<EdgeProps> = ({
           targetY={targetY}
           labelPosition={ev.labelPosition ?? 0.5}
           labelColor={ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569'}
-          labelBgColor={ev.overrideLabelBgColor ?? '#ffffff'}
+          labelBgColor={ev.labelBgColor ?? ev.overrideLabelBgColor ?? '#ffffff'}
           borderColor={strokeColor}
-          fontSize={ev.overrideLabelFontSize ?? 11}
+          fontSize={ev.labelFontSize ?? ev.overrideLabelFontSize ?? 11}
           offsetY={DEPENDENCY_LABELS[depType] ? 8 : 0}
         />
       )}

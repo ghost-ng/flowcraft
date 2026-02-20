@@ -74,7 +74,7 @@ export function getStatusIndicators(data: FlowNodeData): StatusIndicator[] {
   return [];
 }
 
-/** Data payload stored on every FlowCraft node */
+/** Data payload stored on every Chart Hero node */
 export interface FlowNodeData {
   label: string;
   shape: NodeShape;
@@ -122,13 +122,17 @@ export interface FlowNodeData {
   blockedBy?: string[];
   /** Free-form notes / annotations for this node */
   notes?: string;
+  /** Person / team who completed or owns this node */
+  completedBy?: string;
+  /** Start date for this node (ISO string or free text) */
+  startOn?: string;
   [key: string]: unknown;
 }
 
-/** A typed React Flow node used throughout FlowCraft */
+/** A typed React Flow node used throughout Chart Hero */
 export type FlowNode = Node<FlowNodeData, string>;
 
-/** Data payload stored on every FlowCraft edge */
+/** Data payload stored on every Chart Hero edge */
 export interface FlowEdgeData {
   label?: string;
   color?: string;
@@ -138,13 +142,17 @@ export interface FlowEdgeData {
   labelColor?: string;
   /** Position of the label along the edge (0 = source, 0.5 = center, 1 = target). Default 0.5. */
   labelPosition?: number;
+  /** Font size for the edge label (px). Default 11. */
+  labelFontSize?: number;
+  /** Background color for the edge label */
+  labelBgColor?: string;
   dependencyType?: 'depends-on' | 'blocks' | 'related';
   /** Free-form notes / annotations for this edge */
   notes?: string;
   [key: string]: unknown;
 }
 
-/** A typed React Flow edge used throughout FlowCraft */
+/** A typed React Flow edge used throughout Chart Hero */
 export type FlowEdge = Edge<FlowEdgeData>;
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// BaseNode.tsx -- Shared wrapper for all FlowCraft node shapes
+// BaseNode.tsx -- Shared wrapper for all Chart Hero node shapes
 // ---------------------------------------------------------------------------
 
 import React, {

@@ -194,7 +194,7 @@ interface ShapeItemProps {
 const ShapeItem: React.FC<ShapeItemProps> = React.memo(({ shape, isSelected, onSelect }) => {
   const onDragStart = useCallback(
     (event: React.DragEvent) => {
-      event.dataTransfer.setData('application/flowcraft-shape', shape.type);
+      event.dataTransfer.setData('application/charthero-shape', shape.type);
       event.dataTransfer.effectAllowed = 'move';
     },
     [shape.type],
@@ -282,7 +282,7 @@ const ShapePalette: React.FC = () => {
               <div
                 draggable
                 onDragStart={(e) => {
-                  e.dataTransfer.setData('application/flowcraft-shape', 'group');
+                  e.dataTransfer.setData('application/charthero-shape', 'group');
                   e.dataTransfer.effectAllowed = 'move';
                 }}
                 data-tooltip-right="Group"

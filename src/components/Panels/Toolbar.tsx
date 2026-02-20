@@ -55,11 +55,14 @@ import {
   Type,
   AArrowUp,
   AArrowDown,
+  Download,
+  Flag,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore } from '../../store/flowStore';
+import { useBannerStore } from '../../store/bannerStore';
 import { useExportStore } from '../../store/exportStore';
 import { copyImageToClipboard, copySvgToClipboard, copySvgForPaste, importFromJson, exportAsJson } from '../../utils/exportUtils';
 import { useDependencyStore } from '../../store/dependencyStore';
@@ -67,6 +70,7 @@ import { useSwimlaneStore } from '../../store/swimlaneStore';
 import { useLegendStore } from '../../store/legendStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
 import DiagramStylePicker from '../StylePicker/DiagramStylePicker';
@@ -221,6 +225,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const debugMode = useSettingsStore((s) => s.debugMode);
   const toggleDebugMode = useSettingsStore((s) => s.toggleDebugMode);
   const toolbarGroupOrder = useSettingsStore((s) => s.toolbarGroupOrder);
+  const { canInstall, install: installPwa } = usePwaInstall();
   const setToolbarGroupOrder = useSettingsStore((s) => s.setToolbarGroupOrder);
   const toolbarLocked = useSettingsStore((s) => s.toolbarLocked);
   const toggleToolbarLocked = useSettingsStore((s) => s.toggleToolbarLocked);
@@ -240,6 +245,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // Dependency store
   const showBadges = useDependencyStore((s) => s.showBadges);
   const toggleBadges = useDependencyStore((s) => s.toggleBadges);
+
+  // Banner store
+  const topBannerEnabled = useBannerStore((s) => s.topBanner.enabled);
+  const bottomBannerEnabled = useBannerStore((s) => s.bottomBanner.enabled);
+  const setTopBannerEnabled = useBannerStore((s) => s.setTopEnabled);
+  const setBottomBannerEnabled = useBannerStore((s) => s.setBottomEnabled);
   // Auto layout
   const { applyLayout } = useAutoLayout();
 
@@ -443,6 +454,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
       useLegendStore.getState().resetLegend('swimlane');
       // Reset dependency highlights
       useDependencyStore.getState().clearHighlightedChain();
+      // Reset banners
+      useBannerStore.getState().updateTopBanner({ enabled: false, height: 40, label: '', color: '#1e293b', textColor: '#ffffff', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 14 });
+      useBannerStore.getState().updateBottomBanner({ enabled: false, height: 40, label: '', color: '#1e293b', textColor: '#ffffff', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 14 });
     }
   }, [setNodes, setEdges]);
 
@@ -741,7 +755,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {fileMenuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setFileMenuOpen(false)} />
-            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[160px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[160px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
               <button onClick={() => { handleNew(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <FilePlus size={14} className="text-slate-400" /> New Diagram
               </button>
@@ -770,7 +784,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           active={layoutMenuOpen}
         />
         {layoutMenuOpen && (
-          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { handleAutoArrange(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <LayoutDashboard size={13} className="text-slate-400" /> Auto Arrange <Kbd shortcut="Ctrl+Shift+L" />
             </button>
@@ -779,6 +793,43 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </button>
             <button onClick={() => { handleHorizontalLayout(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <ArrowLeftRight size={13} className="text-slate-400" /> Horizontal Layout
+            </button>
+
+            <div className={`my-1 h-px ${darkMode ? 'bg-dk-border' : 'bg-slate-200'}`} />
+            <div className={`text-[10px] font-semibold uppercase tracking-wider px-2 pt-1 pb-0.5 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>Banner</div>
+
+            <button
+              onClick={() => setTopBannerEnabled(!topBannerEnabled)}
+              className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}
+            >
+              <Flag size={13} className="text-slate-400" />
+              Top Banner
+              <span className="ml-auto">
+                <input
+                  type="checkbox"
+                  checked={topBannerEnabled}
+                  onChange={() => setTopBannerEnabled(!topBannerEnabled)}
+                  className="accent-primary cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </span>
+            </button>
+
+            <button
+              onClick={() => setBottomBannerEnabled(!bottomBannerEnabled)}
+              className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}
+            >
+              <Flag size={13} className="text-slate-400 rotate-180" />
+              Bottom Banner
+              <span className="ml-auto">
+                <input
+                  type="checkbox"
+                  checked={bottomBannerEnabled}
+                  onChange={() => setBottomBannerEnabled(!bottomBannerEnabled)}
+                  className="accent-primary cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </span>
             </button>
           </div>
         )}
@@ -798,7 +849,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           disabled={!multiSelected}
         />
         {alignDropdownOpen && (
-          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-1 pb-0.5 uppercase tracking-wider">Horizontal</div>
             <button onClick={() => handleAlign(alignment.alignLeft)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <AlignLeft size={13} className="text-slate-400" /> Align Left
@@ -846,7 +897,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           disabled={selectedNodes.length === 0}
         />
         {mirrorDropdownOpen && (
-          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[170px] rounded-lg shadow-xl border p-1 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+          <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[170px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { handleMirror(mirrorHorizontal); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <FlipHorizontal2 size={13} className="text-slate-400" /> Horizontal <Kbd shortcut="Ctrl+Shift+H" />
             </button>
@@ -894,7 +945,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {rotateCustomOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setRotateCustomOpen(false)} />
-            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 rounded-lg shadow-xl border p-2 ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 rounded-lg shadow-xl border p-2 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
               <div className={`text-[10px] font-semibold uppercase tracking-wider mb-1.5 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
                 Rotation Increment
               </div>
@@ -955,7 +1006,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             active={gridVisible}
           />
           {gridOptionsOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-3 z-50 w-48">
+            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-3 z-50 w-48 max-h-[calc(100vh-80px)] overflow-y-auto">
               <button
                 onClick={toggleGrid}
                 className={`w-full text-left text-xs px-2 py-1.5 rounded mb-2 transition-colors ${
@@ -1012,7 +1063,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <div className="relative" ref={snapDropdownRef}>
           <ToolbarButton icon={<Magnet size={iconSize} />} tooltip="Snap Options" onClick={() => setSnapOptionsOpen(!snapOptionsOpen)} active={snapEnabled} />
           {snapOptionsOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-3 z-50 w-48">
+            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-3 z-50 w-48 max-h-[calc(100vh-80px)] overflow-y-auto">
               <button
                 onClick={toggleSnap}
                 className={`w-full text-left text-xs px-2 py-1.5 rounded mb-2 transition-colors ${
@@ -1103,7 +1154,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             const currentFont = useSettingsStore.getState().nodeDefaults.fontFamily;
             let lastCategory = '';
             return (
-              <div className="absolute top-full right-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-xl p-1 z-50 min-w-[210px] max-h-[400px] overflow-y-auto">
+              <div className="absolute top-full right-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-xl p-1 z-50 min-w-[210px] max-h-[min(400px,calc(100vh-80px))] overflow-y-auto">
                 <div className="text-[10px] font-semibold text-slate-400 dark:text-dk-faint uppercase tracking-wide px-2 pt-1 pb-1">
                   Global Font
                 </div>
@@ -1170,7 +1221,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             active={svgCopyOpen}
           />
           {svgCopyOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-1 z-50 min-w-[170px]">
+            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-dk-panel border border-slate-200 dark:border-dk-border rounded-lg shadow-lg p-1 z-50 min-w-[170px] max-h-[calc(100vh-80px)] overflow-y-auto">
               <button
                 onClick={() => {
                   handleCopySvg();
@@ -1230,7 +1281,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <Workflow size={20} className="text-primary" />
         {!isVertical && (
           <span className="font-display font-semibold text-sm tracking-tight">
-            FlowCraft
+            Chart Hero
           </span>
         )}
       </div>
@@ -1318,7 +1369,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           </button>
 
           {selectionColorOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 p-3 rounded-lg shadow-xl border bg-white dark:bg-dk-panel dark:border-dk-border" style={{ minWidth: 160 }}>
+            <div className="absolute right-0 top-full mt-1 z-50 p-3 rounded-lg shadow-xl border bg-white dark:bg-dk-panel dark:border-dk-border max-h-[calc(100vh-80px)] overflow-y-auto" style={{ minWidth: 160 }}>
               <div className="text-[10px] font-semibold text-slate-400 dark:text-dk-faint uppercase tracking-wide mb-2">Selection Color</div>
               <div className="grid grid-cols-5 gap-2">
                 {['#d946ef', '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#6b7280'].map((c) => (
@@ -1398,6 +1449,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
           tooltip={isVertical ? 'Switch to Horizontal Toolbar' : 'Switch to Vertical Toolbar'}
           onClick={toggleToolbarOrientation}
         />
+        {canInstall && (
+          <ToolbarButton
+            icon={<Download size={14} />}
+            tooltip="Install as Desktop App"
+            onClick={installPwa}
+          />
+        )}
+
         {!isVertical && (
           <>
             <Sep />
@@ -1405,7 +1464,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               v{__APP_VERSION__}
             </span>
             <a
-              href="https://github.com/ghost-ng/flowcraft"
+              href="https://github.com/ghost-ng/chart-hero"
               target="_blank"
               rel="noopener noreferrer"
               className="p-1 rounded text-text-muted hover:text-text transition-colors"

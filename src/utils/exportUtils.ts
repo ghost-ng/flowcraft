@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// exportUtils.ts -- All export functions for FlowCraft
+// exportUtils.ts -- All export functions for Chart Hero
 // ---------------------------------------------------------------------------
 
 import React, { createElement } from 'react';
@@ -17,6 +17,8 @@ import type { FlowNode, FlowEdge, FlowNodeData, FlowEdgeData, StatusIndicator } 
 import { useStyleStore } from '../store/styleStore';
 import { useSwimlaneStore } from '../store/swimlaneStore';
 import type { SwimlaneConfig, BorderStyleType } from '../store/swimlaneStore';
+import { useBannerStore } from '../store/bannerStore';
+import type { BannerConfig } from '../store/bannerStore';
 import { useLayerStore } from '../store/layerStore';
 import type { Layer } from '../store/layerStore';
 import { useLegendStore } from '../store/legendStore';
@@ -43,7 +45,7 @@ import {
  */
 export function getReactFlowElement(): HTMLElement {
   // Full canvas wrapper includes swimlanes and legend overlay
-  const canvasWrapper = document.querySelector<HTMLElement>('[data-flowcraft-canvas]');
+  const canvasWrapper = document.querySelector<HTMLElement>('[data-charthero-canvas]');
   if (canvasWrapper) return canvasWrapper;
   const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
   if (viewport) return viewport;
@@ -58,7 +60,7 @@ export function getReactFlowElement(): HTMLElement {
 function getFilename(ext: string): string {
   const date = new Date();
   const stamp = date.toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  return `flowcraft-${stamp}.${ext}`;
+  return `charthero-${stamp}.${ext}`;
 }
 
 /**
@@ -254,7 +256,7 @@ export async function exportAsPdf(options: PdfExportOptions): Promise<void> {
   doc.setTextColor(150, 150, 150);
   const dateStr = new Date().toLocaleDateString();
   doc.text(
-    `FlowCraft Diagram - ${dateStr}`,
+    `Chart Hero Diagram - ${dateStr}`,
     pageWidth / 2,
     pageHeight - 5,
     { align: 'center' },
@@ -268,7 +270,7 @@ export async function exportAsPdf(options: PdfExportOptions): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Map FlowCraft node shapes to pptxgenjs SHAPE_NAME values.
+ * Map Chart Hero node shapes to pptxgenjs SHAPE_NAME values.
  */
 const PPTX_SHAPE_MAP: Record<string, SHAPE_NAME> = {
   rectangle: 'rect',
@@ -339,7 +341,7 @@ function getDefaultSize(shape: string): { w: number; h: number } {
   return { w: 160, h: 60 };
 }
 
-/** Convert FlowCraft borderStyle to PptxGenJS dashType */
+/** Convert Chart Hero borderStyle to PptxGenJS dashType */
 function toPptxDashType(style?: string): 'solid' | 'dash' | 'sysDot' | 'lgDash' {
   if (style === 'dashed') return 'lgDash';
   if (style === 'dotted') return 'sysDot';
@@ -476,7 +478,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   // -- optional title slide -------------------------------------------
   if (oneSlidePerGroup) {
     const titleSlide = pptx.addSlide();
-    titleSlide.addText('FlowCraft Diagram', {
+    titleSlide.addText('Chart Hero Diagram', {
       x: 0.5,
       y: 2.5,
       w: slideW - 1,
@@ -507,7 +509,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   }
 
   // Diagram title at the top of the slide
-  slide.addText('FlowCraft Diagram', {
+  slide.addText('Chart Hero Diagram', {
     x: 0.3,
     y: 0.15,
     w: slideW - 0.6,
@@ -1253,7 +1255,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   // -- speaker notes --------------------------------------------------
   if (includeNotes) {
     const noteLines: string[] = [];
-    noteLines.push(`FlowCraft Diagram — ${nodes.length} nodes, ${edges.length} connectors`);
+    noteLines.push(`Chart Hero Diagram — ${nodes.length} nodes, ${edges.length} connectors`);
     noteLines.push(`Exported: ${new Date().toLocaleString()}`);
     noteLines.push('');
     for (const n of nodes) {
@@ -1362,6 +1364,15 @@ export function exportAsJson(options: JsonExportOptions): void {
       : legendState.swimlaneLegend;
   }
 
+  // Banners (top/bottom)
+  const bannerState = useBannerStore.getState();
+  if (bannerState.topBanner.enabled || bannerState.bottomBanner.enabled) {
+    exportData.banners = {
+      topBanner: bannerState.topBanner,
+      bottomBanner: bannerState.bottomBanner,
+    };
+  }
+
   if (options.includeMetadata) {
     exportData.metadata = {
       nodeCount: state.nodes.length,
@@ -1445,7 +1456,7 @@ function stripJsonComments(json: string): string {
 }
 
 /**
- * Import a FlowCraft JSON file and load it into all stores.
+ * Import a Chart Hero JSON file and load it into all stores.
  *
  * Accepts either a raw JSON string or an already-parsed object.
  * Validates and normalises the data, generating missing IDs where needed.
@@ -1521,7 +1532,8 @@ export function importFromJson(
     // Optional string fields
     for (const key of ['description', 'color', 'borderColor', 'textColor', 'fontFamily',
       'textAlign', 'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
-      'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId', 'notes'] as const) {
+      'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId', 'notes',
+      'completedBy', 'startOn'] as const) {
       if (typeof rawData[key] === 'string') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
       }
@@ -1647,6 +1659,8 @@ export function importFromJson(
       if (typeof rawData.labelColor === 'string') edgeData.labelColor = rawData.labelColor;
       if (typeof rawData.labelPosition === 'number') edgeData.labelPosition = rawData.labelPosition;
       if (typeof rawData.strokeDasharray === 'string') edgeData.strokeDasharray = rawData.strokeDasharray;
+      if (typeof rawData.labelFontSize === 'number') edgeData.labelFontSize = rawData.labelFontSize;
+      if (typeof rawData.labelBgColor === 'string') edgeData.labelBgColor = rawData.labelBgColor;
       if (typeof rawData.dependencyType === 'string') edgeData.dependencyType = rawData.dependencyType;
       if (typeof rawData.notes === 'string') edgeData.notes = rawData.notes;
 
@@ -1900,6 +1914,33 @@ export function importFromJson(
     // Backwards compat: old single "legend" field → import as node legend
     if (!data.nodeLegend && !data.swimlaneLegend && data.legend) {
       importLegendConfig(data.legend, 'node');
+    }
+  }
+
+  // Banners — reset, then apply imported if present
+  {
+    const bannerSt = useBannerStore.getState();
+    // Reset to defaults
+    bannerSt.updateTopBanner({ enabled: false, height: 40, label: '', color: '#1e293b', textColor: '#ffffff', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 14 });
+    bannerSt.updateBottomBanner({ enabled: false, height: 40, label: '', color: '#1e293b', textColor: '#ffffff', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 14 });
+
+    if (data.banners && typeof data.banners === 'object') {
+      const b = data.banners as Record<string, unknown>;
+      const importBanner = (raw: unknown, updater: (patch: Partial<BannerConfig>) => void) => {
+        if (!raw || typeof raw !== 'object') return;
+        const cfg = raw as Record<string, unknown>;
+        const patch: Partial<BannerConfig> = {};
+        if (typeof cfg.enabled === 'boolean') patch.enabled = cfg.enabled;
+        if (typeof cfg.height === 'number') patch.height = cfg.height;
+        if (typeof cfg.label === 'string') patch.label = cfg.label;
+        if (typeof cfg.color === 'string') patch.color = cfg.color;
+        if (typeof cfg.textColor === 'string') patch.textColor = cfg.textColor;
+        if (typeof cfg.fontFamily === 'string') patch.fontFamily = cfg.fontFamily;
+        if (typeof cfg.fontSize === 'number') patch.fontSize = cfg.fontSize;
+        updater(patch);
+      };
+      importBanner(b.topBanner, bannerSt.updateTopBanner);
+      importBanner(b.bottomBanner, bannerSt.updateBottomBanner);
     }
   }
 

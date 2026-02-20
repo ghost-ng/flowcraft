@@ -310,7 +310,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
     }),
     {
-      name: 'flowcraft-settings',
+      name: 'charthero-settings',
       // Only persist the data groups, not the actions
       partialize: (state) => ({
         canvas: state.canvas,

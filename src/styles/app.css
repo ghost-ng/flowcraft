@@ -67,6 +67,13 @@ body,
   }
 }
 
+/* Animated edge dash animation */
+@keyframes charthero-edge-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
 /* React Flow overrides */
 .react-flow__node {
   cursor: pointer !important;

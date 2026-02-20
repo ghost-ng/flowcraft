@@ -84,6 +84,9 @@ export interface SwimlaneState {
   updateLabelConfig: (patch: { labelFontSize?: number; labelRotation?: number; hHeaderWidth?: number; vHeaderHeight?: number }) => void;
   updateTitleConfig: (patch: { titleFontSize?: number; titleColor?: string; titleFontFamily?: string }) => void;
 
+  /** Proportionally resize all visible lanes in the given orientation to fit a new total size */
+  resizeLanes: (orientation: SwimlaneOrientation, newTotalSize: number) => void;
+
   setIsCreating: (creating: boolean) => void;
   setEditingLaneId: (laneId: string | null) => void;
 }
@@ -259,6 +262,26 @@ export const useSwimlaneStore = create<SwimlaneState>()(
         }
         if (patch.titleFontFamily !== undefined) {
           state.config.titleFontFamily = patch.titleFontFamily;
+        }
+      });
+    },
+
+    resizeLanes: (orientation, newTotalSize) => {
+      set((state) => {
+        const lanes = getLanes(state.config, orientation);
+        // Only resize visible, non-collapsed lanes
+        const resizable = lanes.filter((l) => !l.hidden && !l.collapsed);
+        if (resizable.length === 0) return;
+
+        const currentTotal = resizable.reduce((sum, l) => sum + l.size, 0);
+        if (currentTotal <= 0) return;
+
+        const MIN_LANE = 60;
+        const scale = newTotalSize / currentTotal;
+
+        // Proportionally scale each lane
+        for (const lane of resizable) {
+          lane.size = Math.max(MIN_LANE, Math.round(lane.size * scale));
         }
       });
     },

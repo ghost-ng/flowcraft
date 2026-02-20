@@ -21,6 +21,8 @@ export interface EdgeVisuals {
   label: string | undefined;
   labelColor: string | undefined;
   labelPosition: number | undefined;
+  labelFontSize: number | undefined;
+  labelBgColor: string | undefined;
   markerEnd: string | undefined;
   markerStart: string | undefined;
   dependencyType: string | undefined;
@@ -60,6 +62,8 @@ export function useEdgeVisuals(edgeId: string): EdgeVisuals {
         label: d?.label as string | undefined,
         labelColor: d?.labelColor as string | undefined,
         labelPosition: d?.labelPosition as number | undefined,
+        labelFontSize: d?.labelFontSize as number | undefined,
+        labelBgColor: d?.labelBgColor as string | undefined,
         markerEnd: typeof edge?.markerEnd === 'string' ? edge.markerEnd : undefined,
         markerStart: typeof edge?.markerStart === 'string' ? edge.markerStart : undefined,
         dependencyType: d?.dependencyType as string | undefined,

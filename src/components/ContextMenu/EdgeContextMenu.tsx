@@ -1,13 +1,16 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Pencil,
   Trash2,
   Palette,
   Spline,
   MoveHorizontal,
+  Type,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
+import { useFlowStore } from '../../store/flowStore';
+import { useMenuPosition, SubMenu } from './menuUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,11 +99,17 @@ const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
 // ---------------------------------------------------------------------------
 
 const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
-  x, y, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
+  x, y, edgeId, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'type' | 'color' | null>(null);
+  const [submenu, setSubmenu] = useState<'type' | 'color' | 'fontSize' | null>(null);
+  const menuStyle = useMenuPosition(x, y, menuRef);
+  const updateEdgeData = useFlowStore((s) => s.updateEdgeData);
+
+  // Get current label font size
+  const edge = useFlowStore.getState().edges.find(e => e.id === edgeId);
+  const currentFontSize = (edge?.data as Record<string, unknown>)?.labelFontSize as number || 11;
 
   // Close on click-outside or Escape
   useEffect(() => {
@@ -120,22 +129,8 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
     };
   }, [onClose]);
 
-  const adjustedStyle = useCallback((): React.CSSProperties => {
-    const menuW = 200;
-    const menuH = 200;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    return {
-      position: 'fixed',
-      top: y + menuH > vh ? vh - menuH - 8 : y,
-      left: x + menuW > vw ? vw - menuW - 8 : x,
-      zIndex: 9999,
-    };
-  }, [x, y]);
-
   return (
-    <div ref={menuRef} style={adjustedStyle()} className="relative">
+    <div ref={menuRef} style={menuStyle} className="relative">
       {/* Main menu */}
       <div
         className={`
@@ -153,12 +148,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('type')}
           />
           {submenu === 'type' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 min-w-[150px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[150px]">
               {edgeTypeOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -179,7 +169,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
                   {opt.label}
                 </button>
               ))}
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -193,13 +183,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('color')}
           />
           {submenu === 'color' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 rounded-lg shadow-xl border p-3
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-              style={{ minWidth: 170 }}
-            >
+            <SubMenu darkMode={darkMode} className="p-3" style={{ minWidth: 170 }}>
               <div className="grid grid-cols-5 gap-2">
                 {quickColors.map((color) => (
                   <button
@@ -215,7 +199,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
                   />
                 ))}
               </div>
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -228,6 +212,43 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
           darkMode={darkMode}
           onMouseEnter={() => setSubmenu(null)}
         />
+
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Type size={14} />}
+            label="Label Font Size"
+            onClick={() => setSubmenu(submenu === 'fontSize' ? null : 'fontSize')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('fontSize')}
+          />
+          {submenu === 'fontSize' && (
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[120px] max-h-[300px] overflow-y-auto">
+              {[8, 9, 10, 11, 12, 14, 16, 18, 20, 24].map((size) => (
+                <button
+                  key={size}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateEdgeData(edgeId, { labelFontSize: size });
+                    onClose();
+                  }}
+                  className={`
+                    flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
+                    transition-colors duration-75 cursor-pointer
+                    ${size === currentFontSize
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
+                    }
+                  `}
+                >
+                  <span>{size}px</span>
+                  {size === currentFontSize && <span className="ml-auto text-primary text-[10px]">&#10003;</span>}
+                </button>
+              ))}
+            </SubMenu>
+          )}
+        </div>
+
         <MenuItem
           icon={<MoveHorizontal size={14} />}
           label="Straighten"

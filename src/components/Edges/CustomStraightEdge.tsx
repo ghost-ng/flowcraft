@@ -81,7 +81,7 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
           isAnimated
             ? {
                 strokeDasharray: strokeDasharray ?? '8 4',
-                animation: 'flowcraft-edge-dash 0.6s linear infinite',
+                animation: 'charthero-edge-dash 0.6s linear infinite',
               }
             : undefined
         }
@@ -113,9 +113,9 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
           targetY={targetY}
           labelPosition={ev.labelPosition ?? 0.5}
           labelColor={ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569'}
-          labelBgColor={ev.overrideLabelBgColor ?? '#ffffff'}
+          labelBgColor={ev.labelBgColor ?? ev.overrideLabelBgColor ?? '#ffffff'}
           borderColor={strokeColor}
-          fontSize={ev.overrideLabelFontSize ?? 11}
+          fontSize={ev.labelFontSize ?? ev.overrideLabelFontSize ?? 11}
         />
       )}
     </>

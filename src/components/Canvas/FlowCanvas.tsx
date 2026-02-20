@@ -28,6 +28,8 @@ import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
 import { useLegendStore } from '../../store/legendStore';
+import { useBannerStore } from '../../store/bannerStore';
+import CanvasBanner from './CanvasBanner';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
@@ -255,6 +257,11 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const nodeLegendVisible = useLegendStore((s) => s.nodeLegend.visible && s.nodeLegend.items.length > 0);
   const swimlaneLegendVisible = useLegendStore((s) => s.swimlaneLegend.visible && s.swimlaneLegend.items.length > 0);
 
+  // Banner store
+  const topBannerEnabled = useBannerStore((s) => s.topBanner.enabled);
+  const bottomBannerEnabled = useBannerStore((s) => s.bottomBanner.enabled);
+  const hasBanners = topBannerEnabled || bottomBannerEnabled;
+
   // Hovered node tracking (for Ctrl+Wheel border-width adjustment)
   const hoveredNodeRef = useRef<string | null>(null);
 
@@ -319,7 +326,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     (event: React.DragEvent) => {
       event.preventDefault();
       if (presentationMode) return;
-      const shapeType = event.dataTransfer.getData('application/flowcraft-shape');
+      const shapeType = event.dataTransfer.getData('application/charthero-shape');
       if (!shapeType) return;
       log.debug('onDrop shape', shapeType);
 
@@ -343,7 +350,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         return;
       }
 
-      const iconName = event.dataTransfer.getData('application/flowcraft-icon');
+      const iconName = event.dataTransfer.getData('application/charthero-icon');
       if (iconName) {
         const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
         const isIconOnly = shapeType === 'iconOnly';
@@ -999,7 +1006,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   }, [updateNodeData]);
 
   return (
-    <div ref={reactFlowWrapper} data-flowcraft-canvas className={`w-full h-full relative ${presentationMode ? 'presentation-mode' : ''}`} onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
+    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full relative ${presentationMode ? 'presentation-mode' : ''}`} onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
       {/* Format painter active indicator */}
       {formatPainterActive && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-lg animate-pulse">
@@ -1101,6 +1108,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
             style={rulerVisible ? { left: 28, top: 28 } : undefined}
           />
         )}
+
+        {/* Canvas banners (top/bottom bars) */}
+        {hasBanners && <CanvasBanner />}
       </ReactFlow>
 
       {/* Floating undo/redo buttons */}

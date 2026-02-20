@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useMenuPosition, SubMenu } from './menuUtils';
 import {
   Trash2,
   LayoutGrid,
@@ -153,20 +154,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     };
   }, [onClose]);
 
-  // Viewport boundary clamping
-  const adjustedStyle = useCallback((): React.CSSProperties => {
-    const menuW = 200;
-    const menuH = 320;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    return {
-      position: 'fixed',
-      top: y + menuH > vh ? vh - menuH - 8 : y,
-      left: x + menuW > vw ? vw - menuW - 8 : x,
-      zIndex: 9999,
-    };
-  }, [x, y]);
+  const menuStyle = useMenuPosition(x, y, menuRef);
 
   // Helper: get selected FlowNode objects
   const getSelectedNodes = useCallback(() => {
@@ -311,7 +299,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   }, [sharedLinkGroupId, onClose]);
 
   return (
-    <div ref={menuRef} style={adjustedStyle()} className="relative">
+    <div ref={menuRef} style={menuStyle} className="relative">
       {/* Main menu */}
       <div
         className={`
@@ -350,12 +338,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             disabled={nodeIds.length < 2}
           />
           {submenu === 'group' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 min-w-[180px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
               <MenuItem
                 icon={<Group size={14} />}
                 label="Arrange in Region"
@@ -379,7 +362,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                   />
                 </>
               )}
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -395,12 +378,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('align')}
           />
           {submenu === 'align' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 min-w-[180px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
               <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => handleAlign(alignment.alignLeft)} darkMode={darkMode} />
               <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (H)" onClick={() => handleAlign(alignment.alignCenterH)} darkMode={darkMode} />
               <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => handleAlign(alignment.alignRight)} darkMode={darkMode} />
@@ -408,7 +386,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
               <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => handleAlign(alignment.alignTop)} darkMode={darkMode} />
               <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (V)" onClick={() => handleAlign(alignment.alignCenterV)} darkMode={darkMode} />
               <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => handleAlign(alignment.alignBottom)} darkMode={darkMode} />
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -423,15 +401,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             disabled={nodeIds.length < 3}
           />
           {submenu === 'distribute' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 min-w-[200px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[200px]">
               <MenuItem icon={<ArrowRightLeft size={14} />} label="Horizontal" onClick={() => handleDistribute(alignment.distributeH)} darkMode={darkMode} />
               <MenuItem icon={<ArrowUpDown size={14} />} label="Vertical" onClick={() => handleDistribute(alignment.distributeV)} darkMode={darkMode} />
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -448,15 +421,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             disabled={nodeIds.length < 2}
           />
           {submenu === 'mirror' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 min-w-[180px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
               <MenuItem icon={<FlipHorizontal2 size={14} />} label="Flip Horizontal" onClick={() => handleMirror(mirrorHorizontal)} darkMode={darkMode} shortcut="Ctrl+Shift+H" />
               <MenuItem icon={<FlipVertical2 size={14} />} label="Flip Vertical" onClick={() => handleMirror(mirrorVertical)} darkMode={darkMode} shortcut="Ctrl+Alt+V" />
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -471,16 +439,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             disabled={nodeIds.length < 2}
           />
           {submenu === 'rotate' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 min-w-[160px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
               <MenuItem icon={<RotateCw size={14} />} label="90° Clockwise" onClick={() => handleRotate(90)} darkMode={darkMode} shortcut="Ctrl+]" />
               <MenuItem icon={<RotateCcw size={14} />} label="90° Counter-CW" onClick={() => handleRotate(-90)} darkMode={darkMode} shortcut="Ctrl+[" />
               <MenuItem icon={<RotateCw size={14} />} label="180°" onClick={() => handleRotate(180)} darkMode={darkMode} />
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -496,12 +459,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('color')}
           />
           {submenu === 'color' && (
-            <div
-              className={`
-                absolute top-0 left-full ml-1 rounded-lg shadow-xl border p-3
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-3">
               <div className="grid grid-cols-5 gap-1.5">
                 {quickColors.map((color) => (
                   <button
@@ -516,7 +474,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                   />
                 ))}
               </div>
-            </div>
+            </SubMenu>
           )}
         </div>
       </div>

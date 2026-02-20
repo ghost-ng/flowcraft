@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// nodes.ts -- Node shape types and FlowNode definition for FlowCraft
+// nodes.ts -- Node shape types and FlowNode definition for Chart Hero
 // ---------------------------------------------------------------------------
 
 import type { Node } from '@xyflow/react';

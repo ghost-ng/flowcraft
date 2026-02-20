@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useMenuPosition, SubMenu } from './menuUtils';
 import {
   Pencil,
   Copy,
@@ -239,25 +240,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     };
   }, [onClose]);
 
-  // Compute menu position + whether submenus should flip left
-  const menuW = 200;
-  const subW = 210;
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
-  const menuLeft = x + menuW > vw ? vw - menuW - 8 : x;
-  const flipSub = menuLeft + menuW + subW > vw; // flip submenus left if no room on right
-
-  const adjustedStyle = useCallback((): React.CSSProperties => {
-    const menuH = 400;
-    return {
-      position: 'fixed',
-      top: y + menuH > vh ? vh - menuH - 8 : y,
-      left: menuLeft,
-      zIndex: 9999,
-    };
-  }, [y, vh, menuLeft]);
-
-  const subPos = flipSub ? 'right-full mr-1' : 'left-full ml-1';
+  const menuStyle = useMenuPosition(x, y, menuRef);
 
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const handleSetStatus = useCallback((status: StatusIndicator['status']) => {
@@ -286,7 +269,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   }, [nodeId, onClose]);
 
   return (
-    <div ref={menuRef} style={adjustedStyle()} className="relative">
+    <div ref={menuRef} style={menuStyle} className="relative">
       {/* Main menu */}
       <div
         className={`
@@ -339,12 +322,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('shape')}
           />
           {submenu === 'shape' && (
-            <div
-              className={`
-                absolute top-0 ${subPos} min-w-[160px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
               {shapeOptions.map(({ value, label }) => (
                 <MenuItem
                   key={value}
@@ -354,7 +332,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                   darkMode={darkMode}
                 />
               ))}
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -368,12 +346,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('status')}
           />
           {submenu === 'status' && (
-            <div
-              className={`
-                absolute top-0 ${subPos} min-w-[160px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
               {statusOptions.map(({ value, label, color }) => (
                 <button
                   key={value}
@@ -394,7 +367,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                   <span>{label}</span>
                 </button>
               ))}
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -411,12 +384,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                 onMouseEnter={() => setSubmenu('align')}
               />
               {submenu === 'align' && onAlign && (
-                <div
-                  className={`
-                    absolute top-0 ${subPos} min-w-[180px] rounded-lg shadow-xl border p-1
-                    ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-                  `}
-                >
+                <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
                   <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => { onAlign(alignment.alignLeft); onClose(); }} darkMode={darkMode} />
                   <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (H)" onClick={() => { onAlign(alignment.alignCenterH); onClose(); }} darkMode={darkMode} />
                   <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => { onAlign(alignment.alignRight); onClose(); }} darkMode={darkMode} />
@@ -424,7 +392,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                   <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => { onAlign(alignment.alignTop); onClose(); }} darkMode={darkMode} />
                   <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (V)" onClick={() => { onAlign(alignment.alignCenterV); onClose(); }} darkMode={darkMode} />
                   <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => { onAlign(alignment.alignBottom); onClose(); }} darkMode={darkMode} />
-                </div>
+                </SubMenu>
               )}
             </div>
           </>
@@ -466,12 +434,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('font')}
           />
           {submenu === 'font' && (
-            <div
-              className={`
-                absolute top-0 ${subPos} min-w-[200px] max-h-[300px] overflow-y-auto rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[200px] max-h-[300px] overflow-y-auto">
               {fontOptions.map(({ label, value }) => {
                 const node = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
                 const currentFont = node?.data?.fontFamily || '';
@@ -499,7 +462,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                   </button>
                 );
               })}
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -532,12 +495,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('select')}
           />
           {submenu === 'select' && (
-            <div
-              className={`
-                absolute top-0 ${subPos} min-w-[180px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
               <MenuItem
                 icon={<Shapes size={14} />}
                 label="Same Shape"
@@ -593,7 +551,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                 }}
                 darkMode={darkMode}
               />
-            </div>
+            </SubMenu>
           )}
         </div>
 
@@ -609,12 +567,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('order')}
           />
           {submenu === 'order' && (
-            <div
-              className={`
-                absolute top-0 ${subPos} min-w-[200px] rounded-lg shadow-xl border p-1
-                ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
-              `}
-            >
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[200px]">
               <MenuItem
                 icon={<ChevronUp size={14} />}
                 label="Forward"
@@ -644,7 +597,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                 onClick={() => { onSendToBack(); }}
                 darkMode={darkMode}
               />
-            </div>
+            </SubMenu>
           )}
         </div>
 

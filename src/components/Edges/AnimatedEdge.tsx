@@ -12,7 +12,7 @@ import EdgeLabel from './EdgeLabel';
 // Inline keyframes -- injected once via a <style> element
 // ---------------------------------------------------------------------------
 
-const ANIMATION_STYLE_ID = 'flowcraft-edge-dash-keyframes';
+const ANIMATION_STYLE_ID = 'charthero-edge-dash-keyframes';
 
 const injectKeyframes = (): void => {
   if (typeof document === 'undefined') return;
@@ -21,7 +21,7 @@ const injectKeyframes = (): void => {
   const style = document.createElement('style');
   style.id = ANIMATION_STYLE_ID;
   style.textContent = `
-    @keyframes flowcraft-edge-dash {
+    @keyframes charthero-edge-dash {
       to {
         stroke-dashoffset: -24;
       }
@@ -123,7 +123,7 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
         markerStart={markerStart}
         className={`react-flow__edge-path ${selected ? 'selected' : ''}`}
         style={{
-          animation: `flowcraft-edge-dash ${speed}s linear infinite`,
+          animation: `charthero-edge-dash ${speed}s linear infinite`,
         }}
       />
 
@@ -154,9 +154,9 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
           targetY={targetY}
           labelPosition={ev.labelPosition ?? 0.5}
           labelColor={ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569'}
-          labelBgColor={ev.overrideLabelBgColor ?? '#ffffff'}
+          labelBgColor={ev.labelBgColor ?? ev.overrideLabelBgColor ?? '#ffffff'}
           borderColor={strokeColor as string}
-          fontSize={ev.overrideLabelFontSize ?? 11}
+          fontSize={ev.labelFontSize ?? ev.overrideLabelFontSize ?? 11}
         />
       )}
     </>

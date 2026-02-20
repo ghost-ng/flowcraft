@@ -224,11 +224,11 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
                   onDragStart={(e) => {
                     // If a shape is pre-selected in palette, use it; otherwise icon-only
                     if (selectedPaletteShape) {
-                      e.dataTransfer.setData('application/flowcraft-shape', selectedPaletteShape);
+                      e.dataTransfer.setData('application/charthero-shape', selectedPaletteShape);
                     } else {
-                      e.dataTransfer.setData('application/flowcraft-shape', 'iconOnly');
+                      e.dataTransfer.setData('application/charthero-shape', 'iconOnly');
                     }
-                    e.dataTransfer.setData('application/flowcraft-icon', iconName);
+                    e.dataTransfer.setData('application/charthero-icon', iconName);
                     e.dataTransfer.effectAllowed = 'move';
                   }}
                   className="flex items-center justify-center p-1.5 rounded cursor-grab

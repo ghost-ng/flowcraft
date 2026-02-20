@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 //
 // Usage: Render <MarkerDefs /> inside the React Flow canvas so that edge
-// paths can reference these markers via `markerEnd="url(#flowcraft-...)"`.
+// paths can reference these markers via `markerEnd="url(#charthero-...)"`.
 //
 // React Flow provides a <Panel /> or you can place this in the SVG layer.
 // The component renders an invisible 0x0 SVG that only contributes <defs>.
@@ -24,7 +24,7 @@ export interface MarkerDefsProps {
 // Prefix used for all marker IDs to avoid collisions
 // ---------------------------------------------------------------------------
 
-const PREFIX = 'flowcraft';
+const PREFIX = 'charthero';
 
 // ---------------------------------------------------------------------------
 // Component

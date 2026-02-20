@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// FlowCraft Logger
+// Chart Hero Logger
 // ---------------------------------------------------------------------------
 // Errors are ALWAYS logged. All other levels only log when debug mode is on.
 // Debug mode is toggled via settingsStore and persisted to localStorage.

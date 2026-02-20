@@ -14,14 +14,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'FlowCraft',
-        short_name: 'FlowCraft',
+        name: 'Chart Hero',
+        short_name: 'Chart Hero',
         description: 'Professional browser-based diagramming application',
         theme_color: '#1e293b',
         background_color: '#0f172a',
         display: 'standalone',
-        scope: '/flowcraft/',
-        start_url: '/flowcraft/',
+        scope: '/chart-hero/',
+        start_url: '/chart-hero/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -59,7 +59,7 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/flowcraft/',
+  base: '/chart-hero/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },

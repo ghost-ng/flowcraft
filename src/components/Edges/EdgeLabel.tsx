@@ -257,13 +257,14 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
   return (
     <EdgeLabelRenderer>
       <div
-        className="absolute pointer-events-auto rounded px-2 py-0.5 text-xs font-medium shadow-sm border select-none"
+        className="absolute pointer-events-auto rounded px-2 py-0.5 font-medium shadow-sm border select-none"
         style={{
           transform: `translate(-50%, -50%) translate(${lx}px, ${ly + offsetY}px)`,
           color: labelColor,
           backgroundColor: labelBgColor,
           borderColor: borderColor,
           fontSize,
+          whiteSpace: 'nowrap',
           cursor: isDragging ? 'grabbing' : 'grab',
           zIndex: isDragging ? 1000 : undefined,
         }}

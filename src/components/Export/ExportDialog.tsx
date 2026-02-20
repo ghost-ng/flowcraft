@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// ExportDialog.tsx -- Full export modal for FlowCraft
+// ExportDialog.tsx -- Full export modal for Chart Hero
 // ---------------------------------------------------------------------------
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';

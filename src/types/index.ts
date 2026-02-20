@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// types/index.ts -- Barrel re-export for all FlowCraft type definitions
+// types/index.ts -- Barrel re-export for all Chart Hero type definitions
 // ---------------------------------------------------------------------------
 
 // Nodes

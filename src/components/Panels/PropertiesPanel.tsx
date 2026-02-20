@@ -1267,6 +1267,28 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
         )}
       </Field>
 
+      {/* Start On */}
+      <Field label="Start On">
+        <input
+          type="date"
+          value={data.startOn || ''}
+          onChange={(e) => updateNodeData(nodeId, { startOn: e.target.value || undefined })}
+          className="w-full px-2 py-1.5 text-xs rounded border border-border bg-surface text-text
+                     focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </Field>
+
+      {/* Completed By */}
+      <Field label="Completed By">
+        <input
+          type="date"
+          value={data.completedBy || ''}
+          onChange={(e) => updateNodeData(nodeId, { completedBy: e.target.value || undefined })}
+          className="w-full px-2 py-1.5 text-xs rounded border border-border bg-surface text-text
+                     focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </Field>
+
       {/* Notes */}
       <Field label="Notes">
         <textarea

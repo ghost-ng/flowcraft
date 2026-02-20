@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useViewport } from '@xyflow/react';
 
 import {
@@ -20,6 +20,9 @@ const MIN_LANE_SIZE = 60; // px - minimum lane size when resizing
 const RESIZE_HIT_AREA = 8; // px - width of the resize grab zone
 const MIN_H_HEADER_WIDTH = 32; // px - minimum width of horizontal lane headers
 const MIN_V_HEADER_HEIGHT = 24; // px - minimum height of vertical lane headers
+const CORNER_HANDLE_SIZE = 10; // px - size of corner resize handles
+const MIN_CONTAINER_WIDTH = 200; // px - minimum width when corner-resizing
+const MIN_CONTAINER_HEIGHT = 150; // px - minimum height when corner-resizing
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -358,6 +361,182 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
 };
 
 // ---------------------------------------------------------------------------
+// CornerResizeHandle — drag to resize the swimlane container from a corner
+// ---------------------------------------------------------------------------
+
+type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
+interface CornerResizeHandleProps {
+  corner: Corner;
+  totalWidth: number;
+  totalHeight: number;
+  zoom: number;
+  darkMode: boolean;
+  visible: boolean;
+  /** Header offset that is not part of resizable lane area */
+  headerOffsetX: number;
+  headerOffsetY: number;
+}
+
+const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
+  corner,
+  totalWidth,
+  totalHeight,
+  zoom,
+  darkMode,
+  visible,
+  headerOffsetX,
+  headerOffsetY,
+}) => {
+  const startRef = useRef<{
+    clientX: number;
+    clientY: number;
+    startOffset: { x: number; y: number };
+    startWidth: number;
+    startHeight: number;
+  } | null>(null);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const store = useSwimlaneStore.getState();
+      startRef.current = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        startOffset: { ...store.containerOffset },
+        startWidth: totalWidth,
+        startHeight: totalHeight,
+      };
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!startRef.current) return;
+        const dx = (moveEvent.clientX - startRef.current.clientX) / zoom;
+        const dy = (moveEvent.clientY - startRef.current.clientY) / zoom;
+        const store = useSwimlaneStore.getState();
+
+        let newWidth = startRef.current.startWidth;
+        let newHeight = startRef.current.startHeight;
+        const newOffset = { ...startRef.current.startOffset };
+
+        switch (corner) {
+          case 'bottom-right':
+            newWidth = Math.max(MIN_CONTAINER_WIDTH, startRef.current.startWidth + dx);
+            newHeight = Math.max(MIN_CONTAINER_HEIGHT, startRef.current.startHeight + dy);
+            break;
+          case 'bottom-left':
+            newWidth = Math.max(MIN_CONTAINER_WIDTH, startRef.current.startWidth - dx);
+            newHeight = Math.max(MIN_CONTAINER_HEIGHT, startRef.current.startHeight + dy);
+            // Shift x so the right edge stays fixed
+            newOffset.x = startRef.current.startOffset.x + (startRef.current.startWidth - newWidth);
+            break;
+          case 'top-right':
+            newWidth = Math.max(MIN_CONTAINER_WIDTH, startRef.current.startWidth + dx);
+            newHeight = Math.max(MIN_CONTAINER_HEIGHT, startRef.current.startHeight - dy);
+            // Shift y so the bottom edge stays fixed
+            newOffset.y = startRef.current.startOffset.y + (startRef.current.startHeight - newHeight);
+            break;
+          case 'top-left':
+            newWidth = Math.max(MIN_CONTAINER_WIDTH, startRef.current.startWidth - dx);
+            newHeight = Math.max(MIN_CONTAINER_HEIGHT, startRef.current.startHeight - dy);
+            // Shift both x and y so the bottom-right corner stays fixed
+            newOffset.x = startRef.current.startOffset.x + (startRef.current.startWidth - newWidth);
+            newOffset.y = startRef.current.startOffset.y + (startRef.current.startHeight - newHeight);
+            break;
+        }
+
+        // Compute the resizable lane area (total minus headers)
+        const laneAreaWidth = newWidth - headerOffsetX;
+        const laneAreaHeight = newHeight - headerOffsetY;
+
+        // Proportionally resize vertical lanes (width)
+        if (laneAreaWidth > 0 && store.config.vertical.length > 0) {
+          store.resizeLanes('vertical', laneAreaWidth);
+        }
+        // Proportionally resize horizontal lanes (height)
+        if (laneAreaHeight > 0 && store.config.horizontal.length > 0) {
+          store.resizeLanes('horizontal', laneAreaHeight);
+        }
+
+        store.setContainerOffset(newOffset);
+      };
+
+      const onMouseUp = () => {
+        startRef.current = null;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      const cursorMap: Record<Corner, string> = {
+        'top-left': 'nwse-resize',
+        'top-right': 'nesw-resize',
+        'bottom-left': 'nesw-resize',
+        'bottom-right': 'nwse-resize',
+      };
+      document.body.style.cursor = cursorMap[corner];
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [corner, totalWidth, totalHeight, zoom, headerOffsetX, headerOffsetY],
+  );
+
+  const cursorMap: Record<Corner, string> = {
+    'top-left': 'nwse-resize',
+    'top-right': 'nesw-resize',
+    'bottom-left': 'nesw-resize',
+    'bottom-right': 'nwse-resize',
+  };
+
+  // Position at the appropriate corner
+  const positionStyle: React.CSSProperties = {};
+  const half = CORNER_HANDLE_SIZE / 2;
+
+  switch (corner) {
+    case 'top-left':
+      positionStyle.left = -half;
+      positionStyle.top = -half;
+      break;
+    case 'top-right':
+      positionStyle.left = totalWidth - half;
+      positionStyle.top = -half;
+      break;
+    case 'bottom-left':
+      positionStyle.left = -half;
+      positionStyle.top = totalHeight - half;
+      break;
+    case 'bottom-right':
+      positionStyle.left = totalWidth - half;
+      positionStyle.top = totalHeight - half;
+      break;
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        ...positionStyle,
+        width: CORNER_HANDLE_SIZE,
+        height: CORNER_HANDLE_SIZE,
+        cursor: cursorMap[corner],
+        pointerEvents: 'auto',
+        zIndex: 15,
+        backgroundColor: darkMode ? '#253345' : '#ffffff',
+        border: `1.5px solid ${darkMode ? 'rgba(132,148,167,0.5)' : 'rgba(100,116,139,0.5)'}`,
+        borderRadius: 2,
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 150ms ease',
+      }}
+      onMouseDown={handleMouseDown}
+      title={`Drag to resize from ${corner}`}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
 // SwimlaneLayer
 // ---------------------------------------------------------------------------
 
@@ -601,6 +780,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
   const containerOffset = useSwimlaneStore((s) => s.containerOffset);
   const darkMode = useStyleStore((s) => s.darkMode);
   const viewport = useViewport();
+  const [hovered, setHovered] = useState(false);
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;
@@ -632,6 +812,10 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
     : 2000;
 
+  // Compute header offsets for corner resize proportional calculation
+  const headerOffsetX = hasVLanes ? (hasHLanes ? H_HEADER_WIDTH : 0) : 0;
+  const headerOffsetY = hasHLanes ? (hasVLanes ? V_HEADER_HEIGHT : 0) : 0;
+
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
@@ -646,6 +830,40 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           height: totalHeight,
         }}
       >
+        {/* ---- Hover detection border around container for corner handles ---- */}
+        <div
+          style={{
+            position: 'absolute',
+            left: -CORNER_HANDLE_SIZE,
+            top: -CORNER_HANDLE_SIZE,
+            right: -CORNER_HANDLE_SIZE,
+            bottom: -CORNER_HANDLE_SIZE,
+            width: totalWidth + CORNER_HANDLE_SIZE * 2,
+            height: totalHeight + CORNER_HANDLE_SIZE * 2,
+            pointerEvents: 'auto',
+            zIndex: 14,
+          }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        />
+
+        {/* ---- Corner resize handles (visible on hover) ---- */}
+        {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
+          (corner) => (
+            <CornerResizeHandle
+              key={`corner-${corner}`}
+              corner={corner}
+              totalWidth={totalWidth}
+              totalHeight={totalHeight}
+              zoom={viewport.zoom}
+              darkMode={darkMode}
+              visible={hovered}
+              headerOffsetX={headerOffsetX}
+              headerOffsetY={headerOffsetY}
+            />
+          ),
+        )}
+
         {/* ---- Lane headers (rendered here so they sit above ReactFlow pane) ---- */}
         {hasHLanes &&
           hBounds.map(({ lane, offset, size }) => {

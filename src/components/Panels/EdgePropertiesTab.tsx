@@ -81,13 +81,13 @@ const EDGE_STYLES = [
 const arrowheadToMarker = (type: string): string => {
   switch (type) {
     case 'arrow':
-      return 'url(#flowcraft-filledTriangle)';
+      return 'url(#charthero-filledTriangle)';
     case 'diamond':
-      return 'url(#flowcraft-filledDiamond)';
+      return 'url(#charthero-filledDiamond)';
     case 'circle':
-      return 'url(#flowcraft-filledCircle)';
+      return 'url(#charthero-filledCircle)';
     case 'open':
-      return 'url(#flowcraft-openTriangle)';
+      return 'url(#charthero-openTriangle)';
     default:
       return '';
   }
@@ -474,6 +474,48 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                     type="text"
                     value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
                     onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
+                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                               dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
+                               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+              </Field>
+            )}
+
+            {/* Label font size */}
+            {label && (
+              <Field label="Label Font Size">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={8}
+                    max={24}
+                    step={1}
+                    value={(edgeData as Record<string, unknown>).labelFontSize as number || 11}
+                    onChange={(e) => update({ labelFontSize: Number(e.target.value) } as Partial<FlowEdgeData>)}
+                    className="flex-1 accent-primary"
+                  />
+                  <span className="text-xs text-text-muted w-8 text-right font-mono">
+                    {(edgeData as Record<string, unknown>).labelFontSize as number || 11}px
+                  </span>
+                </div>
+              </Field>
+            )}
+
+            {/* Label background color */}
+            {label && (
+              <Field label="Label BG Color">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'}
+                    onChange={(e) => update({ labelBgColor: e.target.value } as Partial<FlowEdgeData>)}
+                    className="w-8 h-8 rounded border border-border cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'}
+                    onChange={(e) => update({ labelBgColor: e.target.value } as Partial<FlowEdgeData>)}
                     className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
                                dark:bg-dk-panel dark:border-dk-border dark:text-dk-text
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"

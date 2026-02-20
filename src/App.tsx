@@ -116,7 +116,7 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'flowcraft-diagram.json';
+    a.download = 'charthero-diagram.json';
     a.click();
     URL.revokeObjectURL(url);
   }, []);
@@ -509,7 +509,7 @@ const App: React.FC = () => {
 
   // Auto-save to localStorage
   useEffect(() => {
-    const SAVE_KEY = 'flowcraft-autosave';
+    const SAVE_KEY = 'charthero-autosave';
 
     // Load on mount
     try {
