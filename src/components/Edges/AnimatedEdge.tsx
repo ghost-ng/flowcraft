@@ -3,9 +3,10 @@
 // ---------------------------------------------------------------------------
 
 import React, { useMemo } from 'react';
-import { type EdgeProps, getBezierPath, EdgeLabelRenderer } from '@xyflow/react';
+import { type EdgeProps, getBezierPath } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
 import { useEdgeVisuals } from './useEdgeVisuals';
+import EdgeLabel from './EdgeLabel';
 
 // ---------------------------------------------------------------------------
 // Inline keyframes -- injected once via a <style> element
@@ -140,31 +141,24 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
         />
       )}
 
-      {/* Label */}
-      {label && (() => {
-        const t = ev.labelPosition ?? 0.5;
-        let lx = labelX, ly = labelY;
-        if (t !== 0.5) {
-          if (t < 0.5) { const s = t * 2; lx = sourceX + s * (labelX - sourceX); ly = sourceY + s * (labelY - sourceY); }
-          else { const s = (t - 0.5) * 2; lx = labelX + s * (targetX - labelX); ly = labelY + s * (targetY - labelY); }
-        }
-        return (
-          <EdgeLabelRenderer>
-            <div
-              className="absolute pointer-events-auto cursor-pointer rounded px-2 py-0.5 text-xs font-medium shadow-sm border"
-              style={{
-                transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)`,
-                color: ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569',
-                backgroundColor: ev.overrideLabelBgColor ?? '#ffffff',
-                borderColor: strokeColor as string,
-                fontSize: ev.overrideLabelFontSize ?? 11,
-              }}
-            >
-              {label}
-            </div>
-          </EdgeLabelRenderer>
-        );
-      })()}
+      {/* Label (draggable along the path) */}
+      {label && (
+        <EdgeLabel
+          edgeId={id}
+          label={label}
+          sourceX={sourceX}
+          sourceY={sourceY}
+          midX={labelX}
+          midY={labelY}
+          targetX={targetX}
+          targetY={targetY}
+          labelPosition={ev.labelPosition ?? 0.5}
+          labelColor={ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569'}
+          labelBgColor={ev.overrideLabelBgColor ?? '#ffffff'}
+          borderColor={strokeColor as string}
+          fontSize={ev.overrideLabelFontSize ?? 11}
+        />
+      )}
     </>
   );
 };

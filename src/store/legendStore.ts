@@ -1,7 +1,7 @@
 import { create, type StoreApi } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { generateId } from '../utils/idGenerator';
-import { useFlowStore } from './flowStore';
+import { useFlowStore, getStatusIndicators, type FlowNodeData } from './flowStore';
 
 // ---------------------------------------------------------------------------
 // Inline types
@@ -229,8 +229,8 @@ export const useLegendStore = create<LegendState>()(
       };
       const puckSet = new Set<string>();
       for (const node of nodes) {
-        const indicators = node.data?.statusIndicators as Array<{ color?: string; status?: string }> | undefined;
-        if (!indicators) continue;
+        const indicators = getStatusIndicators(node.data as FlowNodeData);
+        if (indicators.length === 0) continue;
         for (const puck of indicators) {
           const pc = puck.color || '#94a3b8';
           if (!puckSet.has(pc)) {

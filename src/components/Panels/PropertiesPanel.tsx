@@ -1154,6 +1154,13 @@ interface DataTabProps {
 const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, measured }) => {
   const edges = useFlowStore((s) => s.edges);
   const nodes = useFlowStore((s) => s.nodes);
+  const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const [localNotes, setLocalNotes] = useState(data.notes || '');
+
+  // Sync local notes when the selected node changes or external updates arrive
+  useEffect(() => {
+    setLocalNotes(data.notes || '');
+  }, [nodeId, data.notes]);
 
   // Compute connected nodes from edges
   const connectedTo = useMemo(() => {
@@ -1259,11 +1266,81 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
           </div>
         )}
       </Field>
+
+      {/* Notes */}
+      <Field label="Notes">
+        <textarea
+          id="node-notes-textarea"
+          value={localNotes}
+          onChange={(e) => setLocalNotes(e.target.value)}
+          onBlur={() => updateNodeData(nodeId, { notes: localNotes || undefined })}
+          placeholder="Add notes..."
+          rows={3}
+          className="w-full px-2 py-1.5 text-xs rounded border border-border bg-surface text-text placeholder:text-text-muted resize-y min-h-[60px] focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </Field>
     </div>
   );
 });
 
 DataTab.displayName = 'DataTab';
+
+// ---------------------------------------------------------------------------
+// Edge Data Tab - shows metadata + notes for selected edge
+// ---------------------------------------------------------------------------
+
+interface EdgeDataTabProps {
+  edgeId: string;
+  data: FlowEdgeData;
+  source: string;
+  target: string;
+  type?: string;
+}
+
+const EdgeDataTab: React.FC<EdgeDataTabProps> = React.memo(({ edgeId, data, source, target, type }) => {
+  const nodes = useFlowStore((s) => s.nodes);
+  const updateEdgeData = useFlowStore((s) => s.updateEdgeData);
+  const [localNotes, setLocalNotes] = useState(data.notes || '');
+
+  useEffect(() => {
+    setLocalNotes(data.notes || '');
+  }, [edgeId, data.notes]);
+
+  const sourceLabel = useMemo(() => {
+    const node = nodes.find((n) => n.id === source);
+    return node ? `${node.data.label} (${source})` : source;
+  }, [nodes, source]);
+
+  const targetLabel = useMemo(() => {
+    const node = nodes.find((n) => n.id === target);
+    return node ? `${node.data.label} (${target})` : target;
+  }, [nodes, target]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <ReadOnlyField label="Edge ID" value={edgeId} copyable />
+      <ReadOnlyField label="Type" value={type || 'default'} />
+      <ReadOnlyField label="Source" value={sourceLabel} />
+      <ReadOnlyField label="Target" value={targetLabel} />
+      {data.label && <ReadOnlyField label="Label" value={data.label} />}
+
+      {/* Notes */}
+      <Field label="Notes">
+        <textarea
+          id="edge-notes-textarea"
+          value={localNotes}
+          onChange={(e) => setLocalNotes(e.target.value)}
+          onBlur={() => updateEdgeData(edgeId, { notes: localNotes || undefined })}
+          placeholder="Add notes..."
+          rows={3}
+          className="w-full px-2 py-1.5 text-xs rounded border border-border bg-surface text-text placeholder:text-text-muted resize-y min-h-[60px] focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </Field>
+    </div>
+  );
+});
+
+EdgeDataTab.displayName = 'EdgeDataTab';
 
 // ---------------------------------------------------------------------------
 // Lane palette for new lanes
@@ -2305,13 +2382,21 @@ const PropertiesPanel: React.FC = () => {
               position={selectedNode.position}
               measured={selectedNode.measured}
             />
+          ) : selectedEdge ? (
+            <EdgeDataTab
+              edgeId={selectedEdge.id}
+              data={(selectedEdge.data || {}) as FlowEdgeData}
+              source={selectedEdge.source}
+              target={selectedEdge.target}
+              type={selectedEdge.type}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-12">
               <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
                 <ChevronRight size={20} className="text-text-muted" />
               </div>
               <p className="text-sm text-text-muted leading-relaxed">
-                Select a node to view its metadata
+                Select a node or edge to view its metadata
               </p>
             </div>
           )

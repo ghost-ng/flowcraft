@@ -18,6 +18,8 @@ const DEFAULT_V_HEADER_HEIGHT = 32; // px - default height of vertical lane head
 const TITLE_HEIGHT = 28; // px - container title bar height
 const MIN_LANE_SIZE = 60; // px - minimum lane size when resizing
 const RESIZE_HIT_AREA = 8; // px - width of the resize grab zone
+const MIN_H_HEADER_WIDTH = 32; // px - minimum width of horizontal lane headers
+const MIN_V_HEADER_HEIGHT = 24; // px - minimum height of vertical lane headers
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -155,6 +157,204 @@ const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
       };
 
   return <div style={style} onMouseDown={handleMouseDown} />;
+};
+
+// ---------------------------------------------------------------------------
+// HeaderResizeHandle — drag to resize the header area width/height
+// ---------------------------------------------------------------------------
+
+interface HeaderResizeHandleProps {
+  /** 'horizontal' means we're resizing the LEFT header column (drag its right edge) */
+  orientation: SwimlaneOrientation;
+  /** Position of the resize edge in flow coords */
+  edgeOffset: number;
+  /** Total span perpendicular to the drag direction */
+  span: number;
+  /** Current viewport zoom */
+  zoom: number;
+  /** Current header size (width for horizontal, height for vertical) */
+  currentSize: number;
+}
+
+const HeaderResizeHandle: React.FC<HeaderResizeHandleProps> = ({
+  orientation,
+  edgeOffset,
+  span,
+  zoom,
+  currentSize,
+}) => {
+  const startRef = useRef<{ clientPos: number; startSize: number } | null>(null);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const clientPos = orientation === 'horizontal' ? e.clientX : e.clientY;
+      startRef.current = { clientPos, startSize: currentSize };
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!startRef.current) return;
+        const currentClientPos =
+          orientation === 'horizontal' ? moveEvent.clientX : moveEvent.clientY;
+        const deltaScreen = currentClientPos - startRef.current.clientPos;
+        const deltaFlow = deltaScreen / zoom;
+
+        const minSize = orientation === 'horizontal' ? MIN_H_HEADER_WIDTH : MIN_V_HEADER_HEIGHT;
+        const newSize = Math.max(minSize, Math.round(startRef.current.startSize + deltaFlow));
+
+        if (orientation === 'horizontal') {
+          useSwimlaneStore.getState().updateLabelConfig({ hHeaderWidth: newSize });
+        } else {
+          useSwimlaneStore.getState().updateLabelConfig({ vHeaderHeight: newSize });
+        }
+      };
+
+      const onMouseUp = () => {
+        startRef.current = null;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.body.style.cursor =
+        orientation === 'horizontal' ? 'col-resize' : 'row-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [orientation, zoom, currentSize],
+  );
+
+  // For horizontal lanes: the header is on the left, so the resize handle is a vertical
+  // strip at the right edge of the header column (drag left/right = col-resize).
+  // For vertical lanes: the header is on top, so the resize handle is a horizontal
+  // strip at the bottom edge of the header row (drag up/down = row-resize).
+  const isH = orientation === 'horizontal';
+
+  const style: React.CSSProperties = isH
+    ? {
+        position: 'absolute',
+        left: edgeOffset - RESIZE_HIT_AREA / 2,
+        top: 0,
+        width: RESIZE_HIT_AREA,
+        height: span,
+        cursor: 'col-resize',
+        pointerEvents: 'auto',
+        zIndex: 12,
+      }
+    : {
+        position: 'absolute',
+        left: 0,
+        top: edgeOffset - RESIZE_HIT_AREA / 2,
+        width: span,
+        height: RESIZE_HIT_AREA,
+        cursor: 'row-resize',
+        pointerEvents: 'auto',
+        zIndex: 12,
+      };
+
+  return <div style={style} onMouseDown={handleMouseDown} />;
+};
+
+// ---------------------------------------------------------------------------
+// MatrixCornerHandle — move/resize handle in the top-left corner of matrix mode
+// ---------------------------------------------------------------------------
+
+interface MatrixCornerHandleProps {
+  width: number;
+  height: number;
+  darkMode: boolean;
+  zoom: number;
+}
+
+const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
+  width,
+  height,
+  darkMode,
+  zoom,
+}) => {
+  const startRef = useRef<{
+    clientX: number;
+    clientY: number;
+    startOffset: { x: number; y: number };
+  } | null>(null);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const startOffset = useSwimlaneStore.getState().containerOffset;
+      startRef.current = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        startOffset: { ...startOffset },
+      };
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!startRef.current) return;
+        const dx = (moveEvent.clientX - startRef.current.clientX) / zoom;
+        const dy = (moveEvent.clientY - startRef.current.clientY) / zoom;
+        useSwimlaneStore.getState().setContainerOffset({
+          x: startRef.current.startOffset.x + dx,
+          y: startRef.current.startOffset.y + dy,
+        });
+      };
+
+      const onMouseUp = () => {
+        startRef.current = null;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.body.style.cursor = 'move';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [zoom],
+  );
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width,
+        height,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'move',
+        pointerEvents: 'auto',
+        zIndex: 11,
+        backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
+        borderRight: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
+        borderBottom: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
+      }}
+      onMouseDown={handleMouseDown}
+      title="Drag to move swimlane container"
+    >
+      {/* Grip dots pattern */}
+      <svg
+        width={Math.min(20, width - 4)}
+        height={Math.min(20, height - 4)}
+        viewBox="0 0 20 20"
+        fill="none"
+      >
+        <circle cx="6" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+        <circle cx="14" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+        <circle cx="6" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+        <circle cx="14" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+        <circle cx="10" cy="10" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+      </svg>
+    </div>
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -406,6 +606,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
   const vLanes = config.vertical;
   const hasHLanes = hLanes.length > 0;
   const hasVLanes = vLanes.length > 0;
+  const isMatrix = hasHLanes && hasVLanes;
 
   const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
   const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
@@ -590,6 +791,38 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
             />
           );
         })()}
+
+        {/* ---- Header resize handles ---- */}
+        {/* Horizontal header: drag right edge to change header column width */}
+        {hasHLanes && (
+          <HeaderResizeHandle
+            orientation="horizontal"
+            edgeOffset={H_HEADER_WIDTH}
+            span={totalHeight}
+            zoom={viewport.zoom}
+            currentSize={H_HEADER_WIDTH}
+          />
+        )}
+        {/* Vertical header: drag bottom edge to change header row height */}
+        {hasVLanes && (
+          <HeaderResizeHandle
+            orientation="vertical"
+            edgeOffset={V_HEADER_HEIGHT}
+            span={totalWidth}
+            zoom={viewport.zoom}
+            currentSize={V_HEADER_HEIGHT}
+          />
+        )}
+
+        {/* ---- Matrix corner handle (top-left cell where headers meet) ---- */}
+        {isMatrix && (
+          <MatrixCornerHandle
+            width={H_HEADER_WIDTH}
+            height={V_HEADER_HEIGHT}
+            darkMode={darkMode}
+            zoom={viewport.zoom}
+          />
+        )}
       </div>
     </div>
   );

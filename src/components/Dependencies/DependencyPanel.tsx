@@ -11,6 +11,8 @@ import {
   Plus,
   AlertTriangle,
   GitBranch,
+  Route,
+  MousePointerClick,
 } from 'lucide-react';
 
 import { useFlowStore, type FlowNode, type FlowNodeData } from '../../store/flowStore';
@@ -179,6 +181,8 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
   const addNode = useFlowStore((s) => s.addNode);
   const onConnect = useFlowStore((s) => s.onConnect);
   const criticalPathEnabled = useDependencyStore((s) => s.criticalPathEnabled);
+  const toggleCriticalPath = useDependencyStore((s) => s.toggleCriticalPath);
+  const setSelectedNodes = useFlowStore((s) => s.setSelectedNodes);
 
   // Build a node label lookup map
   const nodeLabelMap = useMemo(() => {
@@ -258,6 +262,14 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
 
   const isOnCriticalPath = criticalPathNodes.has(nodeId);
 
+  // Whether the graph has any edges (critical path analysis needs edges)
+  const hasEdges = edges.length > 0;
+
+  const handleSelectCriticalPath = useCallback(() => {
+    if (criticalPathNodes.size === 0) return;
+    setSelectedNodes([...criticalPathNodes]);
+  }, [criticalPathNodes, setSelectedNodes]);
+
   // -- Handlers ---------------------------------------------------------------
 
   const handleRemove = useCallback(
@@ -325,7 +337,100 @@ const DependencyPanel: React.FC<DependencyPanelProps> = ({ nodeId }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Critical Path Indicator */}
+      {/* Critical Path Analysis Toggle */}
+      {hasEdges && (
+        <div
+          className={`
+            rounded-lg border px-3 py-2.5
+            ${darkMode
+              ? 'bg-dk-panel border-dk-border'
+              : 'bg-slate-50 border-slate-200'
+            }
+          `}
+        >
+          {/* Toggle row */}
+          <div className="flex items-center gap-2">
+            <Route
+              size={14}
+              className={`shrink-0 ${
+                criticalPathEnabled
+                  ? 'text-red-500'
+                  : darkMode ? 'text-dk-muted' : 'text-slate-400'
+              }`}
+            />
+            <span
+              className={`text-xs font-semibold flex-1 ${
+                darkMode ? 'text-dk-text' : 'text-slate-700'
+              }`}
+            >
+              Critical Path Analysis
+            </span>
+            {/* Toggle switch */}
+            <button
+              onClick={toggleCriticalPath}
+              className={`
+                relative inline-flex h-5 w-9 items-center rounded-full
+                transition-colors cursor-pointer shrink-0
+                ${criticalPathEnabled
+                  ? 'bg-red-500'
+                  : darkMode ? 'bg-dk-hover' : 'bg-slate-300'
+                }
+              `}
+              role="switch"
+              aria-checked={criticalPathEnabled}
+              aria-label="Toggle critical path analysis"
+            >
+              <span
+                className={`
+                  inline-block h-3.5 w-3.5 rounded-full bg-white
+                  transition-transform shadow-sm
+                  ${criticalPathEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}
+                `}
+              />
+            </button>
+          </div>
+
+          {/* Details when enabled */}
+          {criticalPathEnabled && criticalPathNodes.size > 0 && (
+            <div className="mt-2 flex items-center gap-2">
+              <span
+                className={`text-[11px] ${
+                  darkMode ? 'text-dk-muted' : 'text-slate-500'
+                }`}
+              >
+                {criticalPathNodes.size} node{criticalPathNodes.size !== 1 ? 's' : ''} on path
+              </span>
+              <button
+                onClick={handleSelectCriticalPath}
+                className={`
+                  ml-auto flex items-center gap-1 px-2 py-0.5 text-[11px]
+                  font-medium rounded border transition-colors cursor-pointer
+                  ${darkMode
+                    ? 'bg-red-900/40 hover:bg-red-900/60 text-red-300 border-red-800'
+                    : 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+                  }
+                `}
+              >
+                <MousePointerClick size={11} />
+                Select Critical Path
+              </button>
+            </div>
+          )}
+
+          {/* No path found message */}
+          {criticalPathEnabled && criticalPathNodes.size === 0 && (
+            <p
+              className={`mt-1.5 text-[10px] italic ${
+                darkMode ? 'text-dk-muted' : 'text-slate-400'
+              }`}
+            >
+              No critical path found (cycles detected or no edges)
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Critical Path Indicator (per-node) */}
       {criticalPathEnabled && isOnCriticalPath && (
         <div
           className={`

@@ -120,6 +120,8 @@ export interface FlowNodeData {
   /** Dependency metadata */
   dependsOn?: string[];
   blockedBy?: string[];
+  /** Free-form notes / annotations for this node */
+  notes?: string;
   [key: string]: unknown;
 }
 
@@ -137,6 +139,8 @@ export interface FlowEdgeData {
   /** Position of the label along the edge (0 = source, 0.5 = center, 1 = target). Default 0.5. */
   labelPosition?: number;
   dependencyType?: 'depends-on' | 'blocks' | 'related';
+  /** Free-form notes / annotations for this edge */
+  notes?: string;
   [key: string]: unknown;
 }
 

@@ -22,9 +22,11 @@ import {
   AlignCenterVertical,
   AlignEndVertical,
   Type,
+  StickyNote,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
+import { useUIStore } from '../../store/uiStore';
 import type { NodeShape, StatusIndicator } from '../../store/flowStore';
 import { useFlowStore, newPuckId } from '../../store/flowStore';
 import * as alignment from '../../utils/alignmentUtils';
@@ -500,6 +502,23 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             </div>
           )}
         </div>
+
+        <MenuItem
+          icon={<StickyNote size={14} />}
+          label="Notes"
+          onClick={() => {
+            useUIStore.getState().setActivePanelTab('data');
+            useUIStore.getState().setPropertiesPanelOpen(true);
+            onClose();
+            // Focus the notes textarea after panel switches
+            setTimeout(() => {
+              const textarea = document.getElementById('node-notes-textarea');
+              if (textarea) textarea.focus();
+            }, 100);
+          }}
+          darkMode={darkMode}
+          onMouseEnter={() => setSubmenu(null)}
+        />
 
         <MenuDivider darkMode={darkMode} />
 

@@ -1200,6 +1200,7 @@ Swimlane headers have limited space for labels. Follow these rules:
 - **Vertical lane labels:** Rendered horizontally in a 32px-tall top row. Keep labels to **3-4 words max**.
 - **Lane sizing:** Set `size` large enough to contain all nodes assigned to that lane. A lane with 3 stacked nodes needs at least `size: 400` (3 nodes × ~60px height + 2 × ~100px spacing + margins).
 - **Node positions in lanes:** When using swimlanes, position nodes within the lane's visual bounds. For horizontal lanes, nodes should be offset rightward by at least **60px** from the left edge (to clear the lane header).
+- **Swimlane headers must not obscure blocks:** Ensure that the lane header area (left column for horizontal, top row for vertical) does not overlap or hide any node blocks. Position all nodes well clear of the header zone. For horizontal lanes, nodes should start at x ≥ header width + 20px padding. For vertical lanes, nodes should start at y ≥ header height + 20px padding. If nodes appear behind or under the headers, increase the offset or reduce header size.
 - **Lane order:** Set `order` values sequentially (0, 1, 2...) to control which lane appears first.
 
 ### 14.8 Dark Mode and Dark Background Styles
@@ -1306,29 +1307,31 @@ Before finalizing a diagram JSON, verify:
 
 10. **Use status indicators sparingly** — Only add them when the diagram tracks task status.
 
-11. **Color coding** — Use consistent colors for node categories (e.g., green for success states, red for errors, blue for processing). Apply the same color to all nodes in the same category.
+11. **Color coding with purpose** — Every distinct color in your diagram MUST convey meaning. Use consistent colors for node categories (e.g., green for success states, red for errors, blue for processing). Apply the same color to all nodes in the same category. Do NOT use random colors for visual variety — each color should map to a concept, and that mapping MUST be documented in the `nodeLegend`. If a diagram uses 4 fill colors, the legend must have 4 fill entries explaining what each color represents.
 
-12. **Group related nodes** — Use `group` nodes with `parentId`/`extent: "parent"` for visual grouping, or `linkGroupId` for move-together behavior.
+12. **Legend must match the diagram** — When generating a `nodeLegend`, ensure every color, border style, status puck, and edge color used in the diagram has a corresponding legend entry. Conversely, do not include legend items for colors not present in the diagram. Auto-generating the legend after building all nodes guarantees accuracy. Include `kind: "puck"` entries for any status indicator colors used.
 
-13. **Edge labels** — Use short labels on edges (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"SQL"`). Label ALL branching edges from decisions.
+13. **Group related nodes** — Use `group` nodes with `parentId`/`extent: "parent"` for visual grouping, or `linkGroupId` for move-together behavior.
 
-14. **Icons enhance readability** — Add icons for common concepts: `Database`, `Server`, `Globe`, `Lock`, `User`, etc. Icons help readers identify node purpose at a glance.
+14. **Edge labels** — Use short labels on edges (e.g., `"Yes"`, `"No"`, `"HTTPS"`, `"SQL"`). Label ALL branching edges from decisions.
 
-15. **Spacing matters** — Well-spaced diagrams are more readable. Use 100-200px between nodes. Never crowd nodes together.
+15. **Icons enhance readability** — Add icons for common concepts: `Database`, `Server`, `Globe`, `Lock`, `User`, etc. Icons help readers identify node purpose at a glance.
 
-16. **Don't over-style** — Let the diagram style handle visual consistency. Only override colors/fonts when semantically meaningful.
+16. **Spacing matters** — Well-spaced diagrams are more readable. Use 100-200px between nodes. Never crowd nodes together.
+
+17. **Don't over-style** — Let the diagram style handle visual consistency. Only override colors/fonts when semantically meaningful.
 
 ### 15.3 Dark Mode Tips
 
-17. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`).
+18. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`).
 
-18. **Use saturated fill colors** — Pale/pastel fills look washed out on dark backgrounds. Use full-saturation colors (`#3b82f6` not `#dbeafe`).
+19. **Use saturated fill colors** — Pale/pastel fills look washed out on dark backgrounds. Use full-saturation colors (`#3b82f6` not `#dbeafe`).
 
-19. **Make edges brighter** — Default gray (`#94a3b8`) edges are barely visible on dark backgrounds. Use `"color": "#cbd5e1"` or brighter.
+20. **Make edges brighter** — Default gray (`#94a3b8`) edges are barely visible on dark backgrounds. Use `"color": "#cbd5e1"` or brighter.
 
-20. **Edge labels need explicit `labelColor`** — Set `"labelColor": "#e2e8f0"` so labels are readable on the dark slide background.
+21. **Edge labels need explicit `labelColor`** — Set `"labelColor": "#e2e8f0"` so labels are readable on the dark slide background.
 
-21. **Light text on dark fills** — Ensure `textColor` is `"#ffffff"` or another light color when the node fill is dark.
+22. **Light text on dark fills** — Ensure `textColor` is `"#ffffff"` or another light color when the node fill is dark.
 
 ### 15.4 Common Mistakes to Avoid
 

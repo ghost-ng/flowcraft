@@ -1058,6 +1058,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         deleteKeyCode={presentationMode ? null : "Delete"}
         multiSelectionKeyCode={presentationMode ? null : "Shift"}
         elevateNodesOnSelect={false}
+        minZoom={0.3}
         fitView
         attributionPosition="bottom-left"
         className={`${darkMode ? 'dark' : ''}${rulerVisible ? ' ruler-active' : ''}`}

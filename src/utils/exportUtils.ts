@@ -1265,6 +1265,9 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       if (n.data.description) {
         noteLines.push(`  ${n.data.description}`);
       }
+      if (n.data.notes) {
+        noteLines.push(`  Notes: ${n.data.notes}`);
+      }
     }
     slide.addNotes(noteLines.join('\n'));
   }
@@ -1518,7 +1521,7 @@ export function importFromJson(
     // Optional string fields
     for (const key of ['description', 'color', 'borderColor', 'textColor', 'fontFamily',
       'textAlign', 'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
-      'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId'] as const) {
+      'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId', 'notes'] as const) {
       if (typeof rawData[key] === 'string') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
       }
@@ -1645,6 +1648,7 @@ export function importFromJson(
       if (typeof rawData.labelPosition === 'number') edgeData.labelPosition = rawData.labelPosition;
       if (typeof rawData.strokeDasharray === 'string') edgeData.strokeDasharray = rawData.strokeDasharray;
       if (typeof rawData.dependencyType === 'string') edgeData.dependencyType = rawData.dependencyType;
+      if (typeof rawData.notes === 'string') edgeData.notes = rawData.notes;
 
       // Top-level React Flow edge properties
       const topLevel: Record<string, unknown> = {};
