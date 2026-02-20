@@ -120,12 +120,12 @@ const StatusBar: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className={`absolute bottom-0 left-0 right-0 h-6 flex items-center text-[10px] font-mono z-10 border-t select-none ${
+      className={`w-full h-6 shrink-0 flex items-center text-[10px] font-mono z-10 border-t select-none ${
         darkMode
           ? 'bg-surface-alt-dark border-dk-border'
           : 'bg-white/90 border-slate-200'
       }`}
-      style={{ left: rulerVisible ? 24 : 0 }}
+      style={{ paddingLeft: rulerVisible ? 24 : 0 }}
     >
       {/* Time saved */}
       <div className={itemClass} title="Time spent creating this diagram">

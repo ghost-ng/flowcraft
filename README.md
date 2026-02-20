@@ -4,7 +4,7 @@
 
 Chart Hero is a browser-based diagramming application for creating flowcharts, system architecture diagrams, and more — without the friction. No sign-ups, no subscriptions. Just open and build.
 
-**[Launch Chart Hero](https://ghost-ng.github.io/chart-hero/)**
+**[Launch Chart Hero](https://ghost-ng.github.io/Chart-Hero/)**
 
 ## Features
 

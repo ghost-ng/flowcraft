@@ -48,6 +48,6 @@ pages:
 # restores +x on native binaries (esbuild, rollup) after extraction.
 #
 # BASE PATH:
-# vite.config.ts has base: '/chart-hero/' for GitHub Pages.
+# vite.config.ts has base: '/Chart-Hero/' for GitHub Pages.
 # GitLab Pages uses --base=/ to override the base path at build time,
 # so assets are served from the root (e.g. https://yoursite.gitlab.io/).

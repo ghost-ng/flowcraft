@@ -109,11 +109,11 @@ body,
 }
 
 .react-flow__node.selected .react-flow__handle {
-  opacity: 0.5;
+  opacity: 0.5 !important;
 }
 
 .react-flow__node:hover .react-flow__handle {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 /* Resize handles: hidden by default, visible on hover */

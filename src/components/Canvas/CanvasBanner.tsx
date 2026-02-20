@@ -1,5 +1,11 @@
+// ---------------------------------------------------------------------------
+// CanvasBanner.tsx -- Top/bottom banner bars that push canvas content
+//
+// These render as flex siblings OUTSIDE <ReactFlow>, so they physically
+// shrink the canvas area instead of overlaying it.
+// ---------------------------------------------------------------------------
+
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Panel } from '@xyflow/react';
 import { useBannerStore, type BannerConfig } from '../../store/bannerStore';
 import { useStyleStore } from '../../store/styleStore';
 
@@ -32,6 +38,9 @@ const COLOR_SWATCHES = [
   '#be185d', '#db2777', '#ec4899', '#f472b6',
   '#ffffff', '#f8fafc', '#e2e8f0', '#94a3b8',
 ];
+
+const MIN_HEIGHT = 16;
+const MAX_HEIGHT = 200;
 
 // ---------------------------------------------------------------------------
 // Banner Context Menu
@@ -125,6 +134,24 @@ const BannerContextMenu: React.FC<BannerContextMenuProps> = ({
         }`}
       />
 
+      {/* Height */}
+      <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+        Height
+      </div>
+      <div className="flex items-center gap-2 mb-2 px-1">
+        <input
+          type="range"
+          min={MIN_HEIGHT}
+          max={MAX_HEIGHT}
+          value={banner.height}
+          onChange={(e) => update({ height: Number(e.target.value) })}
+          className="flex-1 h-1 accent-primary cursor-pointer"
+        />
+        <span className={`text-[11px] tabular-nums w-8 text-right ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+          {banner.height}px
+        </span>
+      </div>
+
       {/* Background Color */}
       <div className={`text-[10px] font-semibold uppercase tracking-wider px-1 mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
         Background Color
@@ -210,15 +237,15 @@ const BannerContextMenu: React.FC<BannerContextMenuProps> = ({
 };
 
 // ---------------------------------------------------------------------------
-// Single Banner Bar
+// BannerBar -- a single top or bottom banner
 // ---------------------------------------------------------------------------
 
-interface BannerBarProps {
+export interface BannerBarProps {
   position: 'top' | 'bottom';
   config: BannerConfig;
 }
 
-const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
+export const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const update = useBannerStore((s) =>
     position === 'top' ? s.updateTopBanner : s.updateBottomBanner,
@@ -249,7 +276,7 @@ const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
         const delta = position === 'top'
           ? ev.clientY - dragStartRef.current.y
           : dragStartRef.current.y - ev.clientY;
-        const newHeight = Math.max(24, Math.min(200, dragStartRef.current.height + delta));
+        const newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, dragStartRef.current.height + delta));
         update({ height: newHeight });
       };
 
@@ -269,19 +296,17 @@ const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
   // Lighten color slightly in dark mode for contrast
   const bgColor = darkMode && config.color === '#1e293b' ? '#334155' : config.color;
 
-  const borderSide = position === 'top' ? 'borderBottom' : 'borderTop';
-
   return (
     <>
       <div
         onContextMenu={handleContextMenu}
         style={{
           height: config.height,
+          minHeight: MIN_HEIGHT,
           backgroundColor: bgColor,
           color: config.textColor,
           fontFamily: config.fontFamily,
           fontSize: config.fontSize,
-          [borderSide]: '1px solid rgba(255,255,255,0.1)',
           position: 'relative',
           userSelect: isDragging ? 'none' : undefined,
         }}
@@ -291,35 +316,35 @@ const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
           <span className="truncate px-4 font-medium">{config.label}</span>
         )}
 
-        {/* Resize handle */}
+        {/* Resize handle -- sits at the inner edge of the banner (bottom for top, top for bottom) */}
         <div
           onMouseDown={handleResizeStart}
           style={{
             position: 'absolute',
             left: 0,
             right: 0,
-            height: 6,
+            height: 8,
             cursor: 'row-resize',
-            ...(position === 'top' ? { bottom: -3 } : { top: -3 }),
+            ...(position === 'top' ? { bottom: 0 } : { top: 0 }),
             zIndex: 10,
           }}
           className="group"
         >
           {/* Visual indicator on hover */}
           <div
-            className="mx-auto transition-opacity opacity-0 group-hover:opacity-100"
+            className="absolute left-1/2 -translate-x-1/2 transition-opacity opacity-0 group-hover:opacity-100"
             style={{
               width: 40,
-              height: 2,
-              backgroundColor: 'rgba(59,130,246,0.5)',
-              borderRadius: 1,
-              marginTop: 2,
+              height: 3,
+              backgroundColor: 'rgba(59,130,246,0.6)',
+              borderRadius: 2,
+              ...(position === 'top' ? { bottom: 0 } : { top: 0 }),
             }}
           />
         </div>
       </div>
 
-      {/* Context menu */}
+      {/* Context menu (portal-like, fixed positioned) */}
       {contextMenu && (
         <BannerContextMenu
           x={contextMenu.x}
@@ -332,30 +357,4 @@ const BannerBar: React.FC<BannerBarProps> = ({ position, config }) => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// Main CanvasBanner component
-// ---------------------------------------------------------------------------
-
-const CanvasBanner: React.FC = () => {
-  const topBanner = useBannerStore((s) => s.topBanner);
-  const bottomBanner = useBannerStore((s) => s.bottomBanner);
-
-  if (!topBanner.enabled && !bottomBanner.enabled) return null;
-
-  return (
-    <>
-      {topBanner.enabled && (
-        <Panel position="top-center" style={{ width: '100%', margin: 0, padding: 0, left: 0, right: 0 }}>
-          <BannerBar position="top" config={topBanner} />
-        </Panel>
-      )}
-      {bottomBanner.enabled && (
-        <Panel position="bottom-center" style={{ width: '100%', margin: 0, padding: 0, left: 0, right: 0 }}>
-          <BannerBar position="bottom" config={bottomBanner} />
-        </Panel>
-      )}
-    </>
-  );
-};
-
-export default React.memo(CanvasBanner);
+export default React.memo(BannerBar);

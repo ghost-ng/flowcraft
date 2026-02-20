@@ -20,8 +20,8 @@ export default defineConfig({
         theme_color: '#1e293b',
         background_color: '#0f172a',
         display: 'standalone',
-        scope: '/chart-hero/',
-        start_url: '/chart-hero/',
+        scope: '/Chart-Hero/',
+        start_url: '/Chart-Hero/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -59,7 +59,7 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/chart-hero/',
+  base: '/Chart-Hero/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },

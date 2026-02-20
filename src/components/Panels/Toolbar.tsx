@@ -225,7 +225,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const debugMode = useSettingsStore((s) => s.debugMode);
   const toggleDebugMode = useSettingsStore((s) => s.toggleDebugMode);
   const toolbarGroupOrder = useSettingsStore((s) => s.toolbarGroupOrder);
-  const { canInstall, install: installPwa } = usePwaInstall();
+  const { canInstall, isInstalled, install: installPwa } = usePwaInstall();
   const setToolbarGroupOrder = useSettingsStore((s) => s.setToolbarGroupOrder);
   const toolbarLocked = useSettingsStore((s) => s.toolbarLocked);
   const toggleToolbarLocked = useSettingsStore((s) => s.toggleToolbarLocked);
@@ -755,19 +755,27 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {fileMenuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setFileMenuOpen(false)} />
-            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[160px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
-              <button onClick={() => { handleNew(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+            <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
+              <button onClick={() => { handleNew(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <FilePlus size={14} className="text-slate-400" /> New Diagram
               </button>
-              <button onClick={() => { handleOpen(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <button onClick={() => { handleOpen(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <FolderOpen size={14} className="text-slate-400" /> Open (.fc)
               </button>
-              <button onClick={() => { handleSave(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <button onClick={() => { handleSave(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <Save size={14} className="text-slate-400" /> Save (.fc) <Kbd shortcut="Ctrl+S" />
               </button>
               <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
-              <button onClick={() => { onOpenTemplates?.(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <button onClick={() => { onOpenTemplates?.(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <LayoutTemplate size={14} className="text-slate-400" /> Templates
+              </button>
+              <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
+              <button
+                onClick={() => { if (canInstall) { installPwa(); setFileMenuOpen(false); } }}
+                disabled={!canInstall}
+                className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors ${canInstall ? `cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}` : 'opacity-40 cursor-not-allowed'} ${!canInstall ? (darkMode ? 'text-dk-muted' : 'text-slate-400') : ''}`}
+              >
+                <Download size={14} className="text-slate-400" /> {isInstalled ? 'Installed' : 'Install as App'}
               </button>
             </div>
           </>
@@ -1449,13 +1457,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           tooltip={isVertical ? 'Switch to Horizontal Toolbar' : 'Switch to Vertical Toolbar'}
           onClick={toggleToolbarOrientation}
         />
-        {canInstall && (
-          <ToolbarButton
-            icon={<Download size={14} />}
-            tooltip="Install as Desktop App"
-            onClick={installPwa}
-          />
-        )}
 
         {!isVertical && (
           <>
@@ -1464,7 +1465,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               v{__APP_VERSION__}
             </span>
             <a
-              href="https://github.com/ghost-ng/chart-hero"
+              href="https://github.com/ghost-ng/Chart-Hero"
               target="_blank"
               rel="noopener noreferrer"
               className="p-1 rounded text-text-muted hover:text-text transition-colors"

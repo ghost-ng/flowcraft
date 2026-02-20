@@ -29,7 +29,7 @@ import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
 import { useLegendStore } from '../../store/legendStore';
 import { useBannerStore } from '../../store/bannerStore';
-import CanvasBanner from './CanvasBanner';
+import { BannerBar } from './CanvasBanner';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
@@ -258,9 +258,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const swimlaneLegendVisible = useLegendStore((s) => s.swimlaneLegend.visible && s.swimlaneLegend.items.length > 0);
 
   // Banner store
-  const topBannerEnabled = useBannerStore((s) => s.topBanner.enabled);
-  const bottomBannerEnabled = useBannerStore((s) => s.bottomBanner.enabled);
-  const hasBanners = topBannerEnabled || bottomBannerEnabled;
+  const topBanner = useBannerStore((s) => s.topBanner);
+  const bottomBanner = useBannerStore((s) => s.bottomBanner);
 
   // Hovered node tracking (for Ctrl+Wheel border-width adjustment)
   const hoveredNodeRef = useRef<string | null>(null);
@@ -1006,7 +1005,12 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   }, [updateNodeData]);
 
   return (
-    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full relative ${presentationMode ? 'presentation-mode' : ''}`} onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ backgroundColor: activeStyle.canvas.background, cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
+    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: activeStyle.canvas.background }}>
+      {/* Top banner — rendered outside ReactFlow so it pushes content down */}
+      {topBanner.enabled && <BannerBar position="top" config={topBanner} />}
+
+      {/* Canvas area — takes remaining space */}
+      <div className="flex-1 min-h-0 relative" onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined }}>
       {/* Format painter active indicator */}
       {formatPainterActive && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-lg animate-pulse">
@@ -1109,8 +1113,6 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           />
         )}
 
-        {/* Canvas banners (top/bottom bars) */}
-        {hasBanners && <CanvasBanner />}
       </ReactFlow>
 
       {/* Floating undo/redo buttons */}
@@ -1244,7 +1246,12 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       {/* Presentation mode overlay (inside ReactFlowProvider for viewport access) */}
       <PresentationOverlay />
 
-      {/* Status bar at bottom of canvas */}
+      </div>{/* end canvas-area */}
+
+      {/* Bottom banner — rendered outside ReactFlow so it pushes content up */}
+      {bottomBanner.enabled && <BannerBar position="bottom" config={bottomBanner} />}
+
+      {/* Status bar at very bottom, below banners */}
       {!presentationMode && <StatusBar />}
     </div>
   );
