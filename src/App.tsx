@@ -12,6 +12,10 @@ import { useUIStore } from './store/uiStore';
 import { useExportStore } from './store/exportStore';
 import { useFlowStore } from './store/flowStore';
 import { useSettingsStore } from './store/settingsStore';
+import { useAIStore } from './store/aiStore';
+
+const AIChatPanel = React.lazy(() => import('./components/AI/AIChatPanel'));
+const AISettingsDialog = React.lazy(() => import('./components/AI/AISettingsDialog'));
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useAutoLayout } from './hooks/useAutoLayout';
@@ -41,6 +45,10 @@ const App: React.FC = () => {
   const exportDialogOpen = useExportStore((s) => s.dialogOpen);
   const presentationMode = useUIStore((s) => s.presentationMode);
   const toolbarOrientation = useSettingsStore((s) => s.toolbarOrientation);
+
+  // AI panel state
+  const aiPanelOpen = useAIStore((s) => s.isPanelOpen);
+  const aiSettingsOpen = useAIStore((s) => s.isSettingsOpen);
 
   // Template gallery state
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
@@ -295,6 +303,11 @@ const App: React.FC = () => {
     useExportStore.getState().setDialogOpen(true);
   }, []);
 
+  // Toggle AI panel
+  const handleToggleAI = useCallback(() => {
+    useAIStore.getState().togglePanel();
+  }, []);
+
   // Nudge selected nodes by (dx, dy) pixels
   const handleNudge = useCallback((dx: number, dy: number) => {
     const { selectedNodes, nodes, updateNodePosition } = useFlowStore.getState();
@@ -492,6 +505,7 @@ const App: React.FC = () => {
     onCopyStyle: handleCopyStyle,
     onPasteStyle: handlePasteStyle,
     onStraightenEdges: () => useFlowStore.getState().straightenEdges(),
+    onToggleAI: handleToggleAI,
   }, !presentationMode);
 
   // Global format painter cursor – inject a <style> with !important so it
@@ -607,6 +621,17 @@ const App: React.FC = () => {
         open={shortcutsDialogOpen}
         onClose={() => setShortcutsDialogOpen(false)}
       />
+
+      {/* AI Chat */}
+      <React.Suspense fallback={null}>
+        {aiPanelOpen && <AIChatPanel />}
+        {aiSettingsOpen && (
+          <AISettingsDialog
+            open={aiSettingsOpen}
+            onClose={() => useAIStore.getState().setSettingsOpen(false)}
+          />
+        )}
+      </React.Suspense>
 
       {/* Screenshot region selector overlay */}
       <ScreenshotOverlay />

@@ -75,6 +75,7 @@ import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
 import DiagramStylePicker from '../StylePicker/DiagramStylePicker';
 import ImportJsonDialog from '../Import/ImportJsonDialog';
+import AIButton from '../AI/AIButton';
 import { log } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -1412,6 +1413,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           )}
         </div>
+
+        <AIButton />
 
         <ToolbarButton
           icon={<Camera size={14} />}

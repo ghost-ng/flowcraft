@@ -66,6 +66,8 @@ export interface KeyboardShortcutCallbacks {
   onStraightenEdges?: () => void;
   /** Ctrl+/ - show keyboard shortcuts dialog */
   onShowShortcuts?: () => void;
+  /** Ctrl+Shift+A - toggle AI assistant panel */
+  onToggleAI?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -165,6 +167,11 @@ export function useKeyboardShortcuts(
           case 'l':
             e.preventDefault();
             callbacks.onAutoLayout?.();
+            return;
+          case 'A':
+          case 'a':
+            e.preventDefault();
+            callbacks.onToggleAI?.();
             return;
           case ']':
           case '}':
