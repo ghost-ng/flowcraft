@@ -475,6 +475,51 @@ export const useFlowStore = create<FlowState>()(
           }
           moved.add(target.id);
         }
+
+        // --- Collision resolution: push apart nodes that overlap after alignment ---
+        if (moved.size > 1) {
+          const GAP = 20; // px minimum gap between nodes
+          const movedNodes = state.nodes.filter((n) => moved.has(n.id));
+          // Check each pair of moved nodes for overlap
+          for (let i = 0; i < movedNodes.length; i++) {
+            const a = movedNodes[i];
+            const aW = a.data.width || 160;
+            const aH = a.data.height || 60;
+            for (let j = i + 1; j < movedNodes.length; j++) {
+              const b = movedNodes[j];
+              const bW = b.data.width || 160;
+              const bH = b.data.height || 60;
+              // Check bounding box overlap
+              const overlapX = a.position.x < b.position.x + bW + GAP &&
+                               a.position.x + aW + GAP > b.position.x;
+              const overlapY = a.position.y < b.position.y + bH + GAP &&
+                               a.position.y + aH + GAP > b.position.y;
+              if (overlapX && overlapY) {
+                // Push the second node away from the first
+                // Determine which axis has more overlap and push on the other
+                const overlapAmtX = Math.min(a.position.x + aW, b.position.x + bW) -
+                                    Math.max(a.position.x, b.position.x);
+                const overlapAmtY = Math.min(a.position.y + aH, b.position.y + bH) -
+                                    Math.max(a.position.y, b.position.y);
+                if (overlapAmtX < overlapAmtY) {
+                  // Push horizontally
+                  if (b.position.x >= a.position.x) {
+                    b.position = { ...b.position, x: a.position.x + aW + GAP };
+                  } else {
+                    b.position = { ...b.position, x: a.position.x - bW - GAP };
+                  }
+                } else {
+                  // Push vertically
+                  if (b.position.y >= a.position.y) {
+                    b.position = { ...b.position, y: a.position.y + aH + GAP };
+                  } else {
+                    b.position = { ...b.position, y: a.position.y - bH - GAP };
+                  }
+                }
+              }
+            }
+          }
+        }
       });
     },
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useViewport } from '@xyflow/react';
 
 import {
@@ -516,6 +516,7 @@ const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
 
   return (
     <div
+      className="swimlane-corner-handle"
       style={{
         position: 'absolute',
         ...positionStyle,
@@ -527,7 +528,7 @@ const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
         backgroundColor: darkMode ? '#253345' : '#ffffff',
         border: `1.5px solid ${darkMode ? 'rgba(132,148,167,0.5)' : 'rgba(100,116,139,0.5)'}`,
         borderRadius: 2,
-        opacity: visible ? 1 : 0,
+        opacity: visible ? 0.4 : 0,
         transition: 'opacity 150ms ease',
       }}
       onMouseDown={handleMouseDown}
@@ -780,13 +781,11 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
   const containerOffset = useSwimlaneStore((s) => s.containerOffset);
   const darkMode = useStyleStore((s) => s.darkMode);
   const viewport = useViewport();
-  const [hovered, setHovered] = useState(false);
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;
   const hasHLanes = hLanes.length > 0;
   const hasVLanes = vLanes.length > 0;
-  const isMatrix = hasHLanes && hasVLanes;
 
   const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
   const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
@@ -816,6 +815,10 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
   const headerOffsetX = hasVLanes ? (hasHLanes ? H_HEADER_WIDTH : 0) : 0;
   const headerOffsetY = hasHLanes ? (hasVLanes ? V_HEADER_HEIGHT : 0) : 0;
 
+  // Move handle dimensions for all modes (matrix and non-matrix)
+  const moveHandleWidth = hasHLanes ? H_HEADER_WIDTH : Math.min(32, totalWidth);
+  const moveHandleHeight = hasVLanes ? V_HEADER_HEIGHT : Math.min(24, totalHeight);
+
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
@@ -830,24 +833,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           height: totalHeight,
         }}
       >
-        {/* ---- Hover detection border around container for corner handles ---- */}
-        <div
-          style={{
-            position: 'absolute',
-            left: -CORNER_HANDLE_SIZE,
-            top: -CORNER_HANDLE_SIZE,
-            right: -CORNER_HANDLE_SIZE,
-            bottom: -CORNER_HANDLE_SIZE,
-            width: totalWidth + CORNER_HANDLE_SIZE * 2,
-            height: totalHeight + CORNER_HANDLE_SIZE * 2,
-            pointerEvents: 'auto',
-            zIndex: 14,
-          }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        />
-
-        {/* ---- Corner resize handles (visible on hover) ---- */}
+        {/* ---- Corner resize handles (always visible at low opacity, full on self-hover) ---- */}
         {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
           (corner) => (
             <CornerResizeHandle
@@ -857,7 +843,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
               totalHeight={totalHeight}
               zoom={viewport.zoom}
               darkMode={darkMode}
-              visible={hovered}
+              visible={true}
               headerOffsetX={headerOffsetX}
               headerOffsetY={headerOffsetY}
             />
@@ -1032,15 +1018,13 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           />
         )}
 
-        {/* ---- Matrix corner handle (top-left cell where headers meet) ---- */}
-        {isMatrix && (
-          <MatrixCornerHandle
-            width={H_HEADER_WIDTH}
-            height={V_HEADER_HEIGHT}
-            darkMode={darkMode}
-            zoom={viewport.zoom}
-          />
-        )}
+        {/* ---- Move handle (top-left corner for dragging the entire container) ---- */}
+        <MatrixCornerHandle
+          width={moveHandleWidth}
+          height={moveHandleHeight}
+          darkMode={darkMode}
+          zoom={viewport.zoom}
+        />
       </div>
     </div>
   );

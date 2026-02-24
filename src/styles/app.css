@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&family=Patrick+Hand&family=VT323&family=Courier+Prime:wght@400;700&family=Space+Mono:wght@400;700&family=Roboto:wght@400;500;700&family=Nunito:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600&family=Lora:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap');
+@import "./fonts.css";
 
 @import "tailwindcss";
 
@@ -113,6 +113,11 @@ body,
 }
 
 .react-flow__node:hover .react-flow__handle {
+  opacity: 1 !important;
+}
+
+/* Swimlane corner resize handles — full opacity on self-hover */
+.swimlane-corner-handle:hover {
   opacity: 1 !important;
 }
 
