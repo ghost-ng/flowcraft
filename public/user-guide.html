@@ -49,8 +49,11 @@
     .content-area a { color: var(--accent); text-decoration: none; }
     .content-area a:hover { text-decoration: underline; }
     .content-area code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
-    .content-area pre { background: var(--code-bg); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+    .content-area pre { background: var(--code-bg); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; font-size: 0.85em; line-height: 1.5; }
     .content-area pre code { background: none; padding: 0; }
+    .content-area pre.code-json { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); }
+    .content-area pre code .json-key { color: #0550ae; } .content-area pre code .json-str { color: #0a3069; } .content-area pre code .json-num { color: #0550ae; } .content-area pre code .json-bool { color: #cf222e; } .content-area pre code .json-null { color: #cf222e; } .content-area pre code .json-punct { color: var(--muted); }
+    @media (prefers-color-scheme: dark) { .content-area pre code .json-key { color: #79c0ff; } .content-area pre code .json-str { color: #a5d6ff; } .content-area pre code .json-num { color: #79c0ff; } .content-area pre code .json-bool { color: #ff7b72; } .content-area pre code .json-null { color: #ff7b72; } .content-area pre code .json-punct { color: #8b949e; } }
     .content-area table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92em; }
     .content-area th, .content-area td { border: 1px solid var(--border); padding: 0.45rem 0.7rem; text-align: left; }
     .content-area th { background: var(--code-bg); font-weight: 600; white-space: nowrap; }
@@ -106,7 +109,20 @@
     // --- Minimal markdown-to-HTML renderer (no dependencies) ---
     function md(src) {
       let html = src
-        .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => '<pre><code class="lang-' + lang + '">' + esc(code.trim()) + '</code></pre>')
+        .replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
+          var escaped = esc(code.trim());
+          if (lang === 'json') {
+            escaped = escaped
+              .replace(/(&quot;[^&]*?&quot;)\s*:/g, '<span class="json-key">$1</span><span class="json-punct">:</span>')
+              .replace(/:(\s*)(&quot;[^&]*?&quot;)/g, '<span class="json-punct">:</span>$1<span class="json-str">$2</span>')
+              .replace(/:\s*(-?\d+\.?\d*)/g, '<span class="json-punct">:</span> <span class="json-num">$1</span>')
+              .replace(/:\s*(true|false)/g, '<span class="json-punct">:</span> <span class="json-bool">$1</span>')
+              .replace(/:\s*(null)/g, '<span class="json-punct">:</span> <span class="json-null">$1</span>')
+              .replace(/([{}\[\],])/g, '<span class="json-punct">$1</span>');
+            return '<pre class="code-json"><code class="lang-json">' + escaped + '</code></pre>';
+          }
+          return '<pre><code class="lang-' + lang + '">' + escaped + '</code></pre>';
+        })
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" />')
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(_, text, href) {
