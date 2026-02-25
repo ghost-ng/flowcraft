@@ -46,13 +46,13 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 | **Gradient Cards** | Inter | White fill, no border, elevated card shadow, 12px radius | Light gray smoothstep | Clean card UI with depth |
 | **Slate Command** | Arial | Ivory fill, black border (1.5px), 6px radius, lined grid | Black smoothstep | Professional command/control |
 
-> Dark themes automatically enable dark mode for the entire application UI. Switching to a light theme restores light mode.
+> Dark themes are designed for use with dark mode enabled. Toggle dark mode separately with `Ctrl+Shift+K`.
 
 ---
 
 ## Color Palettes (11)
 
-Palettes provide quick-access fill colors for selected nodes via number keys **1** through **5** (one key per palette color). Each palette contains 5 curated colors.
+Palettes provide curated fill colors for selected nodes. Press number keys **1** through **9** to quickly apply a color to selected nodes. Each palette contains 5 curated colors shown below.
 
 | Palette | Key 1 | Key 2 | Key 3 | Key 4 | Key 5 | Best For |
 |---------|-------|-------|-------|-------|-------|----------|
@@ -71,10 +71,10 @@ Palettes provide quick-access fill colors for selected nodes via number keys **1
 ### Using Palette Colors
 
 1. Select one or more nodes on the canvas.
-2. Press a number key **1** through **5** to apply the corresponding palette color as the node fill.
+2. Press a number key **1** through **9** to apply a quick-access color as the node fill.
 3. The active palette name is shown in the toolbar style picker.
 
-> Number keys **6** through **9** apply the same palette colors with lighter tints, giving you up to 9 quick color options per palette.
+> The number keys apply a fixed set of 9 quick-access colors (blue, green, amber, red, purple, pink, cyan, gray, orange) for fast color-coding. To use the exact palette colors shown in the table above, use the color picker in the Properties Panel or the context menu color swatch.
 
 ---
 
@@ -89,7 +89,7 @@ Dark mode inverts the application UI (toolbar, panels, menus, dialogs) to a dark
 - **AI command**: "Switch to dark mode" or "Turn on dark mode"
 - Canvas background adapts to the current diagram style
 - Can be toggled independently of diagram style -- light themes still work in dark mode, with only the panels and menus inverted
-- Dark diagram styles (Blueprint, Neon Dark, etc.) automatically enable dark mode when applied
+- Dark diagram styles (Blueprint, Neon Dark, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
 
 ---
 

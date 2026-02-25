@@ -45,7 +45,7 @@ Every connector exposes the following properties, all editable from the **Edge t
 |----------|-----------------|---------|-------------|
 | Connector Type | SmoothStep, Bezier, Step, Straight | SmoothStep | Routing algorithm |
 | Connector Color | Any hex color | `#94a3b8` | Stroke color of the line |
-| Thickness | 1 -- 6 px (0.5 px steps) | 2 px | Stroke width |
+| Thickness | 1 -- 6 px (0.5 px steps) | 1.5 px | Stroke width |
 | Opacity | 0 -- 100% (5% steps) | 100% | Line transparency |
 | Line Style | Solid, Dashed, Dotted | Solid | Dash pattern |
 | Dash Spacing | 2 -- 24 px (varies by style) | Auto | Gap size between dashes or dots (only visible when Line Style is Dashed or Dotted) |
@@ -56,7 +56,7 @@ Every connector exposes the following properties, all editable from the **Edge t
 |----------|-----------------|---------|-------------|
 | Label | Any text | (none) | Text displayed along the connector |
 | Label Color | Any hex color | `#475569` | Label text color |
-| Label Font Size | 8 -- 24 px | 11 px | Size of the label text |
+| Label Font Size | 8 -- 24 px | 12 px | Size of the label text |
 | Label BG Color | Any hex color | `#ffffff` | Background color behind the label for readability |
 | Label Position | 0.0 -- 1.0 | 0.5 (center) | Position along the edge path (0 = source end, 0.5 = midpoint, 1 = target end) |
 

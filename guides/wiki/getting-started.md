@@ -14,23 +14,23 @@ When you first open Chart Hero, you will see four main areas arranged around the
 
 The toolbar spans the top of the window and contains grouped action buttons for every major operation. From left to right, the groups cover:
 
-- **File** -- New, Open (.fc), Save (.fc), Templates, Import JSON, Install as App
+- **File** -- New, Open (.fc), Save (.fc), Templates, Install as App
 - **Arrange** -- Auto-arrange (Dagre layout in 4 directions), auto-straighten edges, alignment (left / center / right / top / middle / bottom), distribution (horizontal / vertical spacing), mirror and flip, rotation
-- **Edit** -- Undo, Redo, Copy, Paste, Duplicate, Delete, Group, Link-group, Lock/Unlock, Z-ordering (forward / backward / front / back), Format Painter
-- **View** -- Grid toggle (dots / lines / cross), Snap-to-grid toggle, Rulers toggle, Minimap toggle, Fit to view, Zoom controls
-- **Panels** -- Toggle the Shape Palette (left), Properties Panel (right), and Dependency panel visibility
-- **Export** -- Open export dialog, Copy to clipboard as PNG or SVG, Screenshot capture
-- **Style and Font** -- Diagram style picker, color palette selector, font size increase/decrease, dark mode toggle
-- **Utilities** -- AI Assistant, Presentation Mode, Keyboard shortcuts reference, Debug mode
+- **Edit** -- Undo, Redo, Copy, Paste, Delete, Z-ordering (forward / backward)
+- **View** -- Select tool, Fit View, Grid toggle (dots / lines / cross), Snap-to-grid toggle, Rulers toggle, Dependency badges toggle
+- **Panels** -- Properties Panel toggle, Format Painter, Select Same Type, Global Font picker, Font size increase/decrease
+- **Export** -- Open export dialog, Copy to clipboard as PNG or SVG, Import JSON
+
+Additional pinned icons appear at the right end of the toolbar: Style & Palette picker, Selection color picker, AI Assistant, Toolbar lock/unlock, and Toolbar orientation toggle. The bottom status bar contains Keyboard shortcuts, Screenshot, Presentation Mode, and Debug logging controls.
 
 ### Shape Palette (left)
 
 The collapsible left panel provides every shape you can place on the canvas.
 
-- **Basic shapes** (10) -- Rectangle, Rounded Rectangle, Diamond, Circle, Ellipse, Parallelogram, Hexagon, Triangle, Star, Cloud
-- **Flowchart shapes** (9) -- Arrow, Callout, Document, Predefined Process, Manual Input, Preparation, Data (I/O), Database, Internal Storage, Display
+- **Standard shapes** (10) -- Rectangle, Rounded Rectangle, Diamond, Circle, Parallelogram, Document, Hexagon, Cloud, Sticky Note, Text Box
 - **Arrow shapes** (4) -- Block Arrow, Chevron Arrow, Double Arrow, Circular Arrow
-- **Special** -- Sticky Note, Text Box, Group container
+- **Group container** -- Drag to create a visual grouping region
+- **Additional shapes** available via AI -- Ellipse, Triangle, Star, Arrow, Callout, Predefined Process, Manual Input, Preparation, Data (I/O), Database, Internal Storage, Display (available through the AI assistant or JSON import, not in the drag palette)
 - **Icon library** -- Search and browse 1,000+ Lucide icons to attach to any node
 - **Swimlane button** -- Quick-add horizontal, vertical, or matrix swimlanes
 
@@ -124,7 +124,7 @@ Go to **File > Open (.fc)** in the toolbar. Chart Hero accepts both `.fc` and `.
 
 ### Auto-save
 
-Auto-save is enabled by default. Chart Hero saves your work to browser localStorage at a 30-second interval with up to 5 rotating save slots. This means you can close the browser tab and reopen Chart Hero later to find your diagram intact. Auto-save settings (interval, number of slots, enable/disable) are configurable in the Settings dialog.
+Auto-save is always active. Chart Hero saves your nodes and edges to browser localStorage within one second of every change. You can close the browser tab and reopen Chart Hero later to find your diagram intact.
 
 > **Note:** Auto-save uses browser localStorage, which is specific to the browser and device. Clearing browser data will remove auto-saved diagrams. For permanent storage, always use <kbd>Ctrl</kbd>+<kbd>S</kbd> to download a `.fc` file.
 

@@ -91,6 +91,9 @@ export interface UIState {
   // ---- screenshot mode ----------------------------------------
   screenshotMode: boolean;
 
+  // ---- shortcuts dialog ----------------------------------------
+  shortcutsDialogOpen: boolean;
+
   // ---- confirm dialog -----------------------------------------
   confirmDialog: {
     message: string;
@@ -170,6 +173,9 @@ export interface UIState {
   // ---- screenshot mode actions ----------------------------------
   setScreenshotMode: (active: boolean) => void;
 
+  // ---- shortcuts dialog actions ----------------------------------
+  setShortcutsDialogOpen: (open: boolean) => void;
+
   // ---- link group editor actions --------------------------------
   setLinkGroupEditorId: (id: string | null) => void;
   setLinkGroupAddMode: (active: boolean) => void;
@@ -222,6 +228,8 @@ export const useUIStore = create<UIState>()((set) => ({
   confirmDialog: null,
 
   screenshotMode: false,
+
+  shortcutsDialogOpen: false,
 
   linkGroupEditorId: null,
   linkGroupAddMode: false,
@@ -335,6 +343,9 @@ export const useUIStore = create<UIState>()((set) => ({
 
   // -- screenshot mode ---------------------------------------------
   setScreenshotMode: (active) => set({ screenshotMode: active }),
+
+  // -- shortcuts dialog -------------------------------------------
+  setShortcutsDialogOpen: (open) => set({ shortcutsDialogOpen: open }),
 
   // -- link group editor ------------------------------------------
   setLinkGroupEditorId: (id) => set({ linkGroupEditorId: id, linkGroupAddMode: false }),

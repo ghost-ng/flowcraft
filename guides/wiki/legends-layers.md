@@ -52,7 +52,7 @@ The auto-generate feature scans your entire diagram and creates legend items aut
   - Unique border colors and styles (solid, dashed, dotted)
   - Unique status puck colors (mapped to status names)
   - Unique edge colors
-- The swimlane legend is also populated from lane colors when auto-generating.
+- The swimlane legend is generated separately from the Swimlane tab in the Properties Panel.
 
 > **Tip:** Auto-generate replaces any existing legend items. If you have manually curated items, make sure to back them up or add them back after generating.
 

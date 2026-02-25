@@ -23,6 +23,7 @@ import ScreenshotOverlay from './components/Screenshot/ScreenshotOverlay';
 import { log } from './utils/logger';
 import { computeBoundingBox } from './utils/groupUtils';
 import { mirrorHorizontal, mirrorVertical } from './utils/transformUtils';
+import * as alignment from './utils/alignmentUtils';
 import type { FlowNode, FlowEdge, FlowNodeData, StatusIndicator } from './store/flowStore';
 import { newPuckId, getStatusIndicators } from './store/flowStore';
 
@@ -53,8 +54,9 @@ const App: React.FC = () => {
   // Template gallery state
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
 
-  // Keyboard shortcuts dialog state
-  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+  // Keyboard shortcuts dialog state (from uiStore)
+  const shortcutsDialogOpen = useUIStore((s) => s.shortcutsDialogOpen);
+  const setShortcutsDialogOpen = useUIStore((s) => s.setShortcutsDialogOpen);
 
   // Undo/redo
   const { undo, redo, canUndo, canRedo, takeSnapshot } = useUndoRedo<FlowNode, FlowEdge>();
@@ -212,6 +214,49 @@ const App: React.FC = () => {
     if (nodes.length < 2) return;
     applyPositions(mirrorVertical(nodes));
   }, [takeSnapshotNow, getSelectedFlowNodes, applyPositions]);
+
+  // Alignment keyboard shortcut handlers
+  const handleAlignLeft = useCallback(() => {
+    const nodes = getSelectedFlowNodes();
+    if (nodes.length < 2) return;
+    takeSnapshotNow();
+    applyPositions(alignment.alignLeft(nodes));
+  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+
+  const handleAlignCenterH = useCallback(() => {
+    const nodes = getSelectedFlowNodes();
+    if (nodes.length < 2) return;
+    takeSnapshotNow();
+    applyPositions(alignment.alignCenterH(nodes));
+  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+
+  const handleAlignRight = useCallback(() => {
+    const nodes = getSelectedFlowNodes();
+    if (nodes.length < 2) return;
+    takeSnapshotNow();
+    applyPositions(alignment.alignRight(nodes));
+  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+
+  const handleAlignTop = useCallback(() => {
+    const nodes = getSelectedFlowNodes();
+    if (nodes.length < 2) return;
+    takeSnapshotNow();
+    applyPositions(alignment.alignTop(nodes));
+  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+
+  const handleAlignCenterV = useCallback(() => {
+    const nodes = getSelectedFlowNodes();
+    if (nodes.length < 2) return;
+    takeSnapshotNow();
+    applyPositions(alignment.alignCenterV(nodes));
+  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+
+  const handleAlignBottom = useCallback(() => {
+    const nodes = getSelectedFlowNodes();
+    if (nodes.length < 2) return;
+    takeSnapshotNow();
+    applyPositions(alignment.alignBottom(nodes));
+  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
 
   // Z-order: keyboard shortcut handlers (operate on all selected nodes)
   const handleSendBackward = useCallback(() => {
@@ -506,6 +551,12 @@ const App: React.FC = () => {
     onPasteStyle: handlePasteStyle,
     onStraightenEdges: () => useFlowStore.getState().straightenEdges(),
     onToggleAI: handleToggleAI,
+    onAlignLeft: handleAlignLeft,
+    onAlignCenterH: handleAlignCenterH,
+    onAlignRight: handleAlignRight,
+    onAlignTop: handleAlignTop,
+    onAlignCenterV: handleAlignCenterV,
+    onAlignBottom: handleAlignBottom,
   }, !presentationMode);
 
   // Global format painter cursor – inject a <style> with !important so it
@@ -571,7 +622,6 @@ const App: React.FC = () => {
       canUndo={canUndo}
       canRedo={canRedo}
       onOpenTemplates={() => setTemplateGalleryOpen(true)}
-      onOpenShortcuts={() => setShortcutsDialogOpen(true)}
     />
   );
 

@@ -132,7 +132,7 @@ The minimap is a small overview panel that shows the entire diagram in miniature
 
 ### Toggling the Minimap
 
-Toggle minimap visibility from the toolbar. The minimap is visible by default.
+Toggle minimap visibility from the **status bar** at the bottom of the canvas. The minimap is visible by default.
 
 ---
 

@@ -68,6 +68,18 @@ export interface KeyboardShortcutCallbacks {
   onShowShortcuts?: () => void;
   /** Ctrl+Shift+A - toggle AI assistant panel */
   onToggleAI?: () => void;
+  /** Ctrl+Alt+L - align left */
+  onAlignLeft?: () => void;
+  /** Ctrl+Alt+E - align center horizontal */
+  onAlignCenterH?: () => void;
+  /** Ctrl+Alt+R - align right */
+  onAlignRight?: () => void;
+  /** Ctrl+Alt+T - align top */
+  onAlignTop?: () => void;
+  /** Ctrl+Alt+M - align center vertical (middle) */
+  onAlignCenterV?: () => void;
+  /** Ctrl+Alt+B - align bottom */
+  onAlignBottom?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +138,36 @@ export function useKeyboardShortcuts(
           case 'S':
             e.preventDefault();
             callbacks.onStraightenEdges?.();
+            return;
+          case 'l':
+          case 'L':
+            e.preventDefault();
+            callbacks.onAlignLeft?.();
+            return;
+          case 'e':
+          case 'E':
+            e.preventDefault();
+            callbacks.onAlignCenterH?.();
+            return;
+          case 'r':
+          case 'R':
+            e.preventDefault();
+            callbacks.onAlignRight?.();
+            return;
+          case 't':
+          case 'T':
+            e.preventDefault();
+            callbacks.onAlignTop?.();
+            return;
+          case 'm':
+          case 'M':
+            e.preventDefault();
+            callbacks.onAlignCenterV?.();
+            return;
+          case 'b':
+          case 'B':
+            e.preventDefault();
+            callbacks.onAlignBottom?.();
             return;
         }
       }

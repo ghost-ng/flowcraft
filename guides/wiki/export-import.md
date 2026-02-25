@@ -25,7 +25,7 @@ All formats share two scope modes that control what portion of the diagram is ca
 
 ### Image Options
 
-PNG, JPG, and SVG formats display two additional toggles:
+PNG, JPG, SVG, and PDF formats display two additional toggles:
 
 - **Include Grid** -- When checked, the grid dots/lines/crosses appear in the exported image. Off by default.
 - **Include Minimap** -- When checked, the minimap overlay is included. Off by default.
@@ -378,15 +378,9 @@ Click a template card to load it onto the canvas. Loading a template replaces th
 
 ## Auto-Save
 
-Chart Hero automatically saves your work to the browser's localStorage so you never lose progress.
+Chart Hero automatically saves your diagram to the browser's localStorage so you never lose progress. Auto-save is always active -- every change you make is saved within one second.
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Enabled | On | Toggle auto-save on or off in Settings |
-| Interval | 30 seconds | How often the diagram is saved (configurable) |
-| Max Slots | 5 | Number of save slots maintained in localStorage |
-
-Auto-save runs silently in the background. You can also manually save at any time with `Ctrl+S`, which downloads a `.fc` file to disk.
+Auto-save captures your nodes and edges so that closing the browser tab and reopening Chart Hero later restores your diagram exactly as you left it. You can also manually save at any time with `Ctrl+S`, which downloads a full `.fc` file to disk (including swimlanes, legends, styles, and viewport state).
 
 > **Note:** Auto-save data is stored in your browser only. Clearing browser data or switching browsers will remove it. For permanent backup, export to JSON or save a `.fc` file.
 

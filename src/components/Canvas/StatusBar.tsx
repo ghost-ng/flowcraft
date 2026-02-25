@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useViewport } from '@xyflow/react';
-import { Pipette, Map } from 'lucide-react';
+import { Pipette, Map, Keyboard, Camera, Monitor, Bug } from 'lucide-react';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const MinimapToggle: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const minimapVisible = useUIStore((s) => s.minimapVisible);
@@ -24,6 +25,28 @@ const MinimapToggle: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   );
 };
 
+const StatusButton: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  title: string;
+  onClick: () => void;
+  active?: boolean;
+  darkMode: boolean;
+}> = ({ icon, label, title, onClick, active, darkMode }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-1 px-1.5 py-0.5 rounded cursor-pointer transition-colors text-[10px] ${
+      active
+        ? 'text-primary'
+        : darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-slate-500 hover:bg-slate-100'
+    }`}
+    title={title}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
+
 const StatusBar: React.FC = () => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const selectedNodes = useFlowStore((s) => s.selectedNodes);
@@ -31,6 +54,8 @@ const StatusBar: React.FC = () => {
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
   const rulerVisible = useUIStore((s) => s.rulerVisible);
+  const debugMode = useSettingsStore((s) => s.debugMode);
+  const toggleDebugMode = useSettingsStore((s) => s.toggleDebugMode);
   const viewport = useViewport();
 
   // Eyedropper state
@@ -191,6 +216,43 @@ const StatusBar: React.FC = () => {
           <div className={separatorClass} />
         </>
       )}
+
+      {/* Utility buttons (moved from toolbar) */}
+      <StatusButton
+        icon={<Keyboard size={10} />}
+        label="Shortcuts"
+        title="Keyboard Shortcuts (Ctrl+/)"
+        onClick={() => useUIStore.getState().setShortcutsDialogOpen(true)}
+        darkMode={darkMode}
+      />
+      <StatusButton
+        icon={<Camera size={10} />}
+        label="Screenshot"
+        title="Screenshot Region"
+        onClick={() => useUIStore.getState().setScreenshotMode(true)}
+        darkMode={darkMode}
+      />
+      <StatusButton
+        icon={<Monitor size={10} />}
+        label="Present"
+        title="Presentation Mode"
+        onClick={() => {
+          useFlowStore.getState().clearSelection();
+          useUIStore.getState().setPresentationMode(true);
+          document.documentElement.requestFullscreen?.().catch(() => {});
+        }}
+        darkMode={darkMode}
+      />
+      <StatusButton
+        icon={<Bug size={10} />}
+        label="Debug"
+        title={debugMode ? 'Disable Debug Logging' : 'Enable Debug Logging'}
+        onClick={toggleDebugMode}
+        active={debugMode}
+        darkMode={darkMode}
+      />
+
+      <div className={separatorClass} />
 
       {/* Minimap toggle */}
       <MinimapToggle darkMode={darkMode} />

@@ -60,6 +60,17 @@ Complete reference for all keyboard shortcuts and mouse interactions in Chart He
 | `Ctrl+G` | Group selected nodes into a region container |
 | `Ctrl+Shift+G` | Create a link group from selected nodes |
 
+### Alignment (requires 2+ selected nodes)
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Alt+L` | Align selected nodes to the left |
+| `Ctrl+Alt+E` | Align selected nodes to center horizontally |
+| `Ctrl+Alt+R` | Align selected nodes to the right |
+| `Ctrl+Alt+T` | Align selected nodes to the top |
+| `Ctrl+Alt+M` | Align selected nodes to center vertically (middle) |
+| `Ctrl+Alt+B` | Align selected nodes to the bottom |
+
 ### Transform
 
 | Shortcut | Action |

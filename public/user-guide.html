@@ -163,9 +163,15 @@
       html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
       html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
       html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-      // Paragraphs
+      // Paragraphs (skip lines inside <pre> blocks to preserve code formatting)
+      var inPre = false;
       html = html.split('\n').map(function(line) {
         var trimmed = line.trim();
+        if (/<pre[\s>]/.test(trimmed)) inPre = true;
+        if (inPre) {
+          if (/<\/pre>/.test(trimmed)) inPre = false;
+          return line;
+        }
         if (!trimmed) return '';
         if (/^<[a-z]/.test(trimmed) || /^<!--/.test(trimmed)) return trimmed;
         return '<p>' + trimmed + '</p>';

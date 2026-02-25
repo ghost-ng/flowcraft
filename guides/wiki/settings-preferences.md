@@ -100,17 +100,11 @@ Fine-tune how the canvas responds to mouse, keyboard, and touch input.
 
 ---
 
-## Auto-Save Settings
+## Auto-Save
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| Enabled | Toggle | On | Periodically save diagram state to localStorage |
-| Interval | Number | 30 seconds | Time between automatic saves |
-| Max Slots | Number | 5 | Number of save-history slots retained |
+Auto-save is always active and requires no configuration. Chart Hero saves your nodes and edges to localStorage within one second of every change. If something goes wrong, you can recover by reopening the browser tab -- your diagram will be restored automatically.
 
-When auto-save is enabled, Chart Hero writes the full diagram state (nodes, edges, viewport, swimlanes, legends, banners) to localStorage at the configured interval. If something goes wrong, you can recover from the most recent auto-save slot by reopening the browser tab.
-
-> Auto-save is separate from manual save (`Ctrl+S`), which downloads a `.fc` file to disk. Both can be active at the same time.
+> Auto-save is separate from manual save (`Ctrl+S`), which downloads a full `.fc` file to disk including swimlanes, legends, styles, and viewport state.
 
 ---
 
@@ -230,7 +224,7 @@ Once installed, Chart Hero launches in its own window without browser chrome and
 
 ### What Works Offline
 
-- Full diagramming (all 27 shapes, drag-and-drop, connections)
+- Full diagramming (all 26 shapes, drag-and-drop, connections)
 - All 19 diagram themes and 11 color palettes
 - Export to PNG, SVG, PDF, PPTX, and JSON
 - Auto-save and manual save

@@ -2,7 +2,7 @@
 
 **Version 0.7.0**
 
-Chart Hero is a free, browser-based professional diagramming application for flowcharts, architecture diagrams, swimlane workflows, dependency maps, and more. There are no sign-ups, no subscriptions, and no server -- everything runs entirely in your browser. Built on React Flow with 27 shapes, 19 diagram themes, 11 color palettes, an AI assistant with 35 tools, and full offline PWA support, Chart Hero gives you the power of enterprise diagramming tools without the price tag.
+Chart Hero is a free, browser-based professional diagramming application for flowcharts, architecture diagrams, swimlane workflows, dependency maps, and more. There are no sign-ups, no subscriptions, and no server -- everything runs entirely in your browser. Built on React Flow with 26 shapes, 19 diagram themes, 11 color palettes, an AI assistant with 31 tools, and full offline PWA support, Chart Hero gives you the power of enterprise diagramming tools without the price tag.
 
 ![Chart Hero in action](../../assets/hero-light.png)
 
@@ -14,8 +14,8 @@ Most teams reach for PowerPoint, Visio, or Draw.io when they need a diagram. Cha
 
 | Capability | Chart Hero | PowerPoint / Slides | Visio | Draw.io |
 |---|---|---|---|---|
-| **AI-powered editing** (35 tools, natural language) | Yes | No | No | No |
-| **Snap-to-grid** (4 / 8 / 16 / 32 px configurable) | Yes | Limited | Yes | Limited |
+| **AI-powered editing** (31 tools, natural language) | Yes | No | No | No |
+| **Snap-to-grid** (4 / 8 / 16 / 32 px snap distance) | Yes | Limited | Yes | Limited |
 | **Auto-arrange** (Dagre layout, 4 directions) | Yes | No | Basic | Basic |
 | **Auto-straighten edges** | Yes | No | No | No |
 | **Dependency tracking** (walk mode, critical path) | Yes | No | No | No |

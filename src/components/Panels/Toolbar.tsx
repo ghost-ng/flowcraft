@@ -36,10 +36,7 @@ import {
   RotateCw,
   RotateCcw,
   GitBranch,
-  Keyboard,
   MousePointerClick,
-  Bug,
-  Monitor,
   ClipboardPaste,
   Github,
   Lock,
@@ -49,7 +46,6 @@ import {
   PanelTop,
   PanelLeft,
   FileText,
-  Camera,
   ChevronDown,
   ChevronUp,
   Type,
@@ -186,8 +182,6 @@ export interface ToolbarProps {
   canRedo?: boolean;
   /** Open the template gallery */
   onOpenTemplates?: () => void;
-  /** Open the keyboard shortcuts dialog */
-  onOpenShortcuts?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +195,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   canUndo = false,
   canRedo = false,
   onOpenTemplates,
-  onOpenShortcuts,
 }) => {
   // UI store
   const gridVisible = useUIStore((s) => s.gridVisible);
@@ -224,8 +217,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // Keep for later: const toggleDarkMode = useStyleStore((s) => s.toggleDarkMode);
 
   // Settings store
-  const debugMode = useSettingsStore((s) => s.debugMode);
-  const toggleDebugMode = useSettingsStore((s) => s.toggleDebugMode);
   const toolbarGroupOrder = useSettingsStore((s) => s.toolbarGroupOrder);
   const { canInstall, isInstalled, install: installPwa } = usePwaInstall();
   const setToolbarGroupOrder = useSettingsStore((s) => s.setToolbarGroupOrder);
@@ -860,26 +851,26 @@ const Toolbar: React.FC<ToolbarProps> = ({
         />
         {alignDropdownOpen && (
           <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
-            <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-1 pb-0.5 uppercase tracking-wider">Horizontal</div>
-            <button onClick={() => handleAlign(alignment.alignLeft)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignLeft size={13} className="text-slate-400" /> Align Left
+            <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-0.5 pb-0 uppercase tracking-wider">Horizontal</div>
+            <button onClick={() => handleAlign(alignment.alignLeft)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <AlignLeft size={13} className="text-slate-400" /> Left <Kbd shortcut="Ctrl+Alt+L" />
             </button>
-            <button onClick={() => handleAlign(alignment.alignCenterH)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignCenterHorizontal size={13} className="text-slate-400" /> Align Center
+            <button onClick={() => handleAlign(alignment.alignCenterH)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <AlignCenterHorizontal size={13} className="text-slate-400" /> Center <Kbd shortcut="Ctrl+Alt+E" />
             </button>
-            <button onClick={() => handleAlign(alignment.alignRight)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignRight size={13} className="text-slate-400" /> Align Right
+            <button onClick={() => handleAlign(alignment.alignRight)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <AlignRight size={13} className="text-slate-400" /> Right <Kbd shortcut="Ctrl+Alt+R" />
             </button>
-            <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
-            <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-1 pb-0.5 uppercase tracking-wider">Vertical</div>
-            <button onClick={() => handleAlign(alignment.alignTop)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignStartVertical size={13} className="text-slate-400" /> Align Top
+            <div className="my-0.5 h-px bg-slate-200 dark:bg-dk-border" />
+            <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-0.5 pb-0 uppercase tracking-wider">Vertical</div>
+            <button onClick={() => handleAlign(alignment.alignTop)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <AlignStartVertical size={13} className="text-slate-400" /> Top <Kbd shortcut="Ctrl+Alt+T" />
             </button>
-            <button onClick={() => handleAlign(alignment.alignCenterV)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignCenterVertical size={13} className="text-slate-400" /> Align Center
+            <button onClick={() => handleAlign(alignment.alignCenterV)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <AlignCenterVertical size={13} className="text-slate-400" /> Center <Kbd shortcut="Ctrl+Alt+M" />
             </button>
-            <button onClick={() => handleAlign(alignment.alignBottom)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignEndVertical size={13} className="text-slate-400" /> Align Bottom
+            <button onClick={() => handleAlign(alignment.alignBottom)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+              <AlignEndVertical size={13} className="text-slate-400" /> Bottom <Kbd shortcut="Ctrl+Alt+B" />
             </button>
             {selectedNodes.length >= 3 && (
               <>
@@ -1358,12 +1349,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           />
         </span>
 
-        <ToolbarButton
-          icon={<Keyboard size={14} />}
-          tooltip="Shortcuts (Ctrl+/)"
-          onClick={onOpenShortcuts || (() => {})}
-        />
-
         {/* Selection color picker */}
         <div className="relative">
           <button
@@ -1416,37 +1401,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </div>
 
         <AIButton />
-
-        <ToolbarButton
-          icon={<Camera size={14} />}
-          tooltip="Screenshot Region"
-          onClick={() => useUIStore.getState().setScreenshotMode(true)}
-        />
-
-        <ToolbarButton
-          icon={<Monitor size={14} />}
-          tooltip="Presentation Mode"
-          onClick={() => {
-            useFlowStore.getState().clearSelection();
-            useUIStore.getState().setPresentationMode(true);
-            document.documentElement.requestFullscreen?.().catch(() => {});
-          }}
-        />
-
-        <ToolbarButton
-          icon={<Bug size={14} />}
-          tooltip={debugMode ? 'Disable Debug Logging' : 'Enable Debug Logging'}
-          onClick={toggleDebugMode}
-          active={debugMode}
-        />
-
-        {/* Dark mode toggle — hidden for now, keep code for later
-        <ToolbarButton
-          icon={darkMode ? <Sun size={14} /> : <Moon size={14} />}
-          tooltip={darkMode ? 'Light Mode' : 'Dark Mode'}
-          onClick={toggleDarkMode}
-        />
-        */}
 
         <Sep />
 

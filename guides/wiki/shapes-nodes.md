@@ -62,7 +62,7 @@ The following shapes are defined in the data model and can be applied to any nod
 
 ## Creating Nodes
 
-There are four ways to add a node to the canvas:
+There are five ways to add a node to the canvas:
 
 1. **Drag from the Shape Palette** -- Drag any shape from the left palette onto the canvas. The node appears where you drop it.
 2. **Double-click on empty canvas** -- Creates a default rounded rectangle at the click position and immediately enters inline edit mode.

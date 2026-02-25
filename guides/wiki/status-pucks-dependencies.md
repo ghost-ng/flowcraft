@@ -81,73 +81,29 @@ Dependencies create directed relationships between nodes, enabling you to track 
 
 ### Creating Dependencies
 
-There are three ways to add a dependency:
+Dependencies are created by connecting nodes with edges. You can also use the **AI Assistant** with natural language, for example: `"Add a depends-on relationship from Deploy to Build"`.
 
-1. **Properties Panel** -- Select an edge, open the Edge tab, and set the **Dependency Type** dropdown.
-2. **Quick-Link Mode** -- Open the Dependencies panel and toggle Quick-Link Mode. Then click a source node followed by a target node to create a dependency link between them.
-3. **AI Assistant** -- Use natural language, for example: `"Add a depends-on relationship from Deploy to Build"`.
-
-### Dependency Types
-
-| Type | Meaning | Visual |
-|------|---------|--------|
-| Depends On | The target cannot proceed until the source is complete | Directional arrow |
-| Blocks | The source actively prevents the target from proceeding | Blocking indicator |
-| Related | A non-directional relationship with no ordering implication | Dashed connector |
-
-### Dependency Panel Toggles
-
-The Dependencies panel (accessible from the toolbar) provides several toggles that overlay additional information on your diagram.
-
-#### Dependency Badges
+### Dependency Badges
 
 ![Dependency Badges](../../assets/wiki-dependency-badges.png)
 
-Toggle with the **GitBranch** icon in the toolbar. When enabled, every node that participates in a dependency shows two small counters:
+Toggle with the **GitBranch** icon in the View group of the toolbar. When enabled, every node that participates in a dependency shows two small counters:
 
 - **In-count** -- The number of upstream dependencies (edges coming in).
 - **Out-count** -- The number of downstream dependents (edges going out).
 
-#### Dependency Labels
+### Dependencies Tab (Properties Panel)
 
-When enabled, each dependency edge displays its type as a text label along the connector: **Depends On**, **Blocks**, or **Related**.
+When a node is selected, the **DEPS** tab in the Properties Panel shows the dependency relationships for that node:
 
-#### Ready / Blocked Indicators
+- **Critical Path Analysis** -- Toggle to highlight the longest dependency chain in the diagram. The critical path is shown in red (default `#e53e3e`).
+- **Upstream -- Prerequisites** -- Nodes that this node depends on.
+- **Downstream -- Enables** -- Nodes that depend on the selected node.
 
-Toggle to highlight node readiness state based on upstream dependencies:
+### Data Tab -- Relationship Information
 
-- **Ready** -- All upstream dependencies have a Completed status puck. The node is clear to proceed.
-- **Blocked** -- One or more upstream dependencies are incomplete or have a Blocked puck.
+When a node is selected, the **Data** tab in the Properties Panel shows three relationship lists:
 
-#### Orphan Highlighting
-
-Toggle to highlight nodes with **no dependencies** (isolated nodes that have zero dependency edges). This is useful for finding disconnected parts of a workflow that may need to be linked.
-
-### Critical Path
-
-- **Toggle:** Enabled by default.
-- **Behavior:** Highlights the longest dependency chain in the diagram. This is the path that determines the overall project duration.
-- **Critical Path Color:** Configurable (default `#e53e3e`). Change the color in the Dependencies panel.
-- **Purpose:** Helps you identify bottleneck paths in project workflows so you know where delays will cascade.
-
-### Walk Mode (Step-Through)
-
-Walk Mode lets you step through a dependency chain node by node, which is useful for tracing execution order, reviewing pipelines, or presenting workflows to a team.
-
-1. Enable **Walk Mode** in the Dependencies panel.
-2. Click a starting node on the canvas. The dependency chain from that node highlights.
-3. Step **forward** through downstream nodes or **backward** through upstream nodes using the walk controls.
-4. The current node and its connecting path are visually emphasized on the canvas.
-5. Click **Stop** or toggle Walk Mode off to exit.
-
-> **Tip:** Walk Mode works best when your dependency chain is linear or has a clear longest path. In branching chains, the walk follows the critical path by default.
-
-### Data Tab -- Dependency Information
-
-When a node is selected, the **Data** tab in the Properties Panel shows three relationship lists for that node:
-
-- **Connected To** -- All nodes connected to this node by any edge, regardless of dependency type. Displays the count in parentheses.
-- **Upstream -- Prerequisites** -- Nodes that this node depends on (blue highlighting). These are the nodes that must complete before the selected node can proceed.
-- **Downstream -- Enables** -- Nodes that depend on the selected node (amber highlighting). Completing the selected node unblocks these downstream nodes.
-
-Each entry in these lists is clickable -- clicking a node name selects that node on the canvas and scrolls to it.
+- **Connected To** -- All nodes connected to this node by any edge. Displays the count in parentheses.
+- **Upstream -- Prerequisites** -- Nodes that this node depends on (blue highlighting).
+- **Downstream -- Enables** -- Nodes that depend on the selected node (amber highlighting).
