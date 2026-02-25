@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 /** Supported AI provider identifiers */
-export type AIProvider = 'anthropic' | 'openrouter' | 'groq' | 'custom';
+export type AIProvider = 'anthropic' | 'openai' | 'openrouter' | 'groq' | 'custom';
 
 /** Wire format used by the provider's API */
 export type APIFormat = 'anthropic' | 'openai';
@@ -41,6 +41,26 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
       'x-api-key': key,
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
+    }),
+  },
+
+  openai: {
+    id: 'openai',
+    name: 'OpenAI',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    format: 'openai',
+    defaultModel: 'gpt-4o',
+    defaultModels: [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4-turbo',
+      'gpt-3.5-turbo',
+      'o1',
+      'o1-mini',
+    ],
+    authHeader: (key: string) => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
     }),
   },
 
@@ -151,9 +171,11 @@ export async function fetchModels(
     return config.defaultModels;
   }
 
-  // For OpenRouter, Groq, and Custom — hit the /models endpoint
+  // For OpenAI, OpenRouter, Groq, and Custom — hit the /models endpoint
   let modelsUrl: string;
-  if (provider === 'openrouter') {
+  if (provider === 'openai') {
+    modelsUrl = 'https://api.openai.com/v1/models';
+  } else if (provider === 'openrouter') {
     modelsUrl = 'https://openrouter.ai/api/v1/models';
   } else if (provider === 'groq') {
     modelsUrl = 'https://api.groq.com/openai/v1/models';

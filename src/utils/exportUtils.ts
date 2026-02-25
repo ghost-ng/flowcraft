@@ -1591,9 +1591,11 @@ export function importFromJson(
         }));
     }
 
-    // Determine node type
-    let type = typeof r.type === 'string' ? r.type : 'shapeNode';
+    // Determine node type — only 'shapeNode' and 'groupNode' are registered in
+    // React Flow's nodeTypes map, so remap anything else to 'shapeNode'.
+    let type: string = 'shapeNode';
     if (shape === 'group') type = 'groupNode';
+    else if (r.type === 'shapeNode' || r.type === 'groupNode') type = r.type as string;
 
     nodes.push({
       id,

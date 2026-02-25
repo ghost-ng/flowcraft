@@ -14,8 +14,9 @@ interface AISettingsDialogProps {
   onClose: () => void;
 }
 
-const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
+const PROVIDER_OPTIONS: { value: AIProvider; label: string; note?: string }[] = [
   { value: 'anthropic', label: 'Anthropic' },
+  { value: 'openai', label: 'OpenAI', note: 'May be blocked by CORS in some browsers. Use OpenRouter as an alternative.' },
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'groq', label: 'Groq' },
   { value: 'custom', label: 'Custom' },
@@ -46,10 +47,22 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Provider change
-  const handleProviderChange = useCallback((newProvider: AIProvider) => {
+  // Provider change — auto-fetch models if key is already set
+  const handleProviderChange = useCallback(async (newProvider: AIProvider) => {
     useAIStore.getState().setProvider(newProvider);
     setTestResult(null);
+    // Auto-fetch models if we already have a key
+    const key = useAIStore.getState().apiKey;
+    if (key && key.length > 10) {
+      setIsFetchingModels(true);
+      try {
+        const { endpoint: e } = useAIStore.getState();
+        const fetched = await fetchModels(newProvider, key, e);
+        useAIStore.getState().setModels(fetched);
+      } finally {
+        setIsFetchingModels(false);
+      }
+    }
   }, []);
 
   // Fetch models
@@ -147,6 +160,11 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+            {PROVIDER_OPTIONS.find((o) => o.value === provider)?.note && (
+              <p className={`mt-1 text-[11px] ${darkMode ? 'text-amber-400/80' : 'text-amber-600'}`}>
+                {PROVIDER_OPTIONS.find((o) => o.value === provider)!.note}
+              </p>
+            )}
           </div>
 
           {/* API Key */}
@@ -160,6 +178,13 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
                   useAIStore.getState().setApiKey(e.target.value);
                   useAIStore.getState().persistApiKey();
                   setTestResult(null);
+                }}
+                onBlur={() => {
+                  // Auto-fetch models when user finishes entering API key
+                  const key = useAIStore.getState().apiKey;
+                  if (key && key.length > 10) {
+                    handleFetchModels();
+                  }
                 }}
                 placeholder={`Enter your ${PROVIDERS[provider].name} API key`}
                 className={inputCls}

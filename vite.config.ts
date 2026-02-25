@@ -2,7 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { readFileSync } from 'fs'
+import { readFileSync, cpSync, existsSync, mkdirSync } from 'fs'
+import { join } from 'path'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
@@ -10,6 +11,33 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // Copy guides/ and assets/ into dist/ so the user guide is served by the app
+    {
+      name: 'copy-guides',
+      configureServer(server) {
+        // Serve assets/ directory during dev so wiki images work
+        server.middlewares.use((req, res, next) => {
+          const match = req.url?.match(/^\/assets\/(.+)/)
+          if (match) {
+            const filePath = join(process.cwd(), 'assets', match[1])
+            if (existsSync(filePath)) {
+              const ext = match[1].split('.').pop() || ''
+              const types: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', gif: 'image/gif' }
+              res.setHeader('Content-Type', types[ext] || 'application/octet-stream')
+              res.end(readFileSync(filePath))
+              return
+            }
+          }
+          next()
+        })
+      },
+      closeBundle() {
+        const dest = 'dist/guides'
+        if (!existsSync(dest)) mkdirSync(dest, { recursive: true })
+        cpSync('guides', dest, { recursive: true })
+        if (existsSync('assets')) cpSync('assets', 'dist/assets', { recursive: true })
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
@@ -42,7 +70,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,md}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

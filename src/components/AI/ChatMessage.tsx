@@ -3,6 +3,48 @@ import { Check, X, Wrench } from 'lucide-react';
 import type { AIMessage } from '@/store/aiStore';
 
 // ---------------------------------------------------------------------------
+// Friendly display names for AI tool calls
+// ---------------------------------------------------------------------------
+
+const TOOL_FRIENDLY_NAMES: Record<string, string> = {
+  generate_diagram: 'Generated diagram',
+  clear_canvas: 'Cleared canvas',
+  auto_layout: 'Applied auto-layout',
+  add_node: 'Added node',
+  update_node: 'Updated node',
+  remove_nodes: 'Removed nodes',
+  list_nodes: 'Listed nodes',
+  move_node: 'Moved node',
+  resize_node: 'Resized node',
+  duplicate_node: 'Duplicated node',
+  add_edge: 'Added connector',
+  update_edge: 'Updated connector',
+  remove_edges: 'Removed connectors',
+  list_edges: 'Listed connectors',
+  select_nodes: 'Selected nodes',
+  select_edges: 'Selected connectors',
+  clear_selection: 'Cleared selection',
+  get_selection: 'Got selection',
+  set_diagram_style: 'Set diagram style',
+  set_color_palette: 'Set color palette',
+  set_node_color: 'Set node color',
+  toggle_dark_mode: 'Toggled dark mode',
+  add_swimlane: 'Added swimlane',
+  update_swimlane: 'Updated swimlane',
+  remove_swimlane: 'Removed swimlane',
+  assign_node_to_lane: 'Assigned node to lane',
+  align_nodes: 'Aligned nodes',
+  distribute_nodes: 'Distributed nodes',
+  set_status_puck: 'Set status indicator',
+  add_dependency: 'Added dependency',
+  export_diagram: 'Exported diagram',
+};
+
+function getToolFriendlyName(toolName: string): string {
+  return TOOL_FRIENDLY_NAMES[toolName] || toolName.replace(/_/g, ' ');
+}
+
+// ---------------------------------------------------------------------------
 // Minimal inline markdown
 // ---------------------------------------------------------------------------
 
@@ -90,7 +132,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode }) => {
             `}
           >
             <Wrench size={12} className="shrink-0 opacity-60" />
-            <span className="font-medium truncate">{tr.toolCallId.slice(0, 20)}</span>
+            <span className="font-medium truncate">
+              {tr.toolName ? getToolFriendlyName(tr.toolName) : tr.toolCallId.slice(0, 20)}
+            </span>
             {tr.success ? (
               <Check size={13} className="shrink-0 text-emerald-500" />
             ) : (
@@ -148,7 +192,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode }) => {
                 `}
               >
                 <Wrench size={10} />
-                {tc.name}
+                {getToolFriendlyName(tc.name)}
               </span>
             ))}
           </div>

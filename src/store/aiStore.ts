@@ -21,6 +21,7 @@ export interface AIToolCall {
 
 export interface AIToolResult {
   toolCallId: string;
+  toolName?: string;
   result: string;
   success: boolean;
 }

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chart Hero User Guide</title>
+  <style>
+    :root { --bg: #fff; --fg: #1a1a2e; --muted: #64748b; --border: #e2e8f0; --accent: #3b82f6; --accent-light: #dbeafe; --code-bg: #f1f5f9; --table-stripe: #f8fafc; --sidebar-bg: #f8fafc; --sidebar-active: #eff6ff; --sidebar-hover: #f1f5f9; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --border: #334155; --accent: #60a5fa; --accent-light: #1e3a5f; --code-bg: #1e293b; --table-stripe: #1e293b; --sidebar-bg: #1e293b; --sidebar-active: #1e3a5f; --sidebar-hover: #263548; } }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.7; }
+
+    /* Layout */
+    .wiki-layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar { width: 260px; min-width: 260px; background: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 1rem 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 10; transition: transform 0.2s; }
+    .sidebar-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; }
+    .sidebar-header a { color: var(--fg); text-decoration: none; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; }
+    .sidebar-header a:hover { color: var(--accent); }
+    .sidebar-back { display: block; padding: 0.4rem 1rem; font-size: 0.8rem; color: var(--muted); text-decoration: none; }
+    .sidebar-back:hover { color: var(--accent); }
+    .sidebar nav { padding: 0.25rem 0; }
+    .sidebar nav a { display: block; padding: 0.4rem 1rem 0.4rem 1.25rem; color: var(--fg); text-decoration: none; font-size: 0.88rem; border-left: 3px solid transparent; transition: all 0.15s; }
+    .sidebar nav a:hover { background: var(--sidebar-hover); color: var(--accent); }
+    .sidebar nav a.active { background: var(--sidebar-active); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+    .sidebar nav .sep { height: 1px; background: var(--border); margin: 0.5rem 1rem; }
+
+    /* Content */
+    .content-area { flex: 1; margin-left: 260px; padding: 2rem 2.5rem; max-width: 820px; }
+
+    /* Mobile */
+    .menu-btn { display: none; position: fixed; top: 0.75rem; left: 0.75rem; z-index: 20; background: var(--sidebar-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.65rem; cursor: pointer; color: var(--fg); font-size: 1.2rem; line-height: 1; }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
+      .content-area { margin-left: 0; padding: 3.5rem 1.25rem 2rem; }
+      .menu-btn { display: block; }
+      .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 5; }
+      .overlay.show { display: block; }
+    }
+
+    /* Markdown content styles */
+    .content-area h1 { font-size: 2rem; margin: 1.5rem 0 1rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    .content-area h2 { font-size: 1.45rem; margin: 2.25rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+    .content-area h3 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+    .content-area h4 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+    .content-area p { margin: 0.75rem 0; }
+    .content-area a { color: var(--accent); text-decoration: none; }
+    .content-area a:hover { text-decoration: underline; }
+    .content-area code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+    .content-area pre { background: var(--code-bg); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+    .content-area pre code { background: none; padding: 0; }
+    .content-area table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92em; }
+    .content-area th, .content-area td { border: 1px solid var(--border); padding: 0.45rem 0.7rem; text-align: left; }
+    .content-area th { background: var(--code-bg); font-weight: 600; white-space: nowrap; }
+    .content-area tr:nth-child(even) { background: var(--table-stripe); }
+    .content-area blockquote { border-left: 4px solid var(--accent); padding: 0.5rem 1rem; margin: 1rem 0; background: var(--code-bg); border-radius: 0 6px 6px 0; }
+    .content-area img { max-width: 100%; height: auto; border-radius: 8px; margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .content-area ul, .content-area ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+    .content-area li { margin: 0.25rem 0; }
+    .content-area strong { font-weight: 600; }
+    .content-area hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    .content-area kbd { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; font-size: 0.85em; font-family: inherit; }
+    .loading { text-align: center; padding: 4rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+  <div class="wiki-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="#" onclick="loadPage('home');return false;">Chart Hero Wiki</a>
+      </div>
+      <a href="./" class="sidebar-back">&larr; Back to Chart Hero</a>
+      <nav id="nav">
+        <a href="#" data-page="home">Home</a>
+        <div class="sep"></div>
+        <a href="#" data-page="getting-started">Getting Started</a>
+        <a href="#" data-page="canvas-viewport">Canvas &amp; Viewport</a>
+        <a href="#" data-page="shapes-nodes">Shapes &amp; Nodes</a>
+        <a href="#" data-page="connectors-edges">Connectors &amp; Edges</a>
+        <a href="#" data-page="properties-panel">Properties Panel</a>
+        <a href="#" data-page="toolbar-reference">Toolbar Reference</a>
+        <div class="sep"></div>
+        <a href="#" data-page="ai-assistant">AI Assistant</a>
+        <a href="#" data-page="styles-themes">Styles &amp; Themes</a>
+        <a href="#" data-page="swimlanes-banners">Swimlanes &amp; Banners</a>
+        <a href="#" data-page="status-pucks-dependencies">Pucks &amp; Dependencies</a>
+        <a href="#" data-page="legends-layers">Legends &amp; Layers</a>
+        <div class="sep"></div>
+        <a href="#" data-page="export-import">Export &amp; Import</a>
+        <a href="#" data-page="keyboard-shortcuts">Keyboard Shortcuts</a>
+        <a href="#" data-page="settings-preferences">Settings &amp; Preferences</a>
+      </nav>
+    </aside>
+
+    <main class="content-area" id="content">
+      <p class="loading">Loading...</p>
+    </main>
+  </div>
+
+  <script>
+    // --- Minimal markdown-to-HTML renderer (no dependencies) ---
+    function md(src) {
+      let html = src
+        .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => '<pre><code class="lang-' + lang + '">' + esc(code.trim()) + '</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" />')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(_, text, href) {
+          // Convert .md links to wiki navigation
+          if (href.endsWith('.md')) {
+            var page = href.replace(/\.md$/, '');
+            return '<a href="#' + page + '" onclick="loadPage(\'' + page + '\');return false;">' + text + '</a>';
+          }
+          // External links open in new tab
+          if (/^https?:/.test(href)) return '<a href="' + href + '" target="_blank" rel="noopener">' + text + '</a>';
+          return '<a href="' + href + '">' + text + '</a>';
+        })
+        .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/^---$/gm, '<hr />')
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // Tables
+      html = html.replace(/^\|(.+)\|$/gm, function(match) {
+        var cells = match.split('|').filter(function(c) { return c.trim(); });
+        if (cells.every(function(c) { return /^[\s\-:]+$/.test(c); })) return '<!--sep-->';
+        return '<tr>' + cells.map(function(c) { return '<td>' + c.trim() + '</td>'; }).join('') + '</tr>';
+      });
+      html = html.replace(/((?:<tr>.*<\/tr>\n?)+)/g, function(block) {
+        var rows = block.trim().replace(/<!--sep-->\n?/g, '');
+        var first = rows.match(/<tr>(.*?)<\/tr>/);
+        if (first) {
+          var header = first[1].replace(/<td>/g, '<th>').replace(/<\/td>/g, '</th>');
+          var rest = rows.replace(first[0], '');
+          return '<table><thead><tr>' + header + '</tr></thead><tbody>' + rest + '</tbody></table>';
+        }
+        return '<table>' + rows + '</table>';
+      });
+      // Lists
+      html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+      html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+      // Paragraphs
+      html = html.split('\n').map(function(line) {
+        var trimmed = line.trim();
+        if (!trimmed) return '';
+        if (/^<[a-z]/.test(trimmed) || /^<!--/.test(trimmed)) return trimmed;
+        return '<p>' + trimmed + '</p>';
+      }).join('\n');
+      html = html.replace(/<\/blockquote>\n<blockquote>/g, '<br/>');
+      return html;
+    }
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Fix image paths: ../../assets/ -> assets/ (wiki md is in guides/wiki/, but page is at root)
+    function fixPaths(html) {
+      return html.replace(/src="\.\.\/\.\.\/assets\//g, 'src="assets/').replace(/src="\.\.\/assets\//g, 'src="assets/');
+    }
+
+    // --- Page loading ---
+    var cache = {};
+    var currentPage = '';
+
+    function loadPage(page) {
+      if (currentPage === page) return;
+      currentPage = page;
+      window.location.hash = page;
+
+      // Update active nav link
+      document.querySelectorAll('#nav a').forEach(function(a) {
+        a.classList.toggle('active', a.getAttribute('data-page') === page);
+      });
+
+      // Close mobile sidebar
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').classList.remove('show');
+
+      // Show loading
+      var content = document.getElementById('content');
+
+      if (cache[page]) {
+        content.innerHTML = fixPaths(md(cache[page]));
+        content.scrollTop = 0;
+        window.scrollTo(0, 0);
+        document.title = 'Chart Hero - ' + (page === 'home' ? 'User Guide' : page.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }));
+        return;
+      }
+
+      content.innerHTML = '<p class="loading">Loading...</p>';
+
+      // Try wiki/ subfolder first, fall back to alternate paths
+      fetch('guides/wiki/' + page + '.md')
+        .then(function(r) { if (!r.ok) throw new Error(r.status); return r; })
+        .catch(function() { return fetch('../guides/wiki/' + page + '.md'); })
+        .then(function(r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(function(text) {
+          cache[page] = text;
+          if (currentPage === page) {
+            content.innerHTML = fixPaths(md(text));
+            content.scrollTop = 0;
+            window.scrollTo(0, 0);
+            document.title = 'Chart Hero - ' + (page === 'home' ? 'User Guide' : page.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }));
+          }
+        })
+        .catch(function() {
+          if (currentPage === page) {
+            content.innerHTML = '<h1>Page Not Found</h1><p>Could not load <strong>' + page + '</strong>. <a href="#home" onclick="loadPage(\'home\');return false;">Return to Home</a>.</p>';
+          }
+        });
+    }
+
+    // --- Sidebar toggle (mobile) ---
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('overlay').classList.toggle('show');
+    }
+
+    // --- Nav click handlers ---
+    document.querySelectorAll('#nav a').forEach(function(a) {
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        loadPage(a.getAttribute('data-page'));
+      });
+    });
+
+    // --- Init: load from hash or default to home ---
+    var initPage = window.location.hash ? window.location.hash.slice(1) : 'home';
+    loadPage(initPage);
+
+    // --- Handle browser back/forward ---
+    window.addEventListener('hashchange', function() {
+      var page = window.location.hash ? window.location.hash.slice(1) : 'home';
+      if (page !== currentPage) loadPage(page);
+    });
+  </script>
+</body>
+</html>

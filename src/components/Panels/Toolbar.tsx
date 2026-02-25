@@ -57,6 +57,7 @@ import {
   AArrowDown,
   Download,
   Flag,
+  HelpCircle,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -1467,6 +1468,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <span className="text-[9px] text-text-muted/60 italic select-none px-1 tracking-wide">
               v{__APP_VERSION__}
             </span>
+            <a
+              href={`${import.meta.env.BASE_URL}user-guide.html`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 rounded text-text-muted hover:text-text transition-colors"
+              data-tooltip="User Guide"
+            >
+              <HelpCircle size={14} />
+            </a>
             <a
               href="https://github.com/ghost-ng/Chart-Hero"
               target="_blank"

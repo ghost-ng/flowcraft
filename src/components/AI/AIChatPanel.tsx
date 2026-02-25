@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Settings, Minus, X, Send, Square, Sparkles, GripVertical } from 'lucide-react';
+import { Settings, Minus, X, Send, Square, Sparkles } from 'lucide-react';
 import { useAIStore } from '@/store/aiStore';
 import type { AIToolCall, AIToolResult } from '@/store/aiStore';
 import { useStyleStore } from '@/store/styleStore';
@@ -51,9 +51,11 @@ const AIChatPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
-  // Resizing state
+  // Resizing state — tracks which edges are being dragged
+  type ResizeDir = '' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
   const [isResizing, setIsResizing] = useState(false);
-  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const resizeDir = useRef<ResizeDir>('');
+  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0, px: 0, py: 0 });
 
   // Initialize position to bottom-right on first open
   useEffect(() => {
@@ -117,9 +119,9 @@ const AIChatPanel: React.FC = () => {
       let newX = e.clientX - dragOffset.current.x;
       let newY = e.clientY - dragOffset.current.y;
 
-      // Clamp to viewport
-      newX = Math.max(0, Math.min(newX, window.innerWidth - size.width));
-      newY = Math.max(0, Math.min(newY, window.innerHeight - size.height));
+      // Clamp: keep at least 40px visible on each edge
+      newX = Math.max(-size.width + 80, Math.min(newX, window.innerWidth - 80));
+      newY = Math.max(0, Math.min(newY, window.innerHeight - 40));
 
       setPosition({ x: newX, y: newY });
     };
@@ -136,45 +138,86 @@ const AIChatPanel: React.FC = () => {
     };
   }, [isDragging, size]);
 
+  // Re-clamp position when window resizes (prevents header cutoff)
+  useEffect(() => {
+    const handleWindowResize = () => {
+      setPosition((prev) => ({
+        x: Math.min(prev.x, window.innerWidth - 80),
+        y: Math.min(prev.y, window.innerHeight - 40),
+      }));
+    };
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
+
   // -------------------------------------------------------------------------
   // Resizing
   // -------------------------------------------------------------------------
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+  const handleResizeStart = useCallback((dir: ResizeDir) => (e: React.MouseEvent) => {
     if (e.button !== 0) return;
+    resizeDir.current = dir;
     setIsResizing(true);
     resizeStart.current = {
       x: e.clientX,
       y: e.clientY,
       w: size.width,
       h: size.height,
+      px: position.x,
+      py: position.y,
     };
     e.preventDefault();
     e.stopPropagation();
-  }, [size]);
+  }, [size, position]);
 
   useEffect(() => {
     if (!isResizing) return;
+    const dir = resizeDir.current;
 
     const handleMouseMove = (e: MouseEvent) => {
       const dx = e.clientX - resizeStart.current.x;
       const dy = e.clientY - resizeStart.current.y;
+      const { w: origW, h: origH, px: origX, py: origY } = resizeStart.current;
 
-      const newWidth = Math.max(MIN_WIDTH, resizeStart.current.w + dx);
-      const newHeight = Math.max(MIN_HEIGHT, resizeStart.current.h + dy);
+      let newW = origW;
+      let newH = origH;
+      let newX = origX;
+      let newY = origY;
 
-      // Don't exceed viewport
-      const maxWidth = window.innerWidth - position.x;
-      const maxHeight = window.innerHeight - position.y;
+      // East (right edge): grow width
+      if (dir.includes('e')) {
+        newW = Math.max(MIN_WIDTH, origW + dx);
+      }
+      // West (left edge): grow width + shift position left
+      if (dir.includes('w')) {
+        const dw = Math.min(dx, origW - MIN_WIDTH); // limit shrink
+        newW = origW - dw;
+        newX = origX + dw;
+      }
+      // South (bottom edge): grow height
+      if (dir.includes('s')) {
+        newH = Math.max(MIN_HEIGHT, origH + dy);
+      }
+      // North (top edge): grow height + shift position up
+      if (dir === 'n' || dir === 'nw' || dir === 'ne') {
+        const dh = Math.min(dy, origH - MIN_HEIGHT);
+        newH = origH - dh;
+        newY = origY + dh;
+      }
 
-      setSize({
-        width: Math.min(newWidth, maxWidth),
-        height: Math.min(newHeight, maxHeight),
-      });
+      // Clamp to viewport
+      if (newX < 0) { newW += newX; newX = 0; }
+      if (newY < 0) { newH += newY; newY = 0; }
+      newW = Math.min(newW, window.innerWidth - newX);
+      newH = Math.min(newH, window.innerHeight - newY);
+
+      setSize({ width: Math.max(MIN_WIDTH, newW), height: Math.max(MIN_HEIGHT, newH) });
+      setPosition({ x: newX, y: newY });
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      resizeDir.current = '';
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -183,7 +226,7 @@ const AIChatPanel: React.FC = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, position]);
+  }, [isResizing]);
 
   // -------------------------------------------------------------------------
   // Core message loop
@@ -244,7 +287,7 @@ const AIChatPanel: React.FC = () => {
         }
         toolCalls.push({ id, name, args });
         const result = executeTool(name, args);
-        toolResults.push({ toolCallId: id, result: result.result, success: result.success });
+        toolResults.push({ toolCallId: id, toolName: name, result: result.result, success: result.success });
       }
 
       // Update assistant message with tool calls
@@ -485,17 +528,20 @@ const AIChatPanel: React.FC = () => {
           )}
         </div>
 
-        {/* Resize handle */}
-        <div
-          className={`
-            absolute bottom-0 right-0 w-5 h-5 cursor-se-resize
-            flex items-center justify-center
-            ${darkMode ? 'text-gray-600' : 'text-gray-300'}
-          `}
-          onMouseDown={handleResizeStart}
-        >
-          <GripVertical size={12} className="rotate-[-45deg]" />
-        </div>
+        {/* Resize handles — edges (6px wide strips) and corners (12px squares) */}
+        {/* Top edge */}
+        <div className="absolute top-0 left-3 right-3 h-[6px] cursor-n-resize" onMouseDown={handleResizeStart('n')} />
+        {/* Bottom edge */}
+        <div className="absolute bottom-0 left-3 right-3 h-[6px] cursor-s-resize" onMouseDown={handleResizeStart('s')} />
+        {/* Left edge */}
+        <div className="absolute left-0 top-3 bottom-3 w-[6px] cursor-w-resize" onMouseDown={handleResizeStart('w')} />
+        {/* Right edge */}
+        <div className="absolute right-0 top-3 bottom-3 w-[6px] cursor-e-resize" onMouseDown={handleResizeStart('e')} />
+        {/* Corners */}
+        <div className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize" onMouseDown={handleResizeStart('nw')} />
+        <div className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize" onMouseDown={handleResizeStart('ne')} />
+        <div className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize" onMouseDown={handleResizeStart('sw')} />
+        <div className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize" onMouseDown={handleResizeStart('se')} />
       </div>
     </>
   );
