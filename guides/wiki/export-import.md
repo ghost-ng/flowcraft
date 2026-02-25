@@ -168,7 +168,194 @@ After import, a summary shows how many nodes and edges were loaded, along with a
 
 ### JSON Rulebook
 
-For programmatic diagram generation (AI agents or custom scripts), Chart Hero provides a comprehensive schema specification at `guides/FLOWCRAFT_JSON_IMPORT_RULEBOOK.md`. The rulebook documents every valid node property, edge type, shape name, status indicator field, and validation rule. Keep this file in sync when extending the data model.
+For programmatic diagram generation (AI agents or custom scripts), Chart Hero provides a comprehensive schema specification at `guides/FLOWCRAFT_JSON_IMPORT_RULEBOOK.md`. The rulebook documents every valid node property, edge type, shape name, status indicator field, and validation rule.
+
+### Using AI to Generate Diagrams with the Rulebook
+
+You can paste the JSON Rulebook into any AI assistant (ChatGPT, Claude, Gemini, etc.) and ask it to produce a Chart Hero JSON file. The rulebook gives the AI all the information it needs to generate valid, well-styled diagrams on the first attempt.
+
+**Step 1: Give the AI the rulebook and your request**
+
+Open the rulebook file (`guides/FLOWCRAFT_JSON_IMPORT_RULEBOOK.md`) and paste it into a new AI conversation. Then describe the diagram you want:
+
+> Here is the Chart Hero JSON specification. Generate a CI/CD deployment pipeline flowchart with stages for Build, Test, Security Scan, Staging Deploy, Approval Gate, and Production Deploy. Use appropriate shapes, colors, and status pucks. Make it visually polished.
+
+**Step 2: The AI produces valid Chart Hero JSON**
+
+Because the rulebook specifies every valid shape, color default, edge type, and status indicator field, the AI can produce a complete, import-ready JSON file:
+
+```json
+{
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "shapeNode",
+      "position": { "x": 60, "y": 200 },
+      "data": {
+        "label": "Git Push",
+        "shape": "roundedRectangle",
+        "color": "#6366f1",
+        "borderColor": "#4f46e5",
+        "textColor": "#ffffff",
+        "fontSize": 13,
+        "fontWeight": 600,
+        "width": 120,
+        "height": 45,
+        "borderWidth": 2,
+        "borderRadius": 10,
+        "icon": "GitBranch",
+        "iconPosition": "left"
+      }
+    },
+    {
+      "id": "build",
+      "type": "shapeNode",
+      "position": { "x": 240, "y": 200 },
+      "data": {
+        "label": "Build",
+        "shape": "rectangle",
+        "color": "#3b82f6",
+        "borderColor": "#2563eb",
+        "textColor": "#ffffff",
+        "fontSize": 14,
+        "width": 130,
+        "height": 50,
+        "borderWidth": 2,
+        "statusIndicators": [
+          { "id": "pk_build", "status": "completed", "color": "#10b981", "size": 16, "position": "top-right", "borderColor": "#ffffff", "borderWidth": 2, "borderStyle": "solid" }
+        ]
+      }
+    },
+    {
+      "id": "test",
+      "type": "shapeNode",
+      "position": { "x": 430, "y": 200 },
+      "data": {
+        "label": "Test Suite",
+        "shape": "rectangle",
+        "color": "#3b82f6",
+        "borderColor": "#2563eb",
+        "textColor": "#ffffff",
+        "fontSize": 14,
+        "width": 130,
+        "height": 50,
+        "borderWidth": 2,
+        "statusIndicators": [
+          { "id": "pk_test", "status": "completed", "color": "#10b981", "size": 16, "position": "top-right", "borderColor": "#ffffff", "borderWidth": 2, "borderStyle": "solid" }
+        ]
+      }
+    },
+    {
+      "id": "security",
+      "type": "shapeNode",
+      "position": { "x": 620, "y": 200 },
+      "data": {
+        "label": "Security Scan",
+        "shape": "hexagon",
+        "color": "#f59e0b",
+        "borderColor": "#d97706",
+        "textColor": "#ffffff",
+        "fontSize": 13,
+        "width": 140,
+        "height": 50,
+        "borderWidth": 2,
+        "statusIndicators": [
+          { "id": "pk_sec", "status": "in-progress", "color": "#3b82f6", "size": 16, "position": "top-right", "borderColor": "#ffffff", "borderWidth": 2, "borderStyle": "solid" }
+        ]
+      }
+    },
+    {
+      "id": "staging",
+      "type": "shapeNode",
+      "position": { "x": 820, "y": 200 },
+      "data": {
+        "label": "Staging",
+        "shape": "rectangle",
+        "color": "#8b5cf6",
+        "borderColor": "#7c3aed",
+        "textColor": "#ffffff",
+        "fontSize": 14,
+        "width": 130,
+        "height": 50,
+        "borderWidth": 2
+      }
+    },
+    {
+      "id": "approval",
+      "type": "shapeNode",
+      "position": { "x": 1005, "y": 195 },
+      "data": {
+        "label": "Approve?",
+        "shape": "diamond",
+        "color": "#f97316",
+        "borderColor": "#ea580c",
+        "textColor": "#ffffff",
+        "fontSize": 13,
+        "fontWeight": 600,
+        "width": 100,
+        "height": 100,
+        "borderWidth": 2
+      }
+    },
+    {
+      "id": "production",
+      "type": "shapeNode",
+      "position": { "x": 1180, "y": 200 },
+      "data": {
+        "label": "Production",
+        "shape": "roundedRectangle",
+        "color": "#10b981",
+        "borderColor": "#059669",
+        "textColor": "#ffffff",
+        "fontSize": 14,
+        "fontWeight": 600,
+        "width": 130,
+        "height": 50,
+        "borderWidth": 2,
+        "borderRadius": 10
+      }
+    },
+    {
+      "id": "rollback",
+      "type": "shapeNode",
+      "position": { "x": 1005, "y": 360 },
+      "data": {
+        "label": "Rollback",
+        "shape": "rectangle",
+        "color": "#ef4444",
+        "borderColor": "#dc2626",
+        "textColor": "#ffffff",
+        "fontSize": 13,
+        "width": 110,
+        "height": 45,
+        "borderWidth": 2
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "build", "type": "smoothstep", "data": { "color": "#64748b", "thickness": 2 } },
+    { "id": "e2", "source": "build", "target": "test", "type": "smoothstep", "data": { "color": "#64748b", "thickness": 2 } },
+    { "id": "e3", "source": "test", "target": "security", "type": "smoothstep", "data": { "color": "#64748b", "thickness": 2 } },
+    { "id": "e4", "source": "security", "target": "staging", "type": "smoothstep", "data": { "color": "#64748b", "thickness": 2 } },
+    { "id": "e5", "source": "staging", "target": "approval", "type": "smoothstep", "data": { "color": "#64748b", "thickness": 2 } },
+    { "id": "e6", "source": "approval", "target": "production", "type": "smoothstep", "data": { "label": "Yes", "color": "#10b981", "thickness": 2 } },
+    { "id": "e7", "source": "approval", "target": "rollback", "type": "smoothstep", "data": { "label": "No", "color": "#ef4444", "thickness": 2 } }
+  ]
+}
+```
+
+**Step 3: Import into Chart Hero**
+
+1. Copy the JSON output from the AI
+2. Click the **Import JSON** button in Chart Hero's toolbar
+3. Paste the JSON into the textarea
+4. Click **Import** -- the diagram appears on the canvas immediately
+5. Use **Fit View** (`Ctrl+1`) to center it
+
+The result is a fully styled, editable diagram with proper shapes, colors, connectors, and status pucks -- ready to refine further in Chart Hero.
+
+> **Tip:** The rulebook includes warnings about diamond shapes (keep labels to 1-2 words), default colors per shape, and all valid connector types. AI models that follow the rulebook produce diagrams that look professional without any manual cleanup.
 
 ---
 

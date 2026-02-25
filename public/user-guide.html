@@ -133,7 +133,7 @@
         if (cells.every(function(c) { return /^[\s\-:]+$/.test(c); })) return '<!--sep-->';
         return '<tr>' + cells.map(function(c) { return '<td>' + c.trim() + '</td>'; }).join('') + '</tr>';
       });
-      html = html.replace(/((?:<tr>.*<\/tr>\n?)+)/g, function(block) {
+      html = html.replace(/((?:(?:<tr>.*<\/tr>|<!--sep-->)\n?)+)/g, function(block) {
         var rows = block.trim().replace(/<!--sep-->\n?/g, '');
         var first = rows.match(/<tr>(.*?)<\/tr>/);
         if (first) {
