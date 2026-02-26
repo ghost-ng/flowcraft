@@ -248,7 +248,9 @@ const ShapePalette: React.FC = () => {
       {/* Panel content (only when open) */}
       {shapePaletteOpen && (
         <div
-          className="flex flex-col w-14 shrink-0 overflow-hidden"
+          className={`flex flex-col w-14 shrink-0 overflow-hidden ${
+            darkMode ? 'bg-surface-alt-dark' : 'bg-white'
+          }`}
         >
           {/* Shape list — no scroll, items shrink to fit */}
           <div className="flex-1 py-1">
@@ -322,25 +324,28 @@ const ShapePalette: React.FC = () => {
         </div>
       )}
 
-      {/* Toggle button — always visible on the right edge */}
-      <button
-        onClick={toggleShapePalette}
-        className={`
-          flex items-center justify-center w-5 h-10 self-center shrink-0
-          rounded-r-md border border-l-0 cursor-pointer
-          transition-colors duration-100
-          ${darkMode
-            ? 'bg-surface-alt-dark border-border-dark hover:bg-dk-hover text-text-muted-dark'
-            : 'bg-surface-alt border-border hover:bg-slate-100 text-text-muted'
+      {/* Zero-width wrapper keeps toggle out of flex layout */}
+      <div className="relative w-0 self-stretch shrink-0">
+        <button
+          onClick={toggleShapePalette}
+          className={`
+            absolute top-1/2 -translate-y-1/2 left-0 z-20
+            flex items-center justify-center w-5 h-8
+            rounded-r cursor-pointer
+            transition-colors duration-150 opacity-40 hover:opacity-100
+            ${darkMode
+              ? 'text-dk-muted hover:bg-dk-hover/90 hover:text-dk-text'
+              : 'text-slate-400 hover:bg-white/90 hover:text-slate-600 hover:shadow-sm'
+            }
+          `}
+          data-tooltip-right={shapePaletteOpen ? 'Collapse palette' : 'Expand palette'}
+        >
+          {shapePaletteOpen
+            ? <ChevronsLeft size={14} />
+            : <ChevronsRight size={14} />
           }
-        `}
-        data-tooltip-right={shapePaletteOpen ? 'Collapse palette' : 'Expand palette'}
-      >
-        {shapePaletteOpen
-          ? <ChevronsLeft size={14} />
-          : <ChevronsRight size={14} />
-        }
-      </button>
+        </button>
+      </div>
 
       {/* Floating icon picker */}
       {iconPickerOpen && (

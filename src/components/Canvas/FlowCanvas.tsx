@@ -1005,7 +1005,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   }, [updateNodeData]);
 
   return (
-    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: activeStyle.canvas.background }}>
+    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: darkMode ? '#1e2d3d' : activeStyle.canvas.background }}>
       {/* Top banner — rendered outside ReactFlow so it pushes content down */}
       {topBanner.enabled && <BannerBar position="top" config={topBanner} />}
 
@@ -1084,20 +1084,20 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
             }
             gap={gridSpacing}
             size={1}
-            color={activeStyle.canvas.gridColor}
+            color={darkMode ? '#334155' : activeStyle.canvas.gridColor}
           />
         )}
 
         {minimapVisible && (
           <MiniMap
-            style={{ backgroundColor: activeStyle.canvas.background }}
+            style={{ backgroundColor: darkMode ? '#1c2736' : activeStyle.canvas.background }}
             nodeColor={(node) => {
               const color = (node.data as Record<string, unknown>)?.color as string | undefined;
               if (color) return color;
               const fill = activeStyle.nodeDefaults.fill;
               return fill === '#ffffff' || fill === '#fff' ? '#3b82f6' : fill;
             }}
-            maskColor={activeStyle.dark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(248, 250, 252, 0.7)'}
+            maskColor={darkMode || activeStyle.dark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(248, 250, 252, 0.7)'}
             pannable
             zoomable
           />

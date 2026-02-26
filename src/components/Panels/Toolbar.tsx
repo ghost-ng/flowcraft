@@ -1281,7 +1281,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <div className={`flex items-center shrink-0 ${isVertical ? 'py-1' : 'gap-2 mr-1'}`}>
         <Workflow size={20} className="text-primary" />
         {!isVertical && (
-          <span className="font-display font-semibold text-sm tracking-tight">
+          <span className={`font-display font-semibold text-sm tracking-tight ${darkMode ? 'text-dk-text' : ''}`}>
             Chart Hero
           </span>
         )}

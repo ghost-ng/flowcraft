@@ -2260,25 +2260,28 @@ const PropertiesPanel: React.FC = () => {
 
   return (
     <div className="flex shrink-0">
-      {/* Collapse / expand toggle on the left edge */}
-      <button
-        onClick={togglePropertiesPanel}
-        className={`
-          flex items-center justify-center w-5 h-10 self-center shrink-0
-          rounded-l-md border border-r-0 cursor-pointer
-          transition-colors duration-100
-          ${darkMode
-            ? 'bg-surface-alt-dark border-border-dark hover:bg-dk-hover text-text-muted-dark'
-            : 'bg-surface-alt border-border hover:bg-slate-100 text-text-muted'
+      {/* Zero-width wrapper keeps toggle out of flex layout */}
+      <div className="relative w-0 self-stretch shrink-0">
+        <button
+          onClick={togglePropertiesPanel}
+          className={`
+            absolute top-1/2 -translate-y-1/2 right-0 z-20
+            flex items-center justify-center w-5 h-8
+            rounded-l cursor-pointer
+            transition-colors duration-150 opacity-40 hover:opacity-100
+            ${darkMode
+              ? 'text-dk-muted hover:bg-dk-hover/90 hover:text-dk-text'
+              : 'text-slate-400 hover:bg-white/90 hover:text-slate-600 hover:shadow-sm'
+            }
+          `}
+          data-tooltip-left={propertiesPanelOpen ? 'Collapse panel' : 'Expand panel'}
+        >
+          {propertiesPanelOpen
+            ? <ChevronsRight size={14} />
+            : <ChevronsLeft size={14} />
           }
-        `}
-        title={propertiesPanelOpen ? 'Collapse panel' : 'Expand panel'}
-      >
-        {propertiesPanelOpen
-          ? <ChevronsRight size={14} />
-          : <ChevronsLeft size={14} />
-        }
-      </button>
+        </button>
+      </div>
 
       {!propertiesPanelOpen ? null : (
     <div

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useViewport } from '@xyflow/react';
-import { Pipette, Map, Keyboard, Camera, Monitor, Bug } from 'lucide-react';
+import { Pipette, Map, Keyboard, Camera, Monitor, Bug, Sun, Moon } from 'lucide-react';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
@@ -17,22 +17,20 @@ const MinimapToggle: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           ? 'text-primary'
           : darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-slate-500 hover:bg-slate-100'
       }`}
-      title={minimapVisible ? 'Hide Minimap' : 'Show Minimap'}
+      data-tooltip-top={minimapVisible ? 'Hide Minimap' : 'Show Minimap'}
     >
       <Map size={10} />
-      <span>Minimap</span>
     </button>
   );
 };
 
 const StatusButton: React.FC<{
   icon: React.ReactNode;
-  label: string;
-  title: string;
+  tooltip: string;
   onClick: () => void;
   active?: boolean;
   darkMode: boolean;
-}> = ({ icon, label, title, onClick, active, darkMode }) => (
+}> = ({ icon, tooltip, onClick, active, darkMode }) => (
   <button
     onClick={onClick}
     className={`flex items-center gap-1 px-1.5 py-0.5 rounded cursor-pointer transition-colors text-[10px] ${
@@ -40,10 +38,9 @@ const StatusButton: React.FC<{
         ? 'text-primary'
         : darkMode ? 'text-dk-muted hover:bg-dk-hover' : 'text-slate-500 hover:bg-slate-100'
     }`}
-    title={title}
+    data-tooltip-top={tooltip}
   >
     {icon}
-    <span>{label}</span>
   </button>
 );
 
@@ -205,7 +202,7 @@ const StatusBar: React.FC = () => {
                 ? 'opacity-60 cursor-wait'
                 : darkMode ? 'hover:bg-dk-hover text-dk-muted' : 'hover:bg-slate-100 text-slate-500'
             }`}
-            title="Pick color from screen (eyedropper)"
+            data-tooltip-top="Pick color from screen"
           >
             <span
               className="w-3 h-3 rounded-sm border border-white/30"
@@ -217,25 +214,22 @@ const StatusBar: React.FC = () => {
         </>
       )}
 
-      {/* Utility buttons (moved from toolbar) */}
+      {/* Utility buttons */}
       <StatusButton
         icon={<Keyboard size={10} />}
-        label="Shortcuts"
-        title="Keyboard Shortcuts (Ctrl+/)"
+        tooltip="Keyboard Shortcuts (Ctrl+/)"
         onClick={() => useUIStore.getState().setShortcutsDialogOpen(true)}
         darkMode={darkMode}
       />
       <StatusButton
         icon={<Camera size={10} />}
-        label="Screenshot"
-        title="Screenshot Region"
+        tooltip="Screenshot Region"
         onClick={() => useUIStore.getState().setScreenshotMode(true)}
         darkMode={darkMode}
       />
       <StatusButton
         icon={<Monitor size={10} />}
-        label="Present"
-        title="Presentation Mode"
+        tooltip="Presentation Mode"
         onClick={() => {
           useFlowStore.getState().clearSelection();
           useUIStore.getState().setPresentationMode(true);
@@ -244,9 +238,14 @@ const StatusBar: React.FC = () => {
         darkMode={darkMode}
       />
       <StatusButton
+        icon={darkMode ? <Sun size={10} /> : <Moon size={10} />}
+        tooltip={darkMode ? 'Light Mode' : 'Dark Mode'}
+        onClick={() => useStyleStore.getState().toggleDarkMode()}
+        darkMode={darkMode}
+      />
+      <StatusButton
         icon={<Bug size={10} />}
-        label="Debug"
-        title={debugMode ? 'Disable Debug Logging' : 'Enable Debug Logging'}
+        tooltip={debugMode ? 'Disable Debug Logging' : 'Enable Debug Logging'}
         onClick={toggleDebugMode}
         active={debugMode}
         darkMode={darkMode}
