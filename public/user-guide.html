@@ -108,6 +108,8 @@
   <script>
     // --- Minimal markdown-to-HTML renderer (no dependencies) ---
     function md(src) {
+      // Normalize Windows CRLF to LF so all \n-based regexes work correctly
+      src = src.replace(/\r\n/g, '\n');
       let html = src
         .replace(/```(\w*)\n([\s\S]*?)```/g, function(_, lang, code) {
           var escaped = esc(code.trim());
