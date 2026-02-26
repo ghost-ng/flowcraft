@@ -109,13 +109,13 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
   const inputCls = `
     w-full px-3 py-2 rounded-lg border text-sm transition-colors
     ${darkMode
-      ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500 focus:border-blue-500'
-      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
+      ? 'bg-dk-input border-dk-border text-dk-text placeholder:text-dk-faint focus:border-blue-500'
+      : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-blue-500'
     }
     outline-none
   `;
 
-  const labelCls = `block text-xs font-medium mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`;
+  const labelCls = `block text-xs font-medium mb-1 ${darkMode ? 'text-dk-muted' : 'text-slate-600'}`;
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center">
@@ -193,12 +193,12 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer ${darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded cursor-pointer ${darkMode ? 'text-dk-faint hover:text-dk-text' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className={`mt-1 text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            <p className={`mt-1 text-[11px] ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`}>
               Your key is sent directly to the provider from your browser. It is never sent to our servers.
             </p>
           </div>
@@ -242,8 +242,8 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
                 className={`
                   flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer
                   ${darkMode
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed'
+                    ? 'border-dk-border text-dk-text hover:bg-dk-hover disabled:opacity-40 disabled:cursor-not-allowed'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed'
                   }
                 `}
               >
@@ -256,7 +256,7 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
           <div>
             <label className={labelCls}>Key Storage</label>
             <div className="flex flex-col gap-2">
-              <label className={`flex items-center gap-2 cursor-pointer text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <label className={`flex items-center gap-2 cursor-pointer text-sm ${darkMode ? 'text-dk-text' : 'text-slate-700'}`}>
                 <input
                   type="radio"
                   name="keyStorage"
@@ -267,7 +267,7 @@ const AISettingsDialog: React.FC<AISettingsDialogProps> = ({ open, onClose }) =>
                 />
                 Session only (recommended)
               </label>
-              <label className={`flex items-center gap-2 cursor-pointer text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <label className={`flex items-center gap-2 cursor-pointer text-sm ${darkMode ? 'text-dk-text' : 'text-slate-700'}`}>
                 <input
                   type="radio"
                   name="keyStorage"

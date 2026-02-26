@@ -1121,7 +1121,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className="p-1.5 rounded-md bg-white/90 border border-slate-200 shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            className={`p-1.5 rounded-md border shadow-sm disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors ${darkMode ? 'bg-dk-panel/90 border-dk-border text-dk-text hover:bg-dk-hover' : 'bg-white/90 border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             data-tooltip="Undo (Ctrl+Z)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
@@ -1129,7 +1129,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className="p-1.5 rounded-md bg-white/90 border border-slate-200 shadow-sm text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            className={`p-1.5 rounded-md border shadow-sm disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors ${darkMode ? 'bg-dk-panel/90 border-dk-border text-dk-text hover:bg-dk-hover' : 'bg-white/90 border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             data-tooltip="Redo (Ctrl+Shift+Z)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>

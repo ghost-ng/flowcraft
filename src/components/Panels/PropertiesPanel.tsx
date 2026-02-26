@@ -299,15 +299,15 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
             <div className="flex items-center gap-1">
               <button
                 onClick={handleSelectAllOnNode}
-                className="px-2 py-1 text-[10px] font-medium rounded border border-border
-                           text-text-muted hover:bg-slate-50 transition-colors cursor-pointer"
+                className="px-2 py-1 text-[10px] font-medium rounded border border-border dark:border-dk-border
+                           text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover transition-colors cursor-pointer"
               >
                 Select All on Node
               </button>
               <button
                 onClick={handleSelectAllGlobal}
-                className="px-2 py-1 text-[10px] font-medium rounded border border-border
-                           text-text-muted hover:bg-slate-50 transition-colors cursor-pointer"
+                className="px-2 py-1 text-[10px] font-medium rounded border border-border dark:border-dk-border
+                           text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover transition-colors cursor-pointer"
               >
                 Select All (Global)
               </button>
@@ -335,7 +335,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                       color: selectedPuck.color || defaultColors[status] || '#94a3b8',
                     });
                   }}
-                  className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+                  className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 >
                   <option value="not-started">Not Started</option>
@@ -359,7 +359,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="text"
                     value={selectedPuck.color || '#94a3b8'}
                     onChange={(e) => handleUpdatePuck({ color: e.target.value })}
-                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                 </div>
@@ -399,7 +399,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                         py-1.5 text-[10px] font-semibold rounded border transition-colors cursor-pointer
                         ${(selectedPuck.position || 'top-right') === pos.value
                           ? 'bg-primary/10 border-primary/30 text-primary'
-                          : 'border-border text-text-muted hover:bg-slate-50'
+                          : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
                         }
                       `}
                     >
@@ -415,7 +415,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                   <select
                     value={selectedPuck.icon || ''}
                     onChange={(e) => handleUpdatePuck({ icon: e.target.value || undefined })}
-                    className="flex-1 px-2 py-1.5 text-sm rounded border border-border bg-white
+                    className="flex-1 px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   >
                     <option value="">Default (Auto)</option>
@@ -453,7 +453,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="text"
                     value={selectedPuck.borderColor || '#000000'}
                     onChange={(e) => handleUpdatePuck({ borderColor: e.target.value })}
-                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                 </div>
@@ -572,7 +572,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
         <>
           {/* Shape type display */}
           <Field label="Shape">
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-slate-50 border border-border text-sm capitalize">
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-sm capitalize">
               <ChevronRight size={14} className="text-text-muted" />
               {data.shape || 'rectangle'}
             </div>
@@ -591,7 +591,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 type="text"
                 value={fillColor}
                 onChange={(e) => update({ color: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
@@ -610,7 +610,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 type="text"
                 value={borderColor}
                 onChange={(e) => update({ borderColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
@@ -746,7 +746,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
               type="text"
               value={(data.label || '').replace(/\n/g, '\\n')}
               onChange={(e) => update({ label: e.target.value.replace(/\\n/g, '\n') })}
-              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+              className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                          focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </Field>
@@ -755,14 +755,14 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
           <Field label="Icon">
             <div className="flex items-center gap-2">
               {CurrentIconComponent && (
-                <div className="flex items-center justify-center w-8 h-8 rounded border border-border bg-slate-50">
-                  <CurrentIconComponent size={18} className="text-slate-600" />
+                <div className="flex items-center justify-center w-8 h-8 rounded border border-border dark:border-dk-border bg-slate-50 dark:bg-dk-hover">
+                  <CurrentIconComponent size={18} className="text-slate-600 dark:text-dk-muted" />
                 </div>
               )}
               <button
                 onClick={() => setIconPickerOpen(!iconPickerOpen)}
-                className="px-3 py-1.5 text-xs font-medium rounded border border-border
-                           text-text-muted hover:bg-slate-50 hover:text-text transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-xs font-medium rounded border border-border dark:border-dk-border
+                           text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover hover:text-text transition-colors cursor-pointer"
               >
                 {currentIcon ? 'Change Icon' : 'Add Icon'}
               </button>
@@ -835,7 +835,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 type="text"
                 value={textColor}
                 onChange={(e) => update({ textColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
@@ -939,7 +939,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                     transition-colors cursor-pointer
                     ${textAlign === value
                       ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'border-border text-text-muted hover:bg-slate-50'
+                      : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
                     }
                   `}
                   title={`Align ${value}`}
@@ -971,7 +971,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                     type="text"
                     value={data.iconColor || textColor}
                     onChange={(e) => update({ iconColor: e.target.value })}
-                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   {data.iconColor && (
@@ -1000,7 +1000,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                     value={data.iconBgColor || ''}
                     placeholder="None"
                     onChange={(e) => update({ iconBgColor: e.target.value || undefined })}
-                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   {data.iconBgColor && (
@@ -1029,7 +1029,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                     value={data.iconBorderColor || ''}
                     placeholder="None"
                     onChange={(e) => update({ iconBorderColor: e.target.value || undefined })}
-                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+                    className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                 </div>
@@ -1123,7 +1123,7 @@ const ReadOnlyField: React.FC<{ label: string; value: string; copyable?: boolean
   return (
     <Field label={label}>
       <div className="flex items-center gap-1.5">
-        <span className="flex-1 px-2 py-1.5 text-xs font-mono rounded bg-slate-50 border border-border text-text truncate">
+        <span className="flex-1 px-2 py-1.5 text-xs font-mono rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-text truncate">
           {value}
         </span>
         {copyable && (
@@ -1222,7 +1222,7 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
             {connectedTo.map((name, i) => (
               <span
                 key={i}
-                className="px-2 py-1 text-xs rounded bg-slate-50 border border-border text-text truncate"
+                className="px-2 py-1 text-xs rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-text truncate"
               >
                 {name}
               </span>
@@ -1240,7 +1240,7 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
             {upstream.map((name, i) => (
               <span
                 key={i}
-                className="px-2 py-1 text-xs rounded bg-blue-50 border border-blue-200 text-blue-700 truncate"
+                className="px-2 py-1 text-xs rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 truncate"
               >
                 {name}
               </span>
@@ -1258,7 +1258,7 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
             {downstream.map((name, i) => (
               <span
                 key={i}
-                className="px-2 py-1 text-xs rounded bg-amber-50 border border-amber-200 text-amber-700 truncate"
+                className="px-2 py-1 text-xs rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-300 truncate"
               >
                 {name}
               </span>
@@ -1465,14 +1465,14 @@ const SwimlanePanel: React.FC = React.memo(() => {
       {[...lanes].sort((a, b) => a.order - b.order).map((lane) => (
         <div
           key={lane.id}
-          className={`flex items-center gap-2 px-2 py-1.5 rounded-md border border-border bg-white/50 ${lane.hidden ? 'opacity-50' : ''}`}
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md border border-border dark:border-dk-border bg-white/50 dark:bg-dk-surface/50 ${lane.hidden ? 'opacity-50' : ''}`}
         >
           {/* Hide lane + all contents toggle */}
           <button
             onClick={() => updateLane(orientation, lane.id, { hidden: !lane.hidden })}
             className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
               ${lane.hidden
-                ? 'text-slate-300 hover:text-text-muted'
+                ? 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
                 : 'text-text-muted hover:text-primary'
               }`}
             title={lane.hidden ? 'Show lane & contents' : 'Hide lane & contents'}
@@ -1501,7 +1501,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
             className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
               ${(lane.showLabel ?? true)
                 ? 'text-text-muted hover:text-primary'
-                : 'text-slate-300 hover:text-text-muted'
+                : 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
               }`}
             data-tooltip-left={(lane.showLabel ?? true) ? 'Hide label' : 'Show label'}
           >
@@ -1513,7 +1513,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
             className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
               ${(lane.showColor ?? true)
                 ? 'text-text-muted hover:text-primary'
-                : 'text-slate-300 hover:text-text-muted'
+                : 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
               }`}
             data-tooltip-left={(lane.showColor ?? true) ? 'Hide color indicator' : 'Show color indicator'}
           >
@@ -1547,7 +1547,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
   if (!hasAnyLanes) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-dk-hover flex items-center justify-center">
           <Rows3 size={20} className="text-text-muted" />
         </div>
         <p className="text-sm text-text-muted leading-relaxed">
@@ -1569,7 +1569,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
       {/* Current config info */}
       <Field label="Mode">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 border border-border text-xs font-medium">
+          <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-xs font-medium">
             {isMatrix ? (
               <Grid3X3 size={12} />
             ) : hasVLanes ? (
@@ -1582,8 +1582,8 @@ const SwimlanePanel: React.FC = React.memo(() => {
           {hasAnyLanes && (
             <button
               onClick={handleToggleMatrix}
-              className="px-2 py-1 text-[10px] font-medium rounded border border-border
-                         text-text-muted hover:bg-slate-50 transition-colors cursor-pointer"
+              className="px-2 py-1 text-[10px] font-medium rounded border border-border dark:border-dk-border
+                         text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover transition-colors cursor-pointer"
             >
               {isMatrix ? 'Exit Matrix' : 'Matrix Mode'}
             </button>
@@ -1598,7 +1598,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
           value={config.containerTitle}
           onChange={(e) => setContainerTitle(e.target.value)}
           placeholder="Optional title"
-          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
         />
       </Field>
@@ -1633,7 +1633,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
             <select
               value={config.titleFontFamily ?? ''}
               onChange={(e) => updateTitleConfig({ titleFontFamily: e.target.value || undefined })}
-              className="w-full px-2 py-1.5 text-xs rounded border border-border bg-white focus:outline-none"
+              className="w-full px-2 py-1.5 text-xs rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border focus:outline-none"
             >
               <option value="">Default (Inter)</option>
               <option value="Inter, system-ui, sans-serif">Inter</option>
@@ -1674,7 +1674,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
                 rounded-md border transition-colors cursor-pointer
                 ${hasHLanes
                   ? 'bg-primary/10 border-primary/40 text-primary'
-                  : 'border-border text-text-muted hover:bg-slate-50'
+                  : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
                 }
               `}
             >
@@ -1697,7 +1697,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
                 rounded-md border transition-colors cursor-pointer
                 ${hasVLanes
                   ? 'bg-primary/10 border-primary/40 text-primary'
-                  : 'border-border text-text-muted hover:bg-slate-50'
+                  : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
                 }
               `}
             >
@@ -1831,8 +1831,8 @@ const SwimlanePanel: React.FC = React.memo(() => {
                   }
                 }
               }}
-              className="px-3 py-1.5 text-[11px] font-medium rounded-md border border-border
-                         text-text-muted hover:bg-slate-50 hover:text-primary transition-colors cursor-pointer w-full"
+              className="px-3 py-1.5 text-[11px] font-medium rounded-md border border-border dark:border-dk-border
+                         text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover hover:text-primary transition-colors cursor-pointer w-full"
             >
               Auto-fit to Labels
             </button>
@@ -1856,7 +1856,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
                 <select
                   value={config.containerBorder?.style ?? 'solid'}
                   onChange={(e) => updateContainerBorder({ style: e.target.value as BorderStyleType })}
-                  className="flex-1 px-1.5 py-1 text-xs rounded border border-border bg-white focus:outline-none"
+                  className="flex-1 px-1.5 py-1 text-xs rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border focus:outline-none"
                 >
                   {BORDER_STYLE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -1903,7 +1903,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
                 <select
                   value={config.dividerStyle?.style ?? 'solid'}
                   onChange={(e) => updateDividerStyle({ style: e.target.value as BorderStyleType })}
-                  className="flex-1 px-1.5 py-1 text-xs rounded border border-border bg-white focus:outline-none"
+                  className="flex-1 px-1.5 py-1 text-xs rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border focus:outline-none"
                 >
                   {BORDER_STYLE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -2028,7 +2028,7 @@ const BulkPuckEditor: React.FC = () => {
             const status = e.target.value as StatusIndicator['status'];
             handleUpdate({ status, color: defaultColors[status] || '#94a3b8' });
           }}
-          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
         >
           <option value="not-started">Not Started</option>
@@ -2052,7 +2052,7 @@ const BulkPuckEditor: React.FC = () => {
             type="text"
             value={representativePuck.color || '#94a3b8'}
             onChange={(e) => handleUpdate({ color: e.target.value })}
-            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
         </div>
@@ -2092,7 +2092,7 @@ const BulkPuckEditor: React.FC = () => {
                 py-1.5 text-[10px] font-semibold rounded border transition-colors cursor-pointer
                 ${(representativePuck.position || 'top-right') === pos.value
                   ? 'bg-primary/10 border-primary/30 text-primary'
-                  : 'border-border text-text-muted hover:bg-slate-50'
+                  : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
                 }
               `}
             >
@@ -2107,7 +2107,7 @@ const BulkPuckEditor: React.FC = () => {
         <select
           value={representativePuck.icon || ''}
           onChange={(e) => handleUpdate({ icon: e.target.value || undefined })}
-          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white
+          className="w-full px-2 py-1.5 text-sm rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
         >
           <option value="">Default (Auto)</option>
@@ -2144,7 +2144,7 @@ const BulkPuckEditor: React.FC = () => {
             type="text"
             value={representativePuck.borderColor || '#000000'}
             onChange={(e) => handleUpdate({ borderColor: e.target.value })}
-            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white
+            className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
         </div>
@@ -2346,7 +2346,7 @@ const PropertiesPanel: React.FC = () => {
           <BulkPuckEditor />
         ) : !selectedNode && activePanelTab === 'node' ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-12">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-dk-hover flex items-center justify-center">
               <ChevronRight size={20} className="text-text-muted" />
             </div>
             <p className="text-sm text-text-muted leading-relaxed">

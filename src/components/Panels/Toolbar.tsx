@@ -101,7 +101,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = React.memo(
           ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
           : `cursor-pointer ${active
               ? 'bg-primary/10 text-primary'
-              : 'text-text-muted hover:bg-slate-100 hover:text-text'
+              : 'text-text-muted hover:bg-slate-100 dark:hover:bg-dk-hover hover:text-text dark:hover:text-dk-text'
             }`
         }
       `}
@@ -750,17 +750,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <div className="fixed inset-0 z-40" onClick={() => setFileMenuOpen(false)} />
             <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
               <button onClick={() => { handleNew(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                <FilePlus size={14} className="text-slate-400" /> New Diagram
+                <FilePlus size={14} className="text-slate-400 dark:text-dk-faint" /> New Diagram
               </button>
               <button onClick={() => { handleOpen(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                <FolderOpen size={14} className="text-slate-400" /> Open (.fc)
+                <FolderOpen size={14} className="text-slate-400 dark:text-dk-faint" /> Open (.fc)
               </button>
               <button onClick={() => { handleSave(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                <Save size={14} className="text-slate-400" /> Save (.fc) <Kbd shortcut="Ctrl+S" />
+                <Save size={14} className="text-slate-400 dark:text-dk-faint" /> Save (.fc) <Kbd shortcut="Ctrl+S" />
               </button>
               <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
               <button onClick={() => { onOpenTemplates?.(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                <LayoutTemplate size={14} className="text-slate-400" /> Templates
+                <LayoutTemplate size={14} className="text-slate-400 dark:text-dk-faint" /> Templates
               </button>
               <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
               <button
@@ -768,7 +768,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 disabled={!canInstall}
                 className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors ${canInstall ? `cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}` : 'opacity-40 cursor-not-allowed'} ${!canInstall ? (darkMode ? 'text-dk-muted' : 'text-slate-400') : ''}`}
               >
-                <Download size={14} className="text-slate-400" /> {isInstalled ? 'Installed' : 'Install as App'}
+                <Download size={14} className="text-slate-400 dark:text-dk-faint" /> {isInstalled ? 'Installed' : 'Install as App'}
               </button>
             </div>
           </>
@@ -787,13 +787,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {layoutMenuOpen && (
           <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { handleAutoArrange(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <LayoutDashboard size={13} className="text-slate-400" /> Auto Arrange <Kbd shortcut="Ctrl+Shift+L" />
+              <LayoutDashboard size={13} className="text-slate-400 dark:text-dk-faint" /> Auto Arrange <Kbd shortcut="Ctrl+Shift+L" />
             </button>
             <button onClick={() => { handleVerticalLayout(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <ArrowDownUp size={13} className="text-slate-400" /> Vertical Layout
+              <ArrowDownUp size={13} className="text-slate-400 dark:text-dk-faint" /> Vertical Layout
             </button>
             <button onClick={() => { handleHorizontalLayout(); setLayoutMenuOpen(false); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <ArrowLeftRight size={13} className="text-slate-400" /> Horizontal Layout
+              <ArrowLeftRight size={13} className="text-slate-400 dark:text-dk-faint" /> Horizontal Layout
             </button>
 
             <div className={`my-1 h-px ${darkMode ? 'bg-dk-border' : 'bg-slate-200'}`} />
@@ -803,7 +803,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               onClick={() => setTopBannerEnabled(!topBannerEnabled)}
               className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}
             >
-              <Flag size={13} className="text-slate-400" />
+              <Flag size={13} className="text-slate-400 dark:text-dk-faint" />
               Top Banner
               <span className="ml-auto">
                 <input
@@ -853,34 +853,34 @@ const Toolbar: React.FC<ToolbarProps> = ({
           <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-0.5 pb-0 uppercase tracking-wider">Horizontal</div>
             <button onClick={() => handleAlign(alignment.alignLeft)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignLeft size={13} className="text-slate-400" /> Left <Kbd shortcut="Ctrl+Alt+L" />
+              <AlignLeft size={13} className="text-slate-400 dark:text-dk-faint" /> Left <Kbd shortcut="Ctrl+Alt+L" />
             </button>
             <button onClick={() => handleAlign(alignment.alignCenterH)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignCenterHorizontal size={13} className="text-slate-400" /> Center <Kbd shortcut="Ctrl+Alt+E" />
+              <AlignCenterHorizontal size={13} className="text-slate-400 dark:text-dk-faint" /> Center <Kbd shortcut="Ctrl+Alt+E" />
             </button>
             <button onClick={() => handleAlign(alignment.alignRight)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignRight size={13} className="text-slate-400" /> Right <Kbd shortcut="Ctrl+Alt+R" />
+              <AlignRight size={13} className="text-slate-400 dark:text-dk-faint" /> Right <Kbd shortcut="Ctrl+Alt+R" />
             </button>
             <div className="my-0.5 h-px bg-slate-200 dark:bg-dk-border" />
             <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-0.5 pb-0 uppercase tracking-wider">Vertical</div>
             <button onClick={() => handleAlign(alignment.alignTop)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignStartVertical size={13} className="text-slate-400" /> Top <Kbd shortcut="Ctrl+Alt+T" />
+              <AlignStartVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Top <Kbd shortcut="Ctrl+Alt+T" />
             </button>
             <button onClick={() => handleAlign(alignment.alignCenterV)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignCenterVertical size={13} className="text-slate-400" /> Center <Kbd shortcut="Ctrl+Alt+M" />
+              <AlignCenterVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Center <Kbd shortcut="Ctrl+Alt+M" />
             </button>
             <button onClick={() => handleAlign(alignment.alignBottom)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignEndVertical size={13} className="text-slate-400" /> Bottom <Kbd shortcut="Ctrl+Alt+B" />
+              <AlignEndVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Bottom <Kbd shortcut="Ctrl+Alt+B" />
             </button>
             {selectedNodes.length >= 3 && (
               <>
                 <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
                 <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted px-2 pt-1 pb-0.5 uppercase tracking-wider">Distribute</div>
                 <button onClick={() => handleDistribute(alignment.distributeH)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                  <ArrowLeftRight size={13} className="text-slate-400" /> Horizontal
+                  <ArrowLeftRight size={13} className="text-slate-400 dark:text-dk-faint" /> Horizontal
                 </button>
                 <button onClick={() => handleDistribute(alignment.distributeV)} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-                  <ArrowDownUp size={13} className="text-slate-400" /> Vertical
+                  <ArrowDownUp size={13} className="text-slate-400 dark:text-dk-faint" /> Vertical
                 </button>
               </>
             )}
@@ -900,10 +900,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {mirrorDropdownOpen && (
           <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[170px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { handleMirror(mirrorHorizontal); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <FlipHorizontal2 size={13} className="text-slate-400" /> Horizontal <Kbd shortcut="Ctrl+Shift+H" />
+              <FlipHorizontal2 size={13} className="text-slate-400 dark:text-dk-faint" /> Horizontal <Kbd shortcut="Ctrl+Shift+H" />
             </button>
             <button onClick={() => { handleMirror(mirrorVertical); }} className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <FlipVertical2 size={13} className="text-slate-400" /> Vertical <Kbd shortcut="Ctrl+Alt+V" />
+              <FlipVertical2 size={13} className="text-slate-400 dark:text-dk-faint" /> Vertical <Kbd shortcut="Ctrl+Alt+V" />
             </button>
           </div>
         )}
@@ -921,7 +921,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             relative flex items-center gap-1 px-1.5 py-1 rounded text-xs transition-colors duration-100
             ${selectedNodes.length === 0
               ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
-              : 'cursor-pointer text-text-muted hover:bg-slate-100 hover:text-text'}
+              : 'cursor-pointer text-text-muted hover:bg-slate-100 dark:hover:bg-dk-hover hover:text-text dark:hover:text-dk-text'}
           `}
         >
           <RotateCcw size={iconSize} />
@@ -936,7 +936,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             relative flex items-center gap-1 px-1.5 py-1 rounded text-xs transition-colors duration-100
             ${selectedNodes.length === 0
               ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
-              : 'cursor-pointer text-text-muted hover:bg-slate-100 hover:text-text'}
+              : 'cursor-pointer text-text-muted hover:bg-slate-100 dark:hover:bg-dk-hover hover:text-text dark:hover:text-dk-text'}
           `}
         >
           <RotateCw size={iconSize} />
@@ -1231,7 +1231,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 }}
                 className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text"
               >
-                <Code size={13} className="text-slate-400" /> Copy Raw Code
+                <Code size={13} className="text-slate-400 dark:text-dk-faint" /> Copy Raw Code
               </button>
               <button
                 onClick={() => {
@@ -1241,7 +1241,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 }}
                 className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text"
               >
-                <Image size={13} className="text-slate-400" /> Copy for PPT
+                <Image size={13} className="text-slate-400 dark:text-dk-faint" /> Copy for PPT
               </button>
             </div>
           )}
@@ -1260,8 +1260,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
   // Orientation-aware separator
   const Sep = isVertical
-    ? () => <div className="h-px w-full bg-border my-0.5 shrink-0" />
-    : () => <div className="w-px h-5 bg-border mx-1 shrink-0" />;
+    ? () => <div className="h-px w-full bg-border dark:bg-dk-border my-0.5 shrink-0" />
+    : () => <div className="w-px h-5 bg-border dark:bg-dk-border mx-1 shrink-0" />;
 
   return (
     <div

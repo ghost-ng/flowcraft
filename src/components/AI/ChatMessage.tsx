@@ -126,8 +126,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode }) => {
             className={`
               flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs
               ${darkMode
-                ? 'bg-gray-800/60 text-gray-400'
-                : 'bg-gray-100 text-gray-500'
+                ? 'bg-dk-hover/60 text-dk-muted'
+                : 'bg-slate-100 text-slate-500'
               }
             `}
           >
@@ -166,8 +166,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode }) => {
         className={`
           max-w-[85%] px-3.5 py-2 rounded-2xl rounded-bl-sm text-sm leading-relaxed
           ${darkMode
-            ? 'bg-gray-800 text-gray-100'
-            : 'bg-gray-100 text-gray-900'
+            ? 'bg-dk-hover text-dk-text'
+            : 'bg-slate-100 text-slate-900'
           }
         `}
       >

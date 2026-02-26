@@ -22,7 +22,7 @@ const AIButton: React.FC = () => {
         transition-colors duration-100 cursor-pointer
         ${isPanelOpen
           ? 'bg-primary/10 text-primary'
-          : 'text-text-muted hover:bg-slate-100 hover:text-text'
+          : 'text-text-muted hover:bg-slate-100 dark:hover:bg-dk-hover hover:text-text dark:hover:text-dk-text'
         }
       `}
     >

@@ -108,6 +108,12 @@ body,
   cursor: crosshair !important;
 }
 
+.dark .react-flow__handle {
+  background: var(--color-dk-input);
+  border-color: var(--color-dk-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 .react-flow__node.selected .react-flow__handle {
   opacity: 0.5 !important;
 }
@@ -136,6 +142,10 @@ body,
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dark .react-flow__minimap {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
 /* Shift React Flow attribution when rulers are active */
@@ -169,6 +179,14 @@ body,
 
 .panel-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+.dark .panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-dk-border);
+}
+
+.dark .panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-dk-muted);
 }
 
 /* Tooltip styles */

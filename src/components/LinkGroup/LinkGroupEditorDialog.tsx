@@ -111,11 +111,11 @@ const LinkGroupEditorDialog: React.FC = () => {
 
   if (!linkGroupId) return null;
 
-  const bg = darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300';
-  const textPrimary = darkMode ? 'text-gray-100' : 'text-gray-800';
-  const textSecondary = darkMode ? 'text-gray-400' : 'text-gray-500';
-  const hoverBg = darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100';
-  const itemBg = darkMode ? 'bg-gray-750' : 'bg-gray-50';
+  const bg = darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-300';
+  const textPrimary = darkMode ? 'text-dk-text' : 'text-slate-800';
+  const textSecondary = darkMode ? 'text-dk-muted' : 'text-slate-500';
+  const hoverBg = darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-100';
+  const itemBg = darkMode ? 'bg-dk-hover' : 'bg-gray-50';
 
   return (
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1000 }}>
@@ -188,8 +188,8 @@ const LinkGroupEditorDialog: React.FC = () => {
               addMode
                 ? 'bg-blue-500 text-white hover:bg-blue-600'
                 : darkMode
-                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-dk-hover text-dk-text hover:bg-dk-panel'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             onClick={() => setLinkGroupAddMode(!addMode)}
             data-tooltip={addMode ? 'Stop adding nodes' : 'Click nodes on canvas to add them'}

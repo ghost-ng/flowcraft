@@ -154,11 +154,11 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
         onMouseDown={handleMouseDown}
       >
         <div className="flex items-center gap-2">
-          <GripHorizontal size={14} className="text-slate-400" />
+          <GripHorizontal size={14} className="text-slate-400 dark:text-dk-faint" />
           <span className="text-xs font-semibold text-slate-600 dark:text-dk-muted uppercase tracking-wide">
             Icons
           </span>
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[10px] text-slate-400 dark:text-dk-faint">
             {ALL_ICON_NAMES.length} available
           </span>
         </div>
@@ -167,14 +167,14 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
           className="p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer"
           data-tooltip="Close"
         >
-          <X size={14} className="text-slate-400" />
+          <X size={14} className="text-slate-400 dark:text-dk-faint" />
         </button>
       </div>
 
       {/* Search */}
       <div className="px-3 py-2 border-b border-slate-200 dark:border-dk-border shrink-0">
         <div className="relative">
-          <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dk-faint pointer-events-none" />
           <input
             type="text"
             placeholder="Search icons..."
@@ -188,7 +188,7 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
           {searchQuery && (
             <button
               onClick={handleClearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-dk-faint hover:text-slate-600 dark:hover:text-dk-muted cursor-pointer"
             >
               <X size={12} />
             </button>
@@ -198,7 +198,7 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
 
       {/* Result count */}
       <div className="px-3 pt-2 pb-1 shrink-0">
-        <span className="text-[10px] font-medium text-slate-400">
+        <span className="text-[10px] font-medium text-slate-400 dark:text-dk-faint">
           {searchQuery
             ? `${displayedIcons.length} result${displayedIcons.length !== 1 ? 's' : ''}`
             : `Popular (${VALID_POPULAR_ICONS.length})`}
@@ -209,7 +209,7 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
       {/* Icon grid -- scrollable */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0">
         {visibleIcons.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-xs text-slate-400">
+          <div className="flex items-center justify-center py-12 text-xs text-slate-400 dark:text-dk-faint">
             No icons found
           </div>
         ) : (
@@ -248,7 +248,7 @@ const FloatingIconPicker: React.FC<FloatingIconPickerProps> = ({ onClose }) => {
         {hasMore && (
           <button
             onClick={handleShowMore}
-            className="w-full mt-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50
+            className="w-full mt-2 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50
                        dark:hover:bg-blue-800/10 rounded border border-blue-200 dark:border-blue-800
                        transition-colors cursor-pointer"
           >

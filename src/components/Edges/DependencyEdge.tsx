@@ -6,6 +6,7 @@ import React from 'react';
 import { type EdgeProps, getSmoothStepPath, EdgeLabelRenderer } from '@xyflow/react';
 import type { DependencyType } from '../../types/edges';
 import { useUIStore } from '../../store/uiStore';
+import { useStyleStore } from '../../store/styleStore';
 import { useEdgeVisuals } from './useEdgeVisuals';
 import EdgeLabel, { computeLabelXY } from './EdgeLabel';
 
@@ -120,6 +121,7 @@ const DependencyEdge: React.FC<EdgeProps> = ({
 }) => {
   void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
   const ev = useEdgeVisuals(id);
+  const darkMode = useStyleStore((s) => s.darkMode);
   const selectionColor = useUIStore((s) => s.selectionColor);
   const selectionThickness = useUIStore((s) => s.selectionThickness);
 
@@ -224,8 +226,8 @@ const DependencyEdge: React.FC<EdgeProps> = ({
           targetX={targetX}
           targetY={targetY}
           labelPosition={ev.labelPosition ?? 0.5}
-          labelColor={ev.labelColor ?? ev.overrideLabelFontColor ?? '#475569'}
-          labelBgColor={ev.labelBgColor ?? ev.overrideLabelBgColor ?? '#ffffff'}
+          labelColor={ev.labelColor ?? ev.overrideLabelFontColor ?? (darkMode ? '#c8d1dc' : '#475569')}
+          labelBgColor={ev.labelBgColor ?? ev.overrideLabelBgColor ?? (darkMode ? '#253345' : '#ffffff')}
           borderColor={strokeColor}
           fontSize={ev.labelFontSize ?? ev.overrideLabelFontSize ?? 11}
           offsetY={DEPENDENCY_LABELS[depType] ? 8 : 0}

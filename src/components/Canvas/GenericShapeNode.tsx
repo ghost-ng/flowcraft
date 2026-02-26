@@ -450,35 +450,35 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setCtxMenu(null)} onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }} />
           <div
-            className="fixed z-[9999] min-w-[180px] rounded-lg shadow-xl border bg-white dark:bg-[#1e293b] dark:border-[#334155] py-1 text-xs"
+            className="fixed z-[9999] min-w-[180px] rounded-lg shadow-xl border bg-white dark:bg-dk-panel dark:border-dk-border py-1 text-xs"
             style={{ left: ctxMenu.x, top: ctxMenu.y }}
           >
-            <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Select All Pucks</div>
+            <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 dark:text-dk-faint uppercase tracking-wide">Select All Pucks</div>
             <button
               onClick={selectAllOnNode}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
             >
               <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: bgColor }} />
               On this node
             </button>
             <button
               onClick={selectAllByColor}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
             >
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: bgColor }} />
               Same color
             </button>
             <button
               onClick={selectAllByBorder}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
             >
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'transparent', border: borderStr }} />
               Same outline
             </button>
-            <div className="h-px bg-slate-200 dark:bg-[#334155] my-0.5" />
+            <div className="h-px bg-slate-200 dark:bg-dk-border my-0.5" />
             <button
               onClick={selectAllGlobal}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 cursor-pointer"
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
             >
               All pucks (global)
             </button>

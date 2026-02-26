@@ -63,7 +63,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, dar
       }
     `}
   >
-    <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400">
+    <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
       {icon}
     </span>
     {label}

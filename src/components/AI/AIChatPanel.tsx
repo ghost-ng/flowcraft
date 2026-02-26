@@ -393,8 +393,8 @@ const AIChatPanel: React.FC = () => {
         className={`
           fixed z-50 flex flex-col rounded-xl shadow-2xl border overflow-hidden
           ${darkMode
-            ? 'bg-[#1e293b] border-gray-700'
-            : 'bg-white border-gray-200'
+            ? 'bg-dk-panel border-dk-border'
+            : 'bg-white border-slate-200'
           }
           ${isDragging || isResizing ? 'select-none' : ''}
         `}
@@ -410,34 +410,34 @@ const AIChatPanel: React.FC = () => {
           className={`
             flex items-center justify-between px-3 py-2 border-b shrink-0
             ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
-            ${darkMode ? 'border-gray-700 bg-[#1e293b]' : 'border-gray-200 bg-gray-50'}
+            ${darkMode ? 'border-dk-border bg-dk-panel' : 'border-slate-200 bg-slate-50'}
           `}
           onMouseDown={handleDragStart}
         >
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-blue-500" />
-            <span className={`text-sm font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+            <span className={`text-sm font-semibold ${darkMode ? 'text-dk-text' : 'text-slate-800'}`}>
               AI Assistant
             </span>
           </div>
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => useAIStore.getState().setSettingsOpen(true)}
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-muted' : 'hover:bg-slate-200 text-slate-500'}`}
               data-tooltip="Settings"
             >
               <Settings size={15} />
             </button>
             <button
               onClick={() => useAIStore.getState().setPanelOpen(false)}
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-muted' : 'hover:bg-slate-200 text-slate-500'}`}
               data-tooltip="Minimize"
             >
               <Minus size={15} />
             </button>
             <button
               onClick={() => useAIStore.getState().setPanelOpen(false)}
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
+              className={`p-1.5 rounded-md transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-muted' : 'hover:bg-slate-200 text-slate-500'}`}
               data-tooltip="Close"
             >
               <X size={15} />
@@ -451,13 +451,13 @@ const AIChatPanel: React.FC = () => {
             /* Empty state */
             <div className="flex flex-col items-center justify-center h-full px-6 text-center">
               <Sparkles size={32} className={`mb-3 ${darkMode ? 'text-blue-400' : 'text-blue-500'}`} />
-              <h3 className={`text-base font-semibold mb-1 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              <h3 className={`text-base font-semibold mb-1 ${darkMode ? 'text-dk-text' : 'text-slate-800'}`}>
                 Chart Hero AI
               </h3>
-              <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-sm mb-4 ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
                 How can I help with your diagram?
               </p>
-              <div className={`text-xs text-left space-y-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              <div className={`text-xs text-left space-y-1.5 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`}>
                 <p className="font-medium mb-1">Try:</p>
                 <p>&bull; "Create a flowchart for user login"</p>
                 <p>&bull; "Make the nodes blue"</p>
@@ -482,7 +482,7 @@ const AIChatPanel: React.FC = () => {
         )}
 
         {/* Input area */}
-        <div className={`flex items-end gap-2 px-3 py-2.5 border-t shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`flex items-end gap-2 px-3 py-2.5 border-t shrink-0 ${darkMode ? 'border-dk-border' : 'border-slate-200'}`}>
           <textarea
             ref={textareaRef}
             value={input}
@@ -494,8 +494,8 @@ const AIChatPanel: React.FC = () => {
             className={`
               flex-1 resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors
               ${darkMode
-                ? 'bg-gray-800 text-gray-100 placeholder-gray-500 border border-gray-600 focus:border-blue-500'
-                : 'bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:border-blue-500'
+                ? 'bg-dk-input text-dk-text placeholder:text-dk-faint border border-dk-border focus:border-blue-500'
+                : 'bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-blue-500'
               }
               disabled:opacity-50 disabled:cursor-not-allowed
             `}
@@ -517,8 +517,8 @@ const AIChatPanel: React.FC = () => {
                 ${input.trim() && apiKey
                   ? 'bg-blue-500 text-white hover:bg-blue-600'
                   : darkMode
-                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    ? 'bg-dk-hover text-dk-faint cursor-not-allowed'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }
               `}
               data-tooltip="Send"

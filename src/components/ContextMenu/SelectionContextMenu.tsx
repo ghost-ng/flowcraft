@@ -104,15 +104,15 @@ const MenuItem: React.FC<MenuItemProps> = ({
       }
     `}
   >
-    <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400">
+    <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
       {icon}
     </span>
     <span className="flex-1">{label}</span>
     {shortcut && (
-      <span className="text-[10px] text-slate-400 ml-auto font-mono">{shortcut}</span>
+      <span className="text-[10px] text-slate-400 dark:text-dk-faint ml-auto font-mono">{shortcut}</span>
     )}
     {hasSubmenu && (
-      <span className="text-slate-400 text-xs ml-2">&rsaquo;</span>
+      <span className="text-slate-400 dark:text-dk-faint text-xs ml-2">&rsaquo;</span>
     )}
   </button>
 );

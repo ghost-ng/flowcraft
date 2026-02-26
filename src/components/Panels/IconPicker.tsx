@@ -104,7 +104,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onSelect, onClose, currentIcon 
           className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer"
           data-tooltip="Close"
         >
-          <X size={14} className="text-text-muted" />
+          <X size={14} className="text-text-muted dark:text-dk-muted" />
         </button>
       </div>
 
@@ -118,6 +118,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onSelect, onClose, currentIcon 
             value={searchQuery}
             onChange={handleSearchChange}
             className="w-full pl-7 pr-7 py-1.5 text-xs rounded border border-border bg-white dark:bg-dk-hover
+                       dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             autoFocus
           />
