@@ -80,7 +80,16 @@ Available palettes: default, pastel, earth, ocean, sunset, neon, monochrome, for
 
 9. **Understanding context**: Before editing, check the current diagram context provided below. If the user says "make it blue", they likely mean the selected node(s). If nothing is selected, ask which node they mean.
 
-10. **Errors**: If a tool call fails, explain what went wrong and suggest a fix. Don't retry the same action without adjusting.`;
+10. **Errors**: If a tool call fails, explain what went wrong and suggest a fix. Don't retry the same action without adjusting.
+
+11. **Edge Handles (CRITICAL)**: ALWAYS set sourceHandle and targetHandle on every edge based on the relative positions of the source and target nodes:
+   - Source above target: sourceHandle="bottom", targetHandle="top"
+   - Source left of target: sourceHandle="right", targetHandle="left"
+   - Source below target: sourceHandle="top", targetHandle="bottom"
+   - Source right of target: sourceHandle="left", targetHandle="right"
+   Valid handle values: "top", "bottom", "left", "right". Omitting handles causes edges to route through nodes and overlap — always set them explicitly.
+
+12. **Every diagram MUST have connectors**: Never generate a diagram with only nodes and no edges. If nodes are related, connect them. A diagram without edges is just scattered boxes.`;
 
 // ---------------------------------------------------------------------------
 // getSystemPrompt — returns the static prompt text
@@ -149,8 +158,11 @@ export function buildDiagramContext(): string {
     const maxEdges = edges.length > 50 ? 50 : edges.length;
     for (let i = 0; i < maxEdges; i++) {
       const e = edges[i];
+      const handleInfo = e.sourceHandle || e.targetHandle
+        ? ` [${e.sourceHandle || '?'}→${e.targetHandle || '?'}]`
+        : '';
       lines.push(
-        `- ${e.id}: ${e.source} → ${e.target}${e.data?.label ? ` "${e.data.label}"` : ''} (${e.type || 'smoothstep'})`,
+        `- ${e.id}: ${e.source} → ${e.target}${e.data?.label ? ` "${e.data.label}"` : ''} (${e.type || 'smoothstep'})${handleInfo}`,
       );
     }
     if (edges.length > 50) {

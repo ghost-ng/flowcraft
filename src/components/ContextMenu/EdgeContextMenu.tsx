@@ -11,6 +11,7 @@ import {
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore } from '../../store/flowStore';
 import { useMenuPosition, SubMenu } from './menuUtils';
+import { colorPalettes, defaultPaletteId } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,17 +40,10 @@ const edgeTypeOptions = [
   { value: 'straight', label: 'Straight' },
 ];
 
-const quickColors = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#6b7280', // gray
-  '#f97316', // orange
-  '#14b8a6', // teal
+// Fallback colors when no palette is selected
+const defaultQuickColors = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#6b7280', '#f97316', '#14b8a6',
 ];
 
 // ---------------------------------------------------------------------------
@@ -102,6 +96,8 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
   x, y, edgeId, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activePaletteId = useStyleStore((s) => s.activePaletteId);
+  const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
   const [submenu, setSubmenu] = useState<'type' | 'color' | 'fontSize' | null>(null);
   const menuStyle = useMenuPosition(x, y, menuRef);

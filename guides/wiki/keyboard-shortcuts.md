@@ -112,7 +112,9 @@ Complete reference for all keyboard shortcuts and mouse interactions in Chart He
 | Double-click a node | Enter inline label editing mode |
 | Right-click a node | Open the node context menu |
 | Drag a node | Move the node (auto-assigns to a swimlane if swimlanes are active) |
+| Shift+drag a node | Snap the node to the nearest alignment guide (edge or center of another node) |
 | Drag from a connection handle | Start creating a new edge to another node |
+| Drag an edge endpoint | Reconnect the edge to a different handle or node; drop on empty space to delete |
 | Ctrl+Scroll on a node | Adjust the node's border thickness |
 
 ### Edges

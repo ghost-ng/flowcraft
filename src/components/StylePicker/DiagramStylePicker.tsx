@@ -149,21 +149,18 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   const handleSetStyle = useCallback(
     (id: string) => {
       setStyle(id);
-      // Deselect palette when a style preset is chosen
-      setPalette('');
 
-      // Apply the style's colors/fonts to ALL existing nodes
+      // Apply style formatting (fonts, borders, edges) but NOT fill colors.
+      // Fill colors are controlled independently via the color palette.
       const style = diagramStyles[id];
       if (style) {
         const { nodes } = useFlowStore.getState();
-        const colors = style.accentColors.length > 0 ? style.accentColors : [style.nodeDefaults.fill];
-        for (let i = 0; i < nodes.length; i++) {
-          const node = nodes[i];
-          const assignedColor = colors[i % colors.length];
-          // Compute readable text colour for this specific fill
-          const textColor = ensureReadableText(assignedColor, style.nodeDefaults.fontColor);
+        for (const node of nodes) {
+          const textColor = ensureReadableText(
+            node.data.color || style.nodeDefaults.fill,
+            style.nodeDefaults.fontColor,
+          );
           useFlowStore.getState().updateNodeData(node.id, {
-            color: assignedColor,
             borderColor: style.nodeDefaults.stroke,
             textColor,
             fontFamily: style.nodeDefaults.fontFamily,
@@ -171,7 +168,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
             fontWeight: style.nodeDefaults.fontWeight,
           });
         }
-        // Also update edge styles
+        // Update edge styles
         const { edges, updateEdgeData } = useFlowStore.getState();
         for (const edge of edges) {
           updateEdgeData(edge.id, {
@@ -180,30 +177,15 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         }
       }
     },
-    [setStyle, setPalette],
+    [setStyle],
   );
 
   const handleSetPalette = useCallback(
     (id: string) => {
+      // Only update the active palette — this changes the quick-change
+      // color swatches in context menus and keyboard shortcuts (1-9).
+      // Existing node colors are NOT modified.
       setPalette(id);
-
-      // Apply palette colors to existing nodes with readable text
-      const palette = colorPalettes[id];
-      if (palette && palette.colors.length > 0) {
-        const { nodes } = useFlowStore.getState();
-        const colors = palette.colors;
-        nodes.forEach((node, idx) => {
-          const assignedColor = colors[idx % colors.length];
-          const textColor = ensureReadableText(
-            assignedColor,
-            node.data.textColor || '#ffffff',
-          );
-          useFlowStore.getState().updateNodeData(node.id, {
-            color: assignedColor,
-            textColor,
-          });
-        });
-      }
     },
     [setPalette],
   );

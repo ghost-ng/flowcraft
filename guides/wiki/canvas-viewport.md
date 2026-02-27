@@ -76,6 +76,17 @@ Four snap distance presets determine how close a node must be to a grid line bef
 - Click the **Magnet** button in the toolbar to toggle snap on or off.
 - The default state is enabled with an 8px snap distance.
 
+### Alignment Guides
+
+Alignment guides are purple dashed lines that appear when a dragged node's edge or center aligns with another node's edge or center. They help you line up nodes without needing an exact grid.
+
+- Toggle the **Crosshair** button in the toolbar to show or hide alignment guides.
+- Alignment guides are enabled by default.
+
+**Shift+Drag** — Hold **Shift** while dragging a node to snap it to the nearest alignment guide. The node locks onto the guide position (left/right/center on the X axis, top/bottom/center on the Y axis) and stays there until you release Shift or move out of range.
+
+Alignment guides work independently of grid snap. You can use both together.
+
 ---
 
 ## Rulers

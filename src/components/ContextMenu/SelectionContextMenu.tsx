@@ -12,6 +12,7 @@ import {
   ArrowRightLeft,
   ArrowUpDown,
   Palette,
+  Shapes,
   Group,
   FlipHorizontal2,
   FlipVertical2,
@@ -20,13 +21,14 @@ import {
   Link,
 } from 'lucide-react';
 
-import { useFlowStore, type FlowNode } from '../../store/flowStore';
+import { useFlowStore, type FlowNode, type NodeShape } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
 import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
 import { computeBoundingBox } from '../../utils/groupUtils';
+import { colorPalettes, defaultPaletteId } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,17 +48,21 @@ export interface SelectionContextMenuProps {
 // Quick colors (same as NodeContextMenu)
 // ---------------------------------------------------------------------------
 
-const quickColors = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#6b7280', // gray
-  '#f97316', // orange
-  '#14b8a6', // teal
+const shapeOptions: { value: NodeShape; label: string }[] = [
+  { value: 'rectangle', label: 'Rectangle' },
+  { value: 'roundedRectangle', label: 'Rounded Rect' },
+  { value: 'diamond', label: 'Diamond' },
+  { value: 'circle', label: 'Circle' },
+  { value: 'parallelogram', label: 'Parallelogram' },
+  { value: 'hexagon', label: 'Hexagon' },
+  { value: 'document', label: 'Document' },
+  { value: 'cloud', label: 'Cloud' },
+];
+
+// Fallback colors when no palette is selected
+const defaultQuickColors = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#6b7280', '#f97316', '#14b8a6',
 ];
 
 // ---------------------------------------------------------------------------
@@ -132,8 +138,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   onClose,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activePaletteId = useStyleStore((s) => s.activePaletteId);
+  const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'align' | 'distribute' | 'color' | 'group' | 'mirror' | 'rotate' | null>(null);
+  const [submenu, setSubmenu] = useState<'align' | 'distribute' | 'shape' | 'group' | 'mirror' | 'rotate' | null>(null);
   const { applyLayout } = useAutoLayout();
 
   // Close on click-outside or Escape
@@ -209,6 +217,15 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     const { updateNodeData } = useFlowStore.getState();
     for (const id of nodeIds) {
       updateNodeData(id, { color });
+    }
+    onClose();
+  }, [nodeIds, onClose]);
+
+  // ---- Change shape for all selected nodes --------------------------------
+  const handleChangeShape = useCallback((shape: NodeShape) => {
+    const { updateNodeData } = useFlowStore.getState();
+    for (const id of nodeIds) {
+      updateNodeData(id, { shape });
     }
     onClose();
   }, [nodeIds, onClose]);
@@ -380,11 +397,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           {submenu === 'align' && (
             <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
               <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => handleAlign(alignment.alignLeft)} darkMode={darkMode} />
-              <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (H)" onClick={() => handleAlign(alignment.alignCenterH)} darkMode={darkMode} />
+              <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (H)" onClick={() => handleAlign(alignment.alignCenterH)} darkMode={darkMode} />
               <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => handleAlign(alignment.alignRight)} darkMode={darkMode} />
               <MenuDivider darkMode={darkMode} />
               <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => handleAlign(alignment.alignTop)} darkMode={darkMode} />
-              <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (V)" onClick={() => handleAlign(alignment.alignCenterV)} darkMode={darkMode} />
+              <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (V)" onClick={() => handleAlign(alignment.alignCenterV)} darkMode={darkMode} />
               <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => handleAlign(alignment.alignBottom)} darkMode={darkMode} />
             </SubMenu>
           )}
@@ -451,31 +468,50 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
 
         <div className="relative" onMouseLeave={() => setSubmenu(null)}>
           <MenuItem
-            icon={<Palette size={14} />}
-            label="Change Color"
-            onClick={() => setSubmenu(submenu === 'color' ? null : 'color')}
+            icon={<Shapes size={14} />}
+            label="Change Shape"
+            onClick={() => setSubmenu(submenu === 'shape' ? null : 'shape')}
             darkMode={darkMode}
             hasSubmenu
-            onMouseEnter={() => setSubmenu('color')}
+            onMouseEnter={() => setSubmenu('shape')}
           />
-          {submenu === 'color' && (
-            <SubMenu darkMode={darkMode} className="p-3">
-              <div className="grid grid-cols-5 gap-1.5">
-                {quickColors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleChangeColor(color);
-                    }}
-                    className="w-7 h-7 rounded-md border-2 border-transparent hover:border-white hover:scale-110 transition-all cursor-pointer"
-                    style={{ backgroundColor: color }}
-                    title={color}
-                  />
-                ))}
-              </div>
+          {submenu === 'shape' && (
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
+              {shapeOptions.map(({ value, label }) => (
+                <MenuItem
+                  key={value}
+                  icon={<Shapes size={14} />}
+                  label={label}
+                  onClick={() => handleChangeShape(value)}
+                  darkMode={darkMode}
+                />
+              ))}
             </SubMenu>
           )}
+        </div>
+
+        {/* Inline color swatches */}
+        <div className="px-3 py-1.5" onMouseEnter={() => setSubmenu(null)}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
+              <Palette size={14} />
+            </span>
+            <span className={`text-sm ${darkMode ? 'text-dk-text' : 'text-slate-700'}`}>Color</span>
+          </div>
+          <div className="grid grid-cols-5 gap-1.5 ml-6">
+            {quickColors.map((color) => (
+              <button
+                key={color}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleChangeColor(color);
+                }}
+                className="w-6 h-6 rounded-md border-2 border-transparent hover:border-white hover:scale-110 transition-all cursor-pointer"
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

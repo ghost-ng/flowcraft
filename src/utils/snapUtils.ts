@@ -144,6 +144,57 @@ export function findAlignmentGuides(
 }
 
 // ---------------------------------------------------------------------------
+// snapToAlignmentGuides — snap a node's position to the nearest guide line
+// ---------------------------------------------------------------------------
+
+/**
+ * Given a node and active alignment guides, compute a snapped position.
+ * For each axis, finds the closest guide line to the node's edges or center,
+ * then adjusts the position to lock onto that guide.
+ *
+ * @returns Adjusted position (only axes with nearby guides are modified)
+ */
+export function snapToAlignmentGuides(
+  node: SnapNode,
+  guides: AlignmentGuides,
+  threshold: number = 8,
+): Position {
+  let newX = node.position.x;
+  let newY = node.position.y;
+
+  const w = resolveWidth(node);
+  const h = resolveHeight(node);
+  const cx = node.position.x + w / 2;
+  const cy = node.position.y + h / 2;
+  const right = node.position.x + w;
+  const bottom = node.position.y + h;
+
+  // Find closest vertical guide (x-axis snap)
+  let bestDx = threshold + 1;
+  for (const gx of guides.vertical) {
+    const dLeft = Math.abs(node.position.x - gx);
+    if (dLeft < bestDx) { bestDx = dLeft; newX = gx; }
+    const dCenter = Math.abs(cx - gx);
+    if (dCenter < bestDx) { bestDx = dCenter; newX = gx - w / 2; }
+    const dRight = Math.abs(right - gx);
+    if (dRight < bestDx) { bestDx = dRight; newX = gx - w; }
+  }
+
+  // Find closest horizontal guide (y-axis snap)
+  let bestDy = threshold + 1;
+  for (const gy of guides.horizontal) {
+    const dTop = Math.abs(node.position.y - gy);
+    if (dTop < bestDy) { bestDy = dTop; newY = gy; }
+    const dCenter = Math.abs(cy - gy);
+    if (dCenter < bestDy) { bestDy = dCenter; newY = gy - h / 2; }
+    const dBottom = Math.abs(bottom - gy);
+    if (dBottom < bestDy) { bestDy = dBottom; newY = gy - h; }
+  }
+
+  return { x: newX, y: newY };
+}
+
+// ---------------------------------------------------------------------------
 // findDistributionGuides
 // ---------------------------------------------------------------------------
 

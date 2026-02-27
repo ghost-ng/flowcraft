@@ -1345,3 +1345,117 @@ Before finalizing a diagram JSON, verify:
 | Mixed shapes for same category | Inconsistent, confusing diagram | Pick one shape per node category |
 | Overlapping nodes | Unreadable, messy | Calculate positions with bounding boxes; minimum 40px gap |
 | No labels on decision branches | Reader can't follow the logic | Label every outgoing edge from a diamond |
+
+---
+
+## 16. Military COMREL (Command Relationships) Charts
+
+COMREL charts visualize the command and support relationships between military units in a hierarchical structure. These follow doctrine from JP 1 (Joint Publication 1), FM 6-0, and standard military staff conventions.
+
+### 16.1 Relationship Types & Visual Conventions
+
+Each command/support relationship uses a distinct line style. **This is critical** — the line style IS the information.
+
+| Relationship | Edge Type | strokeDasharray | Thickness | Color | Description |
+|---|---|---|---|---|---|
+| **COCOM** (Combatant Command) | `straight` | _(solid)_ | `3` | `#1e3a5f` | Full authority; cannot be delegated below CCDR |
+| **Organic** | `straight` | _(solid)_ | `2` | `#000000` | Permanent assignment within the organization |
+| **Assigned** | `straight` | _(solid)_ | `2` | `#1e3a5f` | Placed in an organization on a relatively permanent basis |
+| **OPCON** (Operational Control) | `smoothstep` | `12 6` | `2` | `#1e3a5f` | Authority to organize/employ forces for missions |
+| **TACON** (Tactical Control) | `smoothstep` | `4 4` | `2` | `#1e3a5f` | Limited to movement/maneuver direction |
+| **ADCON** (Administrative Control) | `smoothstep` | `12 4 4 4` | `1.5` | `#6b7280` | Admin/logistics authority; stays in Service channels |
+| **Attached** | `smoothstep` | `8 4` | `2` | `#374151` | Temporary placement in another organization |
+| **Direct Support (DS)** | `smoothstep` | _(solid)_ | `2` | `#059669` | Support a specific unit; priorities set by supported unit |
+| **General Support (GS)** | `smoothstep` | `8 4` | `2` | `#059669` | Support the force as a whole |
+
+### 16.2 Node Conventions
+
+- **All units use `rectangle` shape** — military org charts use rectangular unit symbols
+- **Bold, abbreviated labels** — Use standard abbreviations: `"1st BDE"`, `"2/75 RGR"`, `"TF EAGLE"`, `"JSOC"`
+- **Echelon in description** — Put echelon designator in description: `(CORPS)`, `(DIV)`, `(BDE)`, `(BN)`, `(CO)`, `(PLT)`
+- **Color coding by component/service**:
+  - Army: `#4b5320` (olive drab)
+  - Navy/Marines: `#1e3a5f` (navy blue)
+  - Air Force: `#4682b4` (steel blue)
+  - Joint/Combined: `#6b21a8` (purple)
+  - Allied/Coalition: `#059669` (green)
+- **fontSize: 11-12** — military charts are dense; keep labels compact
+- **width: 140-180** — uniform width for all unit nodes
+
+### 16.3 Layout Rules
+
+1. **Strict top-down hierarchy** — Commander/HQ at top center
+2. **Echelons descend by row** — Each subordinate echelon 150-200px below
+3. **Horizontal spread** — Units at the same echelon spread horizontally, 200-250px apart
+4. **ADCON lines on the side** — ADCON relationships often run parallel to the hierarchy, offset to one side
+5. **Support relationships below/beside** — Supporting units positioned near the units they support
+6. **sourceHandle/targetHandle critical** — All command lines flow top-to-bottom: use `sourceHandle: "bottom"`, `targetHandle: "top"`. Lateral relationships use `"right"/"left"`.
+
+### 16.4 Legend Requirements
+
+A COMREL chart **MUST** include a legend explaining every line style:
+
+```json
+"nodeLegend": {
+  "visible": true,
+  "items": [
+    { "label": "COCOM", "color": "#1e3a5f", "kind": "edge" },
+    { "label": "OPCON", "color": "#1e3a5f", "kind": "edge", "borderStyle": "dashed" },
+    { "label": "TACON", "color": "#1e3a5f", "kind": "edge", "borderStyle": "dotted" },
+    { "label": "ADCON", "color": "#6b7280", "kind": "edge", "borderStyle": "dashed" },
+    { "label": "Direct Support", "color": "#059669", "kind": "edge" },
+    { "label": "General Support", "color": "#059669", "kind": "edge", "borderStyle": "dashed" }
+  ]
+}
+```
+
+### 16.5 Complete COMREL Chart Example
+
+```json
+{
+  "nodes": [
+    { "id": "jtf", "type": "rectangle", "position": { "x": 350, "y": 50 }, "data": { "label": "JTF THUNDER", "shape": "rectangle", "color": "#6b21a8", "width": 180, "height": 60, "fontSize": 13, "fontWeight": 700, "textColor": "#ffffff", "description": "Joint Task Force (JTF)" } },
+    { "id": "army_div", "type": "rectangle", "position": { "x": 100, "y": 250 }, "data": { "label": "1st ARMORED DIV", "shape": "rectangle", "color": "#4b5320", "width": 170, "height": 55, "fontSize": 11, "fontWeight": 700, "textColor": "#ffffff", "description": "Division (DIV)" } },
+    { "id": "mef", "type": "rectangle", "position": { "x": 350, "y": 250 }, "data": { "label": "II MEF", "shape": "rectangle", "color": "#1e3a5f", "width": 170, "height": 55, "fontSize": 11, "fontWeight": 700, "textColor": "#ffffff", "description": "Marine Expeditionary Force" } },
+    { "id": "air_wing", "type": "rectangle", "position": { "x": 600, "y": 250 }, "data": { "label": "332nd AEW", "shape": "rectangle", "color": "#4682b4", "width": 170, "height": 55, "fontSize": 11, "fontWeight": 700, "textColor": "#ffffff", "description": "Air Expeditionary Wing" } },
+    { "id": "bde1", "type": "rectangle", "position": { "x": 20, "y": 430 }, "data": { "label": "1st BDE", "shape": "rectangle", "color": "#4b5320", "width": 140, "height": 50, "fontSize": 11, "fontWeight": 600, "textColor": "#ffffff", "description": "Brigade (BDE)" } },
+    { "id": "bde2", "type": "rectangle", "position": { "x": 190, "y": 430 }, "data": { "label": "2nd BDE", "shape": "rectangle", "color": "#4b5320", "width": 140, "height": 50, "fontSize": 11, "fontWeight": 600, "textColor": "#ffffff", "description": "Brigade (BDE)" } },
+    { "id": "sof", "type": "rectangle", "position": { "x": 600, "y": 430 }, "data": { "label": "CJSOTF", "shape": "rectangle", "color": "#6b21a8", "width": 140, "height": 50, "fontSize": 11, "fontWeight": 600, "textColor": "#ffffff", "description": "Combined Joint SOF Task Force" } },
+    { "id": "arfor", "type": "rectangle", "position": { "x": 810, "y": 120 }, "data": { "label": "ARFOR", "shape": "rectangle", "color": "#4b5320", "width": 130, "height": 50, "fontSize": 11, "fontWeight": 600, "textColor": "#ffffff", "description": "Army Forces (ADCON)" } }
+  ],
+  "edges": [
+    { "id": "e_jtf_div", "source": "jtf", "target": "army_div", "sourceHandle": "bottom", "targetHandle": "top", "type": "straight", "data": { "label": "OPCON", "color": "#1e3a5f", "thickness": 2, "strokeDasharray": "12 6" } },
+    { "id": "e_jtf_mef", "source": "jtf", "target": "mef", "sourceHandle": "bottom", "targetHandle": "top", "type": "straight", "data": { "label": "OPCON", "color": "#1e3a5f", "thickness": 2, "strokeDasharray": "12 6" } },
+    { "id": "e_jtf_air", "source": "jtf", "target": "air_wing", "sourceHandle": "bottom", "targetHandle": "top", "type": "straight", "data": { "label": "TACON", "color": "#1e3a5f", "thickness": 2, "strokeDasharray": "4 4" } },
+    { "id": "e_div_bde1", "source": "army_div", "target": "bde1", "sourceHandle": "bottom", "targetHandle": "top", "type": "straight", "data": { "color": "#000000", "thickness": 2 } },
+    { "id": "e_div_bde2", "source": "army_div", "target": "bde2", "sourceHandle": "bottom", "targetHandle": "top", "type": "straight", "data": { "color": "#000000", "thickness": 2 } },
+    { "id": "e_jtf_sof", "source": "jtf", "target": "sof", "sourceHandle": "bottom", "targetHandle": "top", "type": "smoothstep", "data": { "label": "TACON", "color": "#1e3a5f", "thickness": 2, "strokeDasharray": "4 4" } },
+    { "id": "e_arfor_div", "source": "arfor", "target": "army_div", "sourceHandle": "left", "targetHandle": "right", "type": "smoothstep", "data": { "label": "ADCON", "color": "#6b7280", "thickness": 1.5, "strokeDasharray": "12 4 4 4" } }
+  ],
+  "styles": {
+    "diagramStyle": "corporate",
+    "colorPalette": "default"
+  },
+  "nodeLegend": {
+    "visible": true,
+    "items": [
+      { "label": "Organic (Cmd)", "color": "#000000", "kind": "edge" },
+      { "label": "OPCON", "color": "#1e3a5f", "kind": "edge", "borderStyle": "dashed" },
+      { "label": "TACON", "color": "#1e3a5f", "kind": "edge", "borderStyle": "dotted" },
+      { "label": "ADCON", "color": "#6b7280", "kind": "edge", "borderStyle": "dashed" },
+      { "label": "Army", "color": "#4b5320", "kind": "fill" },
+      { "label": "Navy/USMC", "color": "#1e3a5f", "kind": "fill" },
+      { "label": "Air Force", "color": "#4682b4", "kind": "fill" },
+      { "label": "Joint", "color": "#6b21a8", "kind": "fill" }
+    ]
+  }
+}
+```
+
+### 16.6 Tips for Generating COMREL Charts
+
+1. **Ask what echelon** — Is this a JTF-level chart? Division? Corps? This determines scope.
+2. **Identify the relationships explicitly** — Don't guess. If the user says "1st BDE is OPCON to 3rd ID", that's dashed navy.
+3. **ADCON always runs separately** — It's an administrative channel, not a command one. Show it as a side connection with gray dash-dot lines.
+4. **Support relationships are directional** — "DS to 1st BDE" means the supporting unit answers to 1st BDE's requests. Use a labeled edge.
+5. **Keep it clean** — COMREL charts can get complex. Use spacing generously (250px horizontal, 180px vertical) and keep labels short.

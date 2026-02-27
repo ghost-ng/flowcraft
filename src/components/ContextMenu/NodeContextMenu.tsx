@@ -31,6 +31,7 @@ import { useUIStore } from '../../store/uiStore';
 import type { NodeShape, StatusIndicator } from '../../store/flowStore';
 import { useFlowStore, newPuckId } from '../../store/flowStore';
 import * as alignment from '../../utils/alignmentUtils';
+import { colorPalettes, defaultPaletteId } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,17 +94,10 @@ const shapeOptions: { value: NodeShape; label: string }[] = [
   { value: 'cloud', label: 'Cloud' },
 ];
 
-const quickColors = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#6b7280', // gray
-  '#f97316', // orange
-  '#14b8a6', // teal
+// Fallback colors when no palette is selected
+const defaultQuickColors = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#6b7280', '#f97316', '#14b8a6',
 ];
 
 const fontOptions: { label: string; value: string }[] = [
@@ -219,6 +213,8 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onEditLinkGroup,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activePaletteId = useStyleStore((s) => s.activePaletteId);
+  const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
   const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'order' | 'font' | null>(null);
 
@@ -386,11 +382,11 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
               {submenu === 'align' && onAlign && (
                 <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
                   <MenuItem icon={<AlignLeft size={14} />} label="Align Left" onClick={() => { onAlign(alignment.alignLeft); onClose(); }} darkMode={darkMode} />
-                  <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (H)" onClick={() => { onAlign(alignment.alignCenterH); onClose(); }} darkMode={darkMode} />
+                  <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (H)" onClick={() => { onAlign(alignment.alignCenterH); onClose(); }} darkMode={darkMode} />
                   <MenuItem icon={<AlignRight size={14} />} label="Align Right" onClick={() => { onAlign(alignment.alignRight); onClose(); }} darkMode={darkMode} />
                   <MenuDivider darkMode={darkMode} />
                   <MenuItem icon={<AlignStartVertical size={14} />} label="Align Top" onClick={() => { onAlign(alignment.alignTop); onClose(); }} darkMode={darkMode} />
-                  <MenuItem icon={<AlignCenterVertical size={14} />} label="Align Center (V)" onClick={() => { onAlign(alignment.alignCenterV); onClose(); }} darkMode={darkMode} />
+                  <MenuItem icon={<AlignCenterHorizontal size={14} />} label="Align Center (V)" onClick={() => { onAlign(alignment.alignCenterV); onClose(); }} darkMode={darkMode} />
                   <MenuItem icon={<AlignEndVertical size={14} />} label="Align Bottom" onClick={() => { onAlign(alignment.alignBottom); onClose(); }} darkMode={darkMode} />
                 </SubMenu>
               )}

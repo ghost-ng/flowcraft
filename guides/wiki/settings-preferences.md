@@ -151,7 +151,7 @@ These values control the current session's interface layout. They reset to their
 | Snap Enabled | On | Snap-to-grid (mirrors the persisted canvas setting on load) |
 | Grid Style | `dots` | Visual grid style: `dots`, `lines`, or `cross` |
 | Ruler Visible | Off | Pixel rulers along the top and left canvas edges |
-| Alignment Guides | On | Show alignment guides when dragging nodes near other nodes |
+| Alignment Guides | On | Show alignment guides when dragging nodes near other nodes. Hold Shift while dragging to snap to guides |
 | Distribution Guides | On | Show equal-spacing guides when positioning three or more nodes |
 | Selection Color | `#d946ef` (magenta) | Highlight color for selected nodes, edges, and pucks |
 | Selection Thickness | 2px | Width of the selection outline |

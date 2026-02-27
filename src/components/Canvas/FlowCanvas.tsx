@@ -11,6 +11,7 @@ import {
   type NodeTypes,
   type IsValidConnection,
   type ReactFlowInstance,
+  type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -27,6 +28,8 @@ import StatusBar from './StatusBar';
 import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
+import AlignmentGuideOverlay from './AlignmentGuideOverlay';
+import { findAlignmentGuides, snapToAlignmentGuides, type SnapNode } from '../../utils/snapUtils';
 import { useLegendStore } from '../../store/legendStore';
 import { useBannerStore } from '../../store/bannerStore';
 import { BannerBar } from './CanvasBanner';
@@ -197,6 +200,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const gridSpacing = useUIStore((s) => s.gridSpacing);
   const gridStyle = useUIStore((s) => s.gridStyle);
   const rulerVisible = useUIStore((s) => s.rulerVisible);
+  const showAlignmentGuides = useUIStore((s) => s.showAlignmentGuides);
   const setIsEditingNode = useUIStore((s) => s.setIsEditingNode);
 
   // Presentation mode
@@ -264,6 +268,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   // Hovered node tracking (for Ctrl+Wheel border-width adjustment)
   const hoveredNodeRef = useRef<string | null>(null);
 
+  // Edge reconnect tracking
+  const edgeReconnectSuccessful = useRef(true);
+
   // Link group drag tracking
   const linkGroupDragRef = useRef<{
     linkGroupId: string;
@@ -277,6 +284,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const [nodeMenu, setNodeMenu] = useState<NodeMenuState | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<EdgeMenuState | null>(null);
   const [selectionMenu, setSelectionMenu] = useState<{ x: number; y: number; nodeIds: string[] } | null>(null);
+
+  // Alignment guide lines (computed during drag)
+  const [alignmentGuides, setAlignmentGuides] = useState<{ vertical: number[]; horizontal: number[] }>({ vertical: [], horizontal: [] });
 
   // ---- Helpers ------------------------------------------------------------
 
@@ -927,21 +937,50 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     [],
   );
 
+  // Track the last alignment-snapped position so we can re-apply it on drop.
+  // React Flow's onNodeDragStop fires its own final position update from the
+  // mouse + grid snap, which overwrites our custom snap. This ref lets us
+  // correct that in onNodeDragStop.
+  const alignSnapRef = useRef<{ nodeId: string; pos: { x: number; y: number } } | null>(null);
+
   const onNodeDrag = useCallback(
-    (_event: React.MouseEvent, node: FlowNode) => {
+    (event: React.MouseEvent, node: FlowNode) => {
+      // Link group drag
       const ref = linkGroupDragRef.current;
-      if (!ref || node.id !== ref.dragNodeId) return;
-      const dx = node.position.x - ref.dragStartPos.x;
-      const dy = node.position.y - ref.dragStartPos.y;
-      // Move all siblings by the same delta
-      for (const [sibId, startPos] of ref.startPositions) {
-        useFlowStore.getState().updateNodePosition(sibId, {
-          x: startPos.x + dx,
-          y: startPos.y + dy,
-        });
+      if (ref && node.id === ref.dragNodeId) {
+        const dx = node.position.x - ref.dragStartPos.x;
+        const dy = node.position.y - ref.dragStartPos.y;
+        for (const [sibId, startPos] of ref.startPositions) {
+          useFlowStore.getState().updateNodePosition(sibId, {
+            x: startPos.x + dx,
+            y: startPos.y + dy,
+          });
+        }
+      }
+
+      // Alignment guides
+      if (showAlignmentGuides) {
+        const allNodes = useFlowStore.getState().nodes;
+        const guides = findAlignmentGuides(node as unknown as SnapNode, allNodes as unknown as SnapNode[], snapDistance);
+        setAlignmentGuides(guides);
+
+        // Shift-to-snap: when Shift is held and guides are visible, snap to guide
+        if (event.shiftKey && (guides.vertical.length > 0 || guides.horizontal.length > 0)) {
+          const snapped = snapToAlignmentGuides(node as unknown as SnapNode, guides, snapDistance);
+          if (snapped.x !== node.position.x || snapped.y !== node.position.y) {
+            useFlowStore.getState().updateNodePosition(node.id, snapped);
+            alignSnapRef.current = { nodeId: node.id, pos: snapped };
+          } else {
+            alignSnapRef.current = null;
+          }
+        } else {
+          alignSnapRef.current = null;
+        }
+      } else {
+        alignSnapRef.current = null;
       }
     },
-    [],
+    [showAlignmentGuides, snapDistance],
   );
 
   // Assign swimlane ID when a node is dropped
@@ -949,10 +988,53 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     (_event: React.MouseEvent, node: FlowNode) => {
       const nodeW = (node.data as FlowNodeData).width || 160;
       const nodeH = (node.data as FlowNodeData).height || 60;
-      assignSwimlaneToNode(node.id, node.position, nodeW, nodeH);
+
+      // Re-apply alignment snap if active — React Flow's final position update
+      // from the mouse overwrites our snap, so we correct it here.
+      const snap = alignSnapRef.current;
+      if (snap && snap.nodeId === node.id) {
+        useFlowStore.getState().updateNodePosition(node.id, snap.pos);
+        assignSwimlaneToNode(node.id, snap.pos, nodeW, nodeH);
+        alignSnapRef.current = null;
+      } else {
+        assignSwimlaneToNode(node.id, node.position, nodeW, nodeH);
+      }
+
+      // Clear alignment guides
+      setAlignmentGuides({ vertical: [], horizontal: [] });
     },
     [],
   );
+
+  // ---- Edge reconnect handlers ------------------------------------------------
+
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  const onReconnect = useCallback((oldEdge: FlowEdge, newConnection: Connection) => {
+    edgeReconnectSuccessful.current = true;
+    const { edges: currentEdges, setEdges: updateEdges } = useFlowStore.getState();
+    updateEdges(currentEdges.map((e) => {
+      if (e.id !== oldEdge.id) return e;
+      return {
+        ...e,
+        source: newConnection.source,
+        target: newConnection.target,
+        sourceHandle: newConnection.sourceHandle ?? undefined,
+        targetHandle: newConnection.targetHandle ?? undefined,
+      };
+    }));
+  }, []);
+
+  const onReconnectEnd = useCallback((_event: MouseEvent | TouchEvent, edge: FlowEdge) => {
+    if (!edgeReconnectSuccessful.current) {
+      // Edge was dragged off into empty space — delete it
+      const { edges: currentEdges, setEdges: updateEdges } = useFlowStore.getState();
+      updateEdges(currentEdges.filter((e) => e.id !== edge.id));
+    }
+    edgeReconnectSuccessful.current = true;
+  }, []);
 
   // Selection tracking — onNodesChange/onEdgesChange already maintain
   // selectedNodes/selectedEdges via applyNodeChanges/applyEdgeChanges.
@@ -1038,6 +1120,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         onNodesChange={presentationMode ? undefined : onNodesChange}
         onEdgesChange={presentationMode ? undefined : onEdgesChange}
         onConnect={presentationMode ? undefined : onConnect}
+        edgesReconnectable={!presentationMode}
+        onReconnect={presentationMode ? undefined : onReconnect}
+        onReconnectStart={presentationMode ? undefined : onReconnectStart}
+        onReconnectEnd={presentationMode ? undefined : onReconnectEnd}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onDrop={presentationMode ? undefined : onDrop}
@@ -1088,6 +1174,11 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           />
         )}
 
+        {/* Alignment guide lines during drag */}
+        {showAlignmentGuides && (alignmentGuides.vertical.length > 0 || alignmentGuides.horizontal.length > 0) && (
+          <AlignmentGuideOverlay guides={alignmentGuides} />
+        )}
+
         {minimapVisible && (
           <MiniMap
             style={{ backgroundColor: darkMode ? '#1c2736' : activeStyle.canvas.background }}
@@ -1096,6 +1187,33 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
               if (color) return color;
               const fill = activeStyle.nodeDefaults.fill;
               return fill === '#ffffff' || fill === '#fff' ? '#3b82f6' : fill;
+            }}
+            nodeComponent={({ x, y, width, height, color, id }) => {
+              const shape = (useFlowStore.getState().nodes.find((n) => n.id === id)?.data?.shape) as string | undefined;
+              const isCircular = shape === 'circle' || shape === 'ellipse';
+              const isDiamond = shape === 'diamond';
+              if (isCircular) {
+                return (
+                  <ellipse
+                    cx={x + width / 2}
+                    cy={y + height / 2}
+                    rx={width / 2}
+                    ry={height / 2}
+                    fill={color}
+                  />
+                );
+              }
+              if (isDiamond) {
+                const cx = x + width / 2;
+                const cy = y + height / 2;
+                return (
+                  <polygon
+                    points={`${cx},${y} ${x + width},${cy} ${cx},${y + height} ${x},${cy}`}
+                    fill={color}
+                  />
+                );
+              }
+              return <rect x={x} y={y} width={width} height={height} rx={4} fill={color} />;
             }}
             maskColor={darkMode || activeStyle.dark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(248, 250, 252, 0.7)'}
             pannable

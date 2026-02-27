@@ -54,6 +54,7 @@ import {
   Download,
   Flag,
   HelpCircle,
+  Crosshair,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -211,6 +212,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const setGridSpacing = useUIStore((s) => s.setGridSpacing);
   const snapDistance = useUIStore((s) => s.snapDistance);
   const setSnapDistance = useUIStore((s) => s.setSnapDistance);
+  const showAlignmentGuides = useUIStore((s) => s.showAlignmentGuides);
+  const toggleAlignmentGuides = useUIStore((s) => s.toggleAlignmentGuides);
 
   // Style store
   const darkMode = useStyleStore((s) => s.darkMode);
@@ -856,7 +859,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               <AlignLeft size={13} className="text-slate-400 dark:text-dk-faint" /> Left <Kbd shortcut="Ctrl+Alt+L" />
             </button>
             <button onClick={() => handleAlign(alignment.alignCenterH)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignCenterHorizontal size={13} className="text-slate-400 dark:text-dk-faint" /> Center <Kbd shortcut="Ctrl+Alt+E" />
+              <AlignCenterVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Center <Kbd shortcut="Ctrl+Alt+E" />
             </button>
             <button onClick={() => handleAlign(alignment.alignRight)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <AlignRight size={13} className="text-slate-400 dark:text-dk-faint" /> Right <Kbd shortcut="Ctrl+Alt+R" />
@@ -867,7 +870,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               <AlignStartVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Top <Kbd shortcut="Ctrl+Alt+T" />
             </button>
             <button onClick={() => handleAlign(alignment.alignCenterV)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
-              <AlignCenterVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Center <Kbd shortcut="Ctrl+Alt+M" />
+              <AlignCenterHorizontal size={13} className="text-slate-400 dark:text-dk-faint" /> Center <Kbd shortcut="Ctrl+Alt+M" />
             </button>
             <button onClick={() => handleAlign(alignment.alignBottom)} className={`flex items-center gap-2 w-full px-2 py-1 text-xs rounded cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
               <AlignEndVertical size={13} className="text-slate-400 dark:text-dk-faint" /> Bottom <Kbd shortcut="Ctrl+Alt+B" />
@@ -1097,6 +1100,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             </div>
           )}
         </div>
+        <ToolbarButton icon={<Crosshair size={iconSize} />} tooltip="Alignment Guides" onClick={toggleAlignmentGuides} active={showAlignmentGuides} />
         <ToolbarButton icon={<GitBranch size={iconSize} />} tooltip="Toggle Dependency Badges" onClick={toggleBadges} active={showBadges} />
       </>
     ),

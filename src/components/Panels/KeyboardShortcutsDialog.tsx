@@ -38,6 +38,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       { keys: '1-9', description: 'Apply palette color' },
       { keys: '↑↓←→', description: 'Nudge selected (1px)' },
       { keys: 'Shift+↑↓←→', description: 'Nudge selected (10px)' },
+      { keys: 'Shift+Drag', description: 'Snap to alignment guide' },
       { keys: 'Ctrl+Scroll', description: 'Border thickness' },
     ],
   },

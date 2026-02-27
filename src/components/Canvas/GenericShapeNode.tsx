@@ -753,14 +753,14 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       })()}
 
       {/* Connection handles — each position has both source + target for bidirectional edges */}
-      <Handle type="target" position={Position.Top} id="top" style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Top} id="top" style={{ left: '50%', opacity: 0 }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Bottom} id="bottom" style={{ left: '50%', opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="left" style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
-      <Handle type="source" position={Position.Right} id="right" style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
+      <Handle type="target" position={Position.Top} id="top" className="charthero-handle" />
+      <Handle type="source" position={Position.Top} id="top" className="charthero-handle" style={{ left: '50%' }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="charthero-handle" />
+      <Handle type="target" position={Position.Bottom} id="bottom" className="charthero-handle" style={{ left: '50%' }} />
+      <Handle type="target" position={Position.Left} id="left" className="charthero-handle" />
+      <Handle type="source" position={Position.Left} id="left" className="charthero-handle" style={{ top: '50%' }} />
+      <Handle type="source" position={Position.Right} id="right" className="charthero-handle" />
+      <Handle type="target" position={Position.Right} id="right" className="charthero-handle" style={{ top: '50%' }} />
 
       {/* Inner shape div */}
       <div style={nodeStyle}>
