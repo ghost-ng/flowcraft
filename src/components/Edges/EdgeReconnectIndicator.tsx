@@ -8,6 +8,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { Position } from '@xyflow/react';
+import { CURSOR_CROSSHAIR } from './cursorUrls';
 
 interface EdgeReconnectIndicatorProps {
   /** Center X of the endpoint */
@@ -69,7 +70,7 @@ const EdgeReconnectIndicator: React.FC<EdgeReconnectIndicatorProps> = ({
         strokeWidth: 0.5,
         strokeLinejoin: 'round',
         opacity: hovered ? 0.9 : 0.5,
-        cursor: 'crosshair',
+        cursor: CURSOR_CROSSHAIR,
         transition: 'opacity 0.15s',
         pointerEvents: 'all',
       }}

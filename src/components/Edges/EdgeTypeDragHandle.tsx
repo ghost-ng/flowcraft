@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useState } from 'react';
+import { CURSOR_ELBOW_MOVE } from './cursorUrls';
 
 interface EdgeTypeDragHandleProps {
   /** Center X of the handle (typically labelX from the path helper) */
@@ -45,7 +46,7 @@ const EdgeTypeDragHandle: React.FC<EdgeTypeDragHandleProps> = ({
         stroke: color,
         strokeWidth: 1,
         opacity: hovered ? 0.8 : 0.35,
-        cursor: 'grab',
+        cursor: CURSOR_ELBOW_MOVE,
         transition: 'opacity 0.15s',
         pointerEvents: 'all',
       }}
