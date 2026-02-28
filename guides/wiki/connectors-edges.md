@@ -33,6 +33,17 @@ Chart Hero supports four routing algorithms. You can change the type of any sele
 
 > Both **SmoothStep** and **Step** use the same underlying edge component (`CustomStepEdge`). SmoothStep adds rounded corners to the right-angle bends while Step keeps them sharp.
 
+### Drag-to-Cycle Connector Type
+
+You can quickly switch a connector's type by **clicking and dragging perpendicular to the connector line** on its body (not near the endpoint handles).
+
+1. **Click** on the middle of a connector (away from both endpoints).
+2. **Drag perpendicular** to the connector's direction -- dragging sideways across the line.
+3. The connector cycles through types in order: **Straight -> Bezier -> SmoothStep -> Step** (and wraps around).
+4. Release the mouse when you see the desired type.
+
+A small **dead zone** (6 px) prevents accidental type changes from regular clicks. The type advances one step per ~40 px of perpendicular drag.
+
 ---
 
 ## Edge Properties
@@ -43,9 +54,9 @@ Every connector exposes the following properties, all editable from the **Edge t
 
 | Property | Range / Options | Default | Description |
 |----------|-----------------|---------|-------------|
-| Connector Type | SmoothStep, Bezier, Step, Straight | SmoothStep | Routing algorithm |
+| Connector Type | SmoothStep, Bezier, Step, Straight | SmoothStep | Routing algorithm (also changeable by drag-to-cycle) |
 | Connector Color | Any hex color | `#94a3b8` | Stroke color of the line |
-| Thickness | 1 -- 6 px (0.5 px steps) | 1.5 px | Stroke width |
+| Thickness | 1 -- 6 px (0.5 px steps) | 2 px | Stroke width |
 | Opacity | 0 -- 100% (5% steps) | 100% | Line transparency |
 | Line Style | Solid, Dashed, Dotted | Solid | Dash pattern |
 | Dash Spacing | 2 -- 24 px (varies by style) | Auto | Gap size between dashes or dots (only visible when Line Style is Dashed or Dotted) |

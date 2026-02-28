@@ -1666,6 +1666,11 @@ export function importFromJson(
       if (typeof rawData.dependencyType === 'string') edgeData.dependencyType = rawData.dependencyType;
       if (typeof rawData.notes === 'string') edgeData.notes = rawData.notes;
 
+      // Style overrides (from context-menu coloring / diagram style overlays)
+      if (rawData.styleOverrides && typeof rawData.styleOverrides === 'object') {
+        edgeData.styleOverrides = rawData.styleOverrides;
+      }
+
       // Top-level React Flow edge properties
       const topLevel: Record<string, unknown> = {};
       if (typeof r.label === 'string') topLevel.label = r.label;
@@ -1674,7 +1679,15 @@ export function importFromJson(
       else if (r.markerEnd && typeof r.markerEnd === 'object') topLevel.markerEnd = r.markerEnd;
       if (typeof r.markerStart === 'string') topLevel.markerStart = r.markerStart;
       else if (r.markerStart && typeof r.markerStart === 'object') topLevel.markerStart = r.markerStart;
-      if (typeof r.style === 'object' && r.style !== null) topLevel.style = r.style;
+
+      // Build edge.style from data properties (inline styles override React Flow's CSS)
+      const edgeStyle: Record<string, unknown> = {};
+      if (typeof r.style === 'object' && r.style !== null) Object.assign(edgeStyle, r.style);
+      if (edgeData.color) edgeStyle.stroke = edgeData.color;
+      if (edgeData.thickness) edgeStyle.strokeWidth = edgeData.thickness;
+      if (edgeData.opacity != null) edgeStyle.opacity = edgeData.opacity;
+      if (edgeData.strokeDasharray) edgeStyle.strokeDasharray = edgeData.strokeDasharray;
+      if (Object.keys(edgeStyle).length > 0) topLevel.style = edgeStyle;
 
       edges.push({
         id,

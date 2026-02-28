@@ -236,12 +236,15 @@ Each edge connects two nodes. Edges support full styling including color, thickn
 |-------|------|---------|-------------|
 | `label` | string | — | Text label shown on the edge |
 | `color` | string (hex) | `"#94a3b8"` | Edge stroke color |
-| `thickness` | number | `1` | Stroke width in pixels |
+| `thickness` | number | `2` | Stroke width in pixels (range 1-6) |
 | `animated` | boolean | `false` | Whether to animate the edge |
 | `opacity` | number | `1` | Edge opacity (0-1) |
 | `labelColor` | string (hex) | — | Color of the label text |
 | `labelPosition` | number | `0.5` | Position of the label along the edge: `0` = near source, `0.5` = center (default), `1` = near target |
-| `strokeDasharray` | string | — | SVG dash pattern (e.g. `"8 4"` for dashed, `"2 2"` for dotted) |
+| `labelFontSize` | number | `11` | Label text size in pixels (range 8-24) |
+| `labelBgColor` | string (hex) | `"#ffffff"` | Background color behind the label for readability |
+| `strokeDasharray` | string | — | SVG dash pattern (e.g. `"8 4"` for dashed, `"2 4"` for dotted) |
+| `notes` | string | — | Free-form notes or annotations for the edge |
 | `dependencyType` | string | — | `"depends-on"`, `"blocks"`, `"related"`, `"triggers"`, `"optional"`, `"milestone-gate"`, or `"none"` |
 
 ### 3.4 Arrowhead Markers

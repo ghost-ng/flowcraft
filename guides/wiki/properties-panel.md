@@ -141,7 +141,7 @@ Sections auto-expand based on the selected edge's properties. For example, the L
 
 | Control | Type | Range / Options | Default | Description |
 |---------|------|-----------------|---------|-------------|
-| Connector Type | Dropdown | SmoothStep / Bezier / Step / Straight | SmoothStep | Routing algorithm for the connector path |
+| Connector Type | Dropdown | SmoothStep / Bezier / Step / Straight | SmoothStep | Routing algorithm (also changeable by drag-to-cycle on the connector body) |
 | Connector Color | Color picker + hex input | Any hex | `#94a3b8` | Line stroke color |
 | Thickness | Slider | 1 -- 6 px (0.5 px steps) | 2 px | Line stroke width |
 | Opacity | Slider | 0 -- 100% (5% steps) | 100% | Line transparency |
