@@ -25,6 +25,7 @@ const SHORTCUT_SECTIONS: ShortcutSection[] = [
       { keys: 'Backspace', description: 'Delete selected' },
       { keys: 'Escape', description: 'Cancel / deselect' },
       { keys: 'Drag', description: 'Rectangle select' },
+      { keys: 'Shift+Drag', description: 'Add to selection' },
       { keys: 'Ctrl+Drag', description: 'Pan canvas' },
       { keys: 'Ctrl+Shift+K', description: 'Toggle dark mode' },
       { keys: 'Ctrl+Shift+A', description: 'Toggle AI Assistant' },
