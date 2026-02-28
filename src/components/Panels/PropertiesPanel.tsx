@@ -22,6 +22,7 @@ import {
   EyeClosed,
   Type,
   Palette,
+  RotateCcw,
   icons,
 } from 'lucide-react';
 
@@ -29,7 +30,6 @@ import { useFlowStore, type FlowNodeData, type FlowEdgeData, type StatusIndicato
 import { useUIStore, type PanelTab } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { DependencyPanel } from '../Dependencies';
-import { darkenColor } from '../../utils/colorUtils';
 import EdgePropertiesTab from './EdgePropertiesTab';
 import IconPicker from './IconPicker';
 import {
@@ -41,6 +41,8 @@ import {
 import { useLegendStore } from '../../store/legendStore';
 import { generateId } from '../../utils/idGenerator';
 import { log } from '../../utils/logger';
+import { resolveNodeStyle } from '../../utils/themeResolver';
+import { diagramStyles } from '../../styles/diagramStyles';
 
 // ---------------------------------------------------------------------------
 // Helper: sanitize color for <input type="color"> which requires #rrggbb
@@ -80,6 +82,23 @@ const Field: React.FC<FieldProps> = ({ label, children }) => (
     {children}
   </div>
 );
+
+// ---------------------------------------------------------------------------
+// ResetIcon – per-property reset-to-theme button
+// ---------------------------------------------------------------------------
+
+const ResetIcon: React.FC<{ visible: boolean; onReset: () => void }> = ({ visible, onReset }) => {
+  if (!visible) return null;
+  return (
+    <button
+      onClick={onReset}
+      title="Reset to theme default"
+      className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-400 hover:text-slate-600 dark:text-dk-faint dark:hover:text-dk-text transition-colors cursor-pointer"
+    >
+      <RotateCcw size={12} />
+    </button>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Node properties tab
@@ -551,11 +570,15 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
     [nodeId, updateNodeData],
   );
 
-  const fillColor = data.color || '#3b82f6';
-  const borderColor = data.borderColor || darkenColor(fillColor, 0.25);
-  const textColor = data.textColor || '#ffffff';
-  const fontSize = data.fontSize || 14;
-  const fontWeight = data.fontWeight || 500;
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
+  const resolved = resolveNodeStyle(data as unknown as Record<string, unknown>, data.shape || 'rectangle', activeStyle);
+
+  const fillColor = data.color || resolved.fill;
+  const borderColor = data.borderColor || resolved.borderColor;
+  const textColor = data.textColor || resolved.textColor;
+  const fontSize = data.fontSize || resolved.fontSize;
+  const fontWeight = data.fontWeight || resolved.fontWeight;
   const textAlign = (data as Record<string, unknown>).textAlign as string || 'center';
 
   const currentIcon = data.icon;
@@ -594,7 +617,16 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
+              <ResetIcon
+                visible={!!activeStyleId && !!data.color}
+                onReset={() => update({ color: undefined })}
+              />
             </div>
+            {!data.color && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
           </Field>
 
           {/* Border color */}
@@ -613,7 +645,16 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
+              <ResetIcon
+                visible={!!activeStyleId && !!data.borderColor}
+                onReset={() => update({ borderColor: undefined })}
+              />
             </div>
+            {!data.borderColor && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
           </Field>
 
           {/* Border Width */}
@@ -838,7 +879,16 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                 className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
+              <ResetIcon
+                visible={!!activeStyleId && !!data.textColor}
+                onReset={() => update({ textColor: undefined })}
+              />
             </div>
+            {!data.textColor && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
           </Field>
 
           {/* Font size */}
@@ -895,7 +945,16 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
               >
                 <AArrowUp size={14} />
               </button>
+              <ResetIcon
+                visible={!!activeStyleId && !!data.fontSize}
+                onReset={() => update({ fontSize: undefined })}
+              />
             </div>
+            {!data.fontSize && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
           </Field>
 
           {/* Font weight */}
@@ -920,7 +979,16 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                   {opt.label}
                 </button>
               ))}
+              <ResetIcon
+                visible={!!activeStyleId && !!data.fontWeight}
+                onReset={() => update({ fontWeight: undefined })}
+              />
             </div>
+            {!data.fontWeight && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
           </Field>
 
           {/* Text alignment */}

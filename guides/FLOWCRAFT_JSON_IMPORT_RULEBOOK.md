@@ -369,10 +369,13 @@ Apply a visual theme to the entire diagram.
   "styles": {
     "activeStyleId": "cleanMinimal",
     "activePaletteId": "ocean",
-    "darkMode": false
+    "canvasColorOverride": null
   }
 }
 ```
+
+- `activeStyleId` can be a style ID string or `null` (no theme active)
+- `canvasColorOverride` can be a hex color string or `null` (use theme default)
 
 ### 6.1 Available Style IDs
 

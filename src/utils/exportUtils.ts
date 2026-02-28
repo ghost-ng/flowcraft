@@ -1304,6 +1304,7 @@ export function exportAsJson(options: JsonExportOptions): void {
     exportData.styles = {
       activeStyleId: styleState.activeStyleId,
       activePaletteId: styleState.activePaletteId,
+      canvasColorOverride: styleState.canvasColorOverride,
     };
   }
 
@@ -1756,7 +1757,13 @@ export function importFromJson(
   if (data.styles && typeof data.styles === 'object') {
     const s = data.styles as Record<string, unknown>;
     if (typeof s.activeStyleId === 'string') useStyleStore.getState().setStyle(s.activeStyleId);
+    else if (s.activeStyleId === null) useStyleStore.getState().clearStyle();
     if (typeof s.activePaletteId === 'string') useStyleStore.getState().setPalette(s.activePaletteId);
+    if (typeof s.canvasColorOverride === 'string') {
+      useStyleStore.getState().setCanvasColorOverride(s.canvasColorOverride);
+    } else {
+      useStyleStore.getState().setCanvasColorOverride(null);
+    }
     // darkMode is on pause — ignore it during import to prevent UI from switching
   }
 

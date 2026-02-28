@@ -26,6 +26,10 @@ export interface DiagramStyle {
   };
   accentColors: string[];
   dark?: boolean;
+  /** Per-shape fill colors — shape name → hex color */
+  shapeColors?: Record<string, string>;
+  /** Palette auto-selected when this theme activates */
+  defaultPaletteId?: string;
 }
 
 export interface ColorPalette {

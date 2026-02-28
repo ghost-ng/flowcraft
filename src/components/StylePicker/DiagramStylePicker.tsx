@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
-import { useFlowStore } from '../../store/flowStore';
+import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { diagramStyles } from '../../styles/diagramStyles';
 import { colorPalettes } from '../../styles/palettes';
-import { ensureReadableText } from '../../utils/colorUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -144,38 +143,67 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const setStyle = useStyleStore((s) => s.setStyle);
   const setPalette = useStyleStore((s) => s.setPalette);
+  const clearStyle = useStyleStore((s) => s.clearStyle);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const handleResetStyle = useCallback(() => {
+    clearStyle();
+
+    const { nodes, updateNodeData } = useFlowStore.getState();
+    for (const node of nodes) {
+      const isTextbox = (node.data as FlowNodeData).shape === 'textbox';
+      updateNodeData(node.id, {
+        color: isTextbox ? 'transparent' : undefined,
+        borderColor: isTextbox ? 'transparent' : undefined,
+        textColor: undefined,
+        fontFamily: undefined,
+        fontSize: undefined,
+        fontWeight: undefined,
+      });
+    }
+
+    const { edges, updateEdgeData } = useFlowStore.getState();
+    for (const edge of edges) {
+      updateEdgeData(edge.id, { color: undefined });
+    }
+  }, [clearStyle]);
 
   const handleSetStyle = useCallback(
     (id: string) => {
       setStyle(id);
-
-      // Apply the full style to every node (fill, border, fonts) and edge.
       const style = diagramStyles[id];
-      if (style) {
-        const { nodes } = useFlowStore.getState();
-        for (const node of nodes) {
-          const fill = style.nodeDefaults.fill;
-          const textColor = ensureReadableText(fill, style.nodeDefaults.fontColor);
-          useFlowStore.getState().updateNodeData(node.id, {
-            color: fill,
-            borderColor: style.nodeDefaults.stroke,
-            textColor,
-            fontFamily: style.nodeDefaults.fontFamily,
-            fontSize: style.nodeDefaults.fontSize,
-            fontWeight: style.nodeDefaults.fontWeight,
-          });
-        }
-        // Update edge styles
-        const { edges, updateEdgeData } = useFlowStore.getState();
-        for (const edge of edges) {
-          updateEdgeData(edge.id, {
-            color: style.edgeDefaults.stroke,
-          });
-        }
+
+      // Clear all node style properties — resolver picks up new theme
+      const { nodes, updateNodeData } = useFlowStore.getState();
+      for (const node of nodes) {
+        const isTextbox = (node.data as FlowNodeData).shape === 'textbox';
+        updateNodeData(node.id, {
+          color: isTextbox ? 'transparent' : undefined,
+          borderColor: isTextbox ? 'transparent' : undefined,
+          textColor: undefined,
+          fontFamily: undefined,
+          fontSize: undefined,
+          fontWeight: undefined,
+        });
+      }
+
+      // Clear all edge style properties
+      const { edges, updateEdgeData } = useFlowStore.getState();
+      for (const edge of edges) {
+        updateEdgeData(edge.id, { color: undefined });
+      }
+
+      // Auto-select palette if theme defines one
+      if (style?.defaultPaletteId) {
+        setPalette(style.defaultPaletteId);
+      }
+
+      // Auto-enable dark mode for dark themes
+      if (style?.dark) {
+        useStyleStore.getState().setDarkMode(true);
       }
     },
-    [setStyle],
+    [setStyle, setPalette],
   );
 
   const handleSetPalette = useCallback(
@@ -226,14 +254,27 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
       `}
     >
       {/* Diagram Styles */}
-      <div className="px-4 pt-4 pb-1">
+      <div className="px-4 pt-4 pb-1 flex items-center justify-between">
         <h3
-          className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
+          className={`text-xs font-semibold uppercase tracking-wider ${
             darkMode ? 'text-dk-muted' : 'text-slate-500'
           }`}
         >
           Diagram Style
         </h3>
+        {activeStyleId && (
+          <button
+            onClick={handleResetStyle}
+            title="Reset to no theme"
+            className={`p-1 rounded-md transition-colors cursor-pointer ${
+              darkMode
+                ? 'hover:bg-dk-hover text-dk-muted hover:text-dk-text'
+                : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
       <div className="overflow-y-auto max-h-[35vh] px-4 pb-2">
         <div className="grid grid-cols-3 gap-2">

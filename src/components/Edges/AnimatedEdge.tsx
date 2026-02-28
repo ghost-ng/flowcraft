@@ -6,6 +6,8 @@ import React, { useMemo } from 'react';
 import { type EdgeProps, getBezierPath } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
+import { resolveEdgeStyle } from '../../utils/themeResolver';
+import { diagramStyles } from '../../styles/diagramStyles';
 import { useEdgeVisuals } from './useEdgeVisuals';
 import EdgeLabel from './EdgeLabel';
 
@@ -36,8 +38,6 @@ const injectKeyframes = (): void => {
 // ---------------------------------------------------------------------------
 
 const INTERACTION_PATH_WIDTH = 20;
-const DEFAULT_STROKE = '#6366f1';
-const DEFAULT_STROKE_WIDTH = 2;
 const DEFAULT_DASH = '8 4';
 const DEFAULT_SPEED = 0.6; // seconds per cycle
 
@@ -64,12 +64,15 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
   // Read visual properties from Zustand via useShallow for reliable re-renders
   const ev = useEdgeVisuals(id);
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
+  const resolved = resolveEdgeStyle(ev as unknown as Record<string, unknown>, activeStyle);
   const selectionColor = useUIStore((s) => s.selectionColor);
   const selectionThickness = useUIStore((s) => s.selectionThickness);
 
   // Resolve visual properties — read from store via useEdgeVisuals (reliable re-renders)
-  const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? DEFAULT_STROKE;
-  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? DEFAULT_STROKE_WIDTH;
+  const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? resolved.stroke;
+  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? resolved.strokeWidth;
   const strokeDasharray = ev.strokeDasharray ?? ev.overrideDash ?? ev.styleDash ?? DEFAULT_DASH;
   const opacity = (style?.opacity as number) ?? ev.overrideOpacity ?? ev.opacity ?? 1;
   const speed = DEFAULT_SPEED;

@@ -38,6 +38,7 @@ import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMe
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
 import { LinkGroupEditorDialog } from '../LinkGroup';
 import { log } from '../../utils/logger';
+import { resolveCanvasBackground } from '../../utils/themeResolver';
 import {
   computeLaneBoundaries,
   getNodeLaneAssignment,
@@ -209,7 +210,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   // Style store
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
-  const activeStyle = diagramStyles[activeStyleId] || diagramStyles.cleanMinimal;
+  const canvasColorOverride = useStyleStore((s) => s.canvasColorOverride);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? diagramStyles.cleanMinimal : diagramStyles.cleanMinimal;
 
   // Track Ctrl key for pan-on-drag mode (Ctrl+drag = pan, default drag = select)
   const [ctrlPressed, setCtrlPressed] = useState(false);
@@ -361,16 +363,11 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         label: shapeType === 'textbox' ? 'Text' : 'New Node',
         shape: shapeType as FlowNodeData['shape'],
       };
-      // Textbox: transparent fill, no border, dark text
+      // Textbox: transparent fill, no border — resolver handles text color
       if (shapeType === 'textbox') {
         data.color = 'transparent';
         data.borderColor = 'transparent';
         data.borderWidth = 0;
-        // Ensure text is visible against the canvas background
-        const canvasBg = activeStyle.canvas.background.toLowerCase();
-        const isLightBg = !canvasBg || canvasBg === '#ffffff' || canvasBg === '#fff'
-          || canvasBg > '#aaaaaa';
-        data.textColor = isLightBg ? '#1e293b' : '#f1f5f9';
       }
       const newNode: FlowNode = {
         id: nextId(),
@@ -1160,7 +1157,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   }, [updateNodeData]);
 
   return (
-    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: darkMode ? '#1e2d3d' : activeStyle.canvas.background }}>
+    <div ref={reactFlowWrapper} data-charthero-canvas className={`w-full h-full flex flex-col ${presentationMode ? 'presentation-mode' : ''}`} style={{ backgroundColor: resolveCanvasBackground(canvasColorOverride, darkMode, activeStyleId ? diagramStyles[activeStyleId] ?? null : null) }}>
       {/* Top banner — rendered outside ReactFlow so it pushes content down */}
       {topBanner.enabled && <BannerBar position="top" config={topBanner} />}
 
@@ -1254,7 +1251,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
         {minimapVisible && (
           <MiniMap
-            style={{ backgroundColor: darkMode ? '#1c2736' : activeStyle.canvas.background }}
+            style={{ backgroundColor: resolveCanvasBackground(canvasColorOverride, darkMode, activeStyleId ? diagramStyles[activeStyleId] ?? null : null) }}
             nodeColor={(node) => {
               const color = (node.data as Record<string, unknown>)?.color as string | undefined;
               if (color) return color;

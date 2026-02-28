@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { useMenuPosition } from './menuUtils';
+import React, { useEffect, useRef, useState } from 'react';
+import { useMenuPosition, SubMenu } from './menuUtils';
 import {
   Plus,
   ClipboardPaste,
   SquareMousePointer,
   Maximize,
   Rows3,
+  Paintbrush,
+  RotateCcw,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -44,14 +46,17 @@ interface MenuItemProps {
   onClick: () => void;
   disabled?: boolean;
   darkMode: boolean;
+  hasSubmenu?: boolean;
+  onMouseEnter?: () => void;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, darkMode }) => (
+const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, darkMode, hasSubmenu, onMouseEnter }) => (
   <button
     onClick={(e) => {
       e.stopPropagation();
       if (!disabled) onClick();
     }}
+    onMouseEnter={onMouseEnter}
     disabled={disabled}
     className={`
       flex items-center gap-2.5 w-full px-3 py-1.5 text-left text-sm rounded
@@ -66,7 +71,8 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, dar
     <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
       {icon}
     </span>
-    {label}
+    <span className="flex-1">{label}</span>
+    {hasSubmenu && <span className="text-slate-400 dark:text-dk-faint text-xs ml-2">&rsaquo;</span>}
   </button>
 );
 
@@ -90,7 +96,11 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   canPaste = false,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const canvasColorOverride = useStyleStore((s) => s.canvasColorOverride);
+  const setCanvasColorOverride = useStyleStore((s) => s.setCanvasColorOverride);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [showCanvasColorSub, setShowCanvasColorSub] = useState(false);
+  const canvasColorItemRef = useRef<HTMLDivElement>(null);
 
   // Close on click-outside or Escape
   useEffect(() => {
@@ -158,6 +168,39 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
         onClick={() => { onInsertSwimlanes(); onClose(); }}
         darkMode={darkMode}
       />
+
+      <MenuDivider darkMode={darkMode} />
+
+      <div ref={canvasColorItemRef} className="relative" onMouseEnter={() => setShowCanvasColorSub(true)} onMouseLeave={() => setShowCanvasColorSub(false)}>
+        <MenuItem
+          icon={<Paintbrush size={14} />}
+          label="Canvas Color"
+          onClick={() => setShowCanvasColorSub(!showCanvasColorSub)}
+          darkMode={darkMode}
+          hasSubmenu
+        />
+        {showCanvasColorSub && (
+          <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
+            <button
+              onClick={() => { setCanvasColorOverride(null); onClose(); }}
+              className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded cursor-pointer ${
+                darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <RotateCcw size={12} className="text-slate-400" />
+              Reset to Theme
+            </button>
+            <div className="px-3 py-1.5">
+              <input
+                type="color"
+                value={canvasColorOverride || '#ffffff'}
+                onChange={(e) => setCanvasColorOverride(e.target.value)}
+                className="w-full h-8 rounded border border-slate-200 dark:border-dk-border cursor-pointer"
+              />
+            </div>
+          </SubMenu>
+        )}
+      </div>
     </div>
   );
 };

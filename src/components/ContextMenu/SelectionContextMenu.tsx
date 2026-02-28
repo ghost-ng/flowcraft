@@ -21,7 +21,7 @@ import {
   Link,
 } from 'lucide-react';
 
-import { useFlowStore, type FlowNode, type NodeShape } from '../../store/flowStore';
+import { useFlowStore, type FlowNode, type FlowNodeData, type NodeShape } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
@@ -138,6 +138,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   onClose,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
@@ -315,6 +316,23 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     }
   }, [sharedLinkGroupId, onClose]);
 
+  const handleResetToTheme = useCallback(() => {
+    const { nodes, updateNodeData } = useFlowStore.getState();
+    for (const nid of nodeIds) {
+      const node = nodes.find((n) => n.id === nid);
+      const isTextbox = (node?.data as FlowNodeData | undefined)?.shape === 'textbox';
+      updateNodeData(nid, {
+        color: isTextbox ? 'transparent' : undefined,
+        borderColor: isTextbox ? 'transparent' : undefined,
+        textColor: undefined,
+        fontFamily: undefined,
+        fontSize: undefined,
+        fontWeight: undefined,
+      });
+    }
+    onClose();
+  }, [nodeIds, onClose]);
+
   return (
     <div ref={menuRef} style={menuStyle} className="relative">
       {/* Main menu */}
@@ -489,6 +507,19 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
             </SubMenu>
           )}
         </div>
+
+        {activeStyleId && (
+          <>
+            <MenuDivider darkMode={darkMode} />
+            <MenuItem
+              icon={<RotateCcw size={14} />}
+              label="Reset to Theme"
+              onClick={handleResetToTheme}
+              darkMode={darkMode}
+              onMouseEnter={() => setSubmenu(null)}
+            />
+          </>
+        )}
 
         {/* Inline color swatches */}
         <div className="px-3 py-1.5" onMouseEnter={() => setSubmenu(null)}>

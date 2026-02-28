@@ -6,6 +6,8 @@ import React from 'react';
 import { type EdgeProps, getStraightPath } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
+import { resolveEdgeStyle } from '../../utils/themeResolver';
+import { diagramStyles } from '../../styles/diagramStyles';
 import { useEdgeVisuals } from './useEdgeVisuals';
 import { useEdgeTypeDrag } from './useEdgeTypeDrag';
 import EdgeLabel from './EdgeLabel';
@@ -17,8 +19,6 @@ import EdgeReconnectIndicator from './EdgeReconnectIndicator';
 // ---------------------------------------------------------------------------
 
 const INTERACTION_PATH_WIDTH = 20;
-const DEFAULT_STROKE = '#94a3b8';
-const DEFAULT_STROKE_WIDTH = 2;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -40,10 +40,13 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
   void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
   const ev = useEdgeVisuals(id);
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
+  const resolved = resolveEdgeStyle(ev as unknown as Record<string, unknown>, activeStyle);
   const selectionColor = useUIStore((s) => s.selectionColor);
   const selectionThickness = useUIStore((s) => s.selectionThickness);
-  const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? DEFAULT_STROKE;
-  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? DEFAULT_STROKE_WIDTH;
+  const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? resolved.stroke;
+  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? resolved.strokeWidth;
   const strokeDasharray = ev.strokeDasharray ?? ev.overrideDash ?? ev.styleDash ?? undefined;
   const opacity = ev.opacity ?? ev.overrideOpacity ?? ev.styleOpacity ?? 1;
   const isAnimated = ev.animated;

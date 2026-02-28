@@ -24,11 +24,12 @@ import {
   AlignEndVertical,
   Type,
   StickyNote,
+  RotateCcw,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
-import type { NodeShape, StatusIndicator } from '../../store/flowStore';
+import type { NodeShape, StatusIndicator, FlowNodeData } from '../../store/flowStore';
 import { useFlowStore, newPuckId } from '../../store/flowStore';
 import * as alignment from '../../utils/alignmentUtils';
 import { colorPalettes, defaultPaletteId } from '../../styles/palettes';
@@ -213,6 +214,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onEditLinkGroup,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
@@ -264,6 +266,20 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     onClose();
   }, [nodeId, onClose]);
 
+  const handleResetToTheme = useCallback(() => {
+    const node = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    const isTextbox = (node?.data as FlowNodeData | undefined)?.shape === 'textbox';
+    useFlowStore.getState().updateNodeData(nodeId, {
+      color: isTextbox ? 'transparent' : undefined,
+      borderColor: isTextbox ? 'transparent' : undefined,
+      textColor: undefined,
+      fontFamily: undefined,
+      fontSize: undefined,
+      fontWeight: undefined,
+    });
+    onClose();
+  }, [nodeId, onClose]);
+
   return (
     <div ref={menuRef} style={menuStyle} className="relative">
       {/* Main menu */}
@@ -281,6 +297,15 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           shortcut="F2"
           onMouseEnter={() => setSubmenu(null)}
         />
+        {activeStyleId && (
+          <MenuItem
+            icon={<RotateCcw size={14} />}
+            label="Reset to Theme"
+            onClick={handleResetToTheme}
+            darkMode={darkMode}
+            onMouseEnter={() => setSubmenu(null)}
+          />
+        )}
         <MenuItem
           icon={<CopyPlus size={14} />}
           label="Duplicate"

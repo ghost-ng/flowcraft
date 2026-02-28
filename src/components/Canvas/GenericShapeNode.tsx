@@ -6,7 +6,10 @@ import { useFlowStore, type FlowNodeData, type StatusIndicator, getStatusIndicat
 import { useUIStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { DependencyBadge } from '../Dependencies';
-import { ensureReadableText, darkenColor } from '../../utils/colorUtils';
+import { ensureReadableText } from '../../utils/colorUtils';
+import { resolveNodeStyle } from '../../utils/themeResolver';
+import { useStyleStore } from '../../store/styleStore';
+import { diagramStyles } from '../../styles/diagramStyles';
 import { CURSOR_SELECT } from '../../assets/cursors/cursors';
 
 // ---------------------------------------------------------------------------
@@ -105,22 +108,6 @@ const shapeStyles: Record<string, React.CSSProperties> = {
   textbox: { borderRadius: 2 },
 };
 
-const shapeColors: Record<string, string> = {
-  rectangle: '#3b82f6',
-  roundedRectangle: '#3b82f6',
-  diamond: '#f59e0b',
-  circle: '#10b981',
-  parallelogram: '#8b5cf6',
-  hexagon: '#ef4444',
-  document: '#ec4899',
-  cloud: '#6366f1',
-  stickyNote: '#fbbf24',
-  textbox: '#64748b',
-  blockArrow: '#3b82f6',
-  chevronArrow: '#8b5cf6',
-  doubleArrow: '#f59e0b',
-  circularArrow: '#10b981',
-};
 
 // ---------------------------------------------------------------------------
 // StatusBadge – renders a small status indicator circle on a node corner
@@ -543,6 +530,8 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
 const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeData = data as FlowNodeData;
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
   const isEditingNode = useUIStore((s) => s.isEditingNode);
   const setIsEditingNode = useUIStore((s) => s.setIsEditingNode);
   const selectionColor = useUIStore((s) => s.selectionColor);
@@ -563,15 +552,16 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const shape = nodeData.shape || 'rectangle';
   const isIconOnly = !!nodeData.iconOnly;
-  const fillColor = isIconOnly ? 'transparent' : (nodeData.color || shapeColors[shape] || '#3b82f6');
-  const borderColor = isIconOnly ? 'transparent' : (nodeData.borderColor || darkenColor(fillColor, 0.25));
+
+  // Resolve styling via the theme resolver
+  const resolved = resolveNodeStyle(nodeData as unknown as Record<string, unknown>, shape, activeStyle);
+  const fillColor = isIconOnly ? 'transparent' : resolved.fill;
+  const borderColor = isIconOnly ? 'transparent' : resolved.borderColor;
   const isTransparentFill = !fillColor || fillColor === 'transparent' || fillColor === 'none';
-  const baseTextColor = nodeData.textColor || (isIconOnly ? '#475569' : isTransparentFill ? '#1e293b' : '#ffffff');
-  // Auto-contrast: ensure text is readable against the fill colour
-  const textColor = (!isIconOnly && fillColor && !isTransparentFill)
-    ? ensureReadableText(fillColor, baseTextColor)
-    : baseTextColor;
-  const fontSize = nodeData.fontSize || 14;
+  const textColor = isIconOnly
+    ? (nodeData.textColor || '#475569')
+    : (!isTransparentFill ? ensureReadableText(fillColor, resolved.textColor) : resolved.textColor);
+  const fontSize = resolved.fontSize;
 
   // Focus the input when editing starts
   useEffect(() => {

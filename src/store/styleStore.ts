@@ -37,15 +37,17 @@ export interface EdgeStyleOverride {
 
 export interface StyleState {
   // ---- state --------------------------------------------------
-  activeStyleId: string;
+  activeStyleId: string | null;
   activePaletteId: string;
   darkMode: boolean;
   userPresets: StylePreset[];
   autoColorMode: AutoColorMode;
   customFont: string | null;
+  canvasColorOverride: string | null;
 
   // ---- actions ------------------------------------------------
   setStyle: (styleId: string) => void;
+  clearStyle: () => void;
   setPalette: (paletteId: string) => void;
   toggleDarkMode: () => void;
   setDarkMode: (dark: boolean) => void;
@@ -54,6 +56,7 @@ export interface StyleState {
   updatePreset: (presetId: string, patch: Partial<Omit<StylePreset, 'id'>>) => void;
   setAutoColorMode: (mode: AutoColorMode) => void;
   setCustomFont: (font: string | null) => void;
+  setCanvasColorOverride: (color: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,9 +71,12 @@ export const useStyleStore = create<StyleState>()((set) => ({
   userPresets: [],
   autoColorMode: 'manual',
   customFont: null,
+  canvasColorOverride: null,
 
   // -- actions --------------------------------------------------
-  setStyle: (styleId) => set({ activeStyleId: styleId }),
+  setStyle: (styleId) => set({ activeStyleId: styleId, canvasColorOverride: null }),
+
+  clearStyle: () => set({ activeStyleId: null, canvasColorOverride: null }),
 
   setPalette: (paletteId) => set({ activePaletteId: paletteId }),
 
@@ -95,6 +101,8 @@ export const useStyleStore = create<StyleState>()((set) => ({
   setAutoColorMode: (mode) => set({ autoColorMode: mode }),
 
   setCustomFont: (font) => set({ customFont: font }),
+
+  setCanvasColorOverride: (color) => set({ canvasColorOverride: color }),
 }));
 
 /** Direct access to the store (useful outside of React components) */

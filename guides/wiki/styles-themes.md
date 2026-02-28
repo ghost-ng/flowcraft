@@ -130,7 +130,31 @@ Auto-color uses the active palette to select colors. Switching palettes while au
 3. Click a **palette swatch** to switch the quick-color palette.
 4. Close the picker by clicking outside it or pressing `Escape`.
 
-> Applying a new style updates all nodes and edges on the canvas. Individual node colors can still be overridden afterward using the Properties Panel or palette number keys. Overridden colors persist until the next style change.
+> Applying a new style clears all manual color/font overrides on existing nodes and edges, letting the theme's defaults take over. Individual node colors can still be overridden afterward using the Properties Panel or palette number keys.
+
+---
+
+## Theme Resolver & Reset
+
+When a diagram style is active, it acts as a live fallback -- new nodes and edges automatically inherit the theme's colors, fonts, and styling without storing any style data. Only user overrides are saved.
+
+### Per-Shape Theme Colors
+
+Each diagram style defines unique fill colors for different shape types (rectangles, diamonds, circles, etc.), giving diagrams a more polished, color-coded appearance when using a theme.
+
+### Reset to Theme
+
+- **Single node/edge**: Right-click → "Reset to Theme" clears all manual style overrides
+- **Multiple nodes**: Select all, right-click → "Reset to Theme"
+- **Individual property**: In the Properties Panel, click the reset icon next to any property showing a user override
+- **Canvas color**: Right-click canvas → "Canvas Color" → "Reset to Theme"
+- **Deselect theme entirely**: Click the X button in the style picker header
+
+### Canvas Color Override
+
+Right-click the canvas to access canvas color options:
+- **Reset to Theme** -- uses the active theme's canvas background
+- **Custom Color** -- pick any background color via color picker
 
 ---
 

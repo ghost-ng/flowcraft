@@ -7,6 +7,8 @@ import { type EdgeProps, getSmoothStepPath, EdgeLabelRenderer } from '@xyflow/re
 import type { DependencyType } from '../../types/edges';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
+import { resolveEdgeStyle } from '../../utils/themeResolver';
+import { diagramStyles } from '../../styles/diagramStyles';
 import { useEdgeVisuals } from './useEdgeVisuals';
 import EdgeLabel, { computeLabelXY } from './EdgeLabel';
 
@@ -80,7 +82,6 @@ const DEPENDENCY_LABELS: Record<DependencyType, string> = {
 // ---------------------------------------------------------------------------
 
 const INTERACTION_PATH_WIDTH = 20;
-const DEFAULT_STROKE_WIDTH = 2;
 
 // ---------------------------------------------------------------------------
 // Lightning bolt icon for "triggers" type
@@ -122,13 +123,16 @@ const DependencyEdge: React.FC<EdgeProps> = ({
   void _style; // read from store via useEdgeVisuals instead (bypasses React Flow memo)
   const ev = useEdgeVisuals(id);
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
+  const resolved = resolveEdgeStyle(ev as unknown as Record<string, unknown>, activeStyle);
   const selectionColor = useUIStore((s) => s.selectionColor);
   const selectionThickness = useUIStore((s) => s.selectionThickness);
 
   const depType: DependencyType = (ev.dependencyType as DependencyType) ?? 'depends-on';
   const depStyle = DEPENDENCY_STYLES[depType];
   const strokeColor = ev.color ?? ev.overrideStroke ?? ev.styleStroke ?? depStyle.stroke;
-  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? DEFAULT_STROKE_WIDTH;
+  const strokeWidth = ev.thickness ?? ev.overrideStrokeWidth ?? ev.styleStrokeWidth ?? resolved.strokeWidth;
   const strokeDasharray = ev.strokeDasharray ?? ev.overrideDash ?? ev.styleDash ?? depStyle.strokeDasharray;
   const opacity = ev.opacity ?? ev.overrideOpacity ?? ev.styleOpacity ?? depStyle.opacity;
   const markerEnd = ev.markerEnd ?? markerEndProp ?? depStyle.markerEnd;

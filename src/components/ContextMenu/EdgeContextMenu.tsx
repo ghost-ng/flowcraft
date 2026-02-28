@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Pencil,
   Trash2,
@@ -6,6 +6,7 @@ import {
   Spline,
   MoveHorizontal,
   Type,
+  RotateCcw,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -96,6 +97,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
   x, y, edgeId, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
@@ -124,6 +126,14 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
       document.removeEventListener('keydown', handleKey);
     };
   }, [onClose]);
+
+  const handleResetToTheme = useCallback(() => {
+    useFlowStore.getState().updateEdgeData(edgeId, {
+      color: undefined,
+      thickness: undefined,
+    });
+    onClose();
+  }, [edgeId, onClose]);
 
   return (
     <div ref={menuRef} style={menuStyle} className="relative">
@@ -252,6 +262,19 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
           darkMode={darkMode}
           onMouseEnter={() => setSubmenu(null)}
         />
+
+        {activeStyleId && (
+          <>
+            <MenuDivider darkMode={darkMode} />
+            <MenuItem
+              icon={<RotateCcw size={14} />}
+              label="Reset to Theme"
+              onClick={handleResetToTheme}
+              darkMode={darkMode}
+              onMouseEnter={() => setSubmenu(null)}
+            />
+          </>
+        )}
 
         <MenuDivider darkMode={darkMode} />
 
