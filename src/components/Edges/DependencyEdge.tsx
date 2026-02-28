@@ -158,33 +158,37 @@ const DependencyEdge: React.FC<EdgeProps> = ({
         className="react-flow__edge-interaction"
       />
 
-      {/* Visible edge path */}
+      {/* Visible edge path — inline styles override React Flow's CSS */}
       <path
         id={id}
         d={edgePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeDasharray={strokeDasharray}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={opacity}
         markerEnd={markerEnd}
         markerStart={markerStart}
         className={`react-flow__edge-path ${selected ? 'selected' : ''}`}
+        style={{
+          fill: 'none',
+          stroke: strokeColor,
+          strokeWidth,
+          strokeDasharray,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          opacity,
+        }}
       />
 
       {/* Selection highlight */}
       {selected && (
         <path
           d={edgePath}
-          fill="none"
-          stroke={selectionColor}
-          strokeWidth={strokeWidth + selectionThickness + 1}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.25}
           className="pointer-events-none"
+          style={{
+            fill: 'none',
+            stroke: selectionColor,
+            strokeWidth: strokeWidth + selectionThickness + 1,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            opacity: 0.25,
+          }}
         />
       )}
 

@@ -68,40 +68,38 @@ const CustomStraightEdge: React.FC<EdgeProps> = ({
         onMouseDown={onInteractionMouseDown}
       />
 
-      {/* Visible edge path */}
+      {/* Visible edge path — stroke/strokeWidth MUST be inline styles
+           to override React Flow's CSS variables on .react-flow__edge-path */}
       <path
         id={id}
         d={edgePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeDasharray={strokeDasharray}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={opacity}
         markerEnd={markerEnd}
         markerStart={markerStart}
         className={`react-flow__edge-path ${selected ? 'selected' : ''}`}
-        style={
-          isAnimated
-            ? {
-                strokeDasharray: strokeDasharray ?? '8 4',
-                animation: 'charthero-edge-dash 0.6s linear infinite',
-              }
-            : undefined
-        }
+        style={{
+          fill: 'none',
+          stroke: strokeColor,
+          strokeWidth,
+          strokeDasharray: isAnimated ? (strokeDasharray ?? '8 4') : strokeDasharray,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          opacity,
+          ...(isAnimated ? { animation: 'charthero-edge-dash 0.6s linear infinite' } : {}),
+        }}
       />
 
       {/* Selection highlight */}
       {selected && (
         <path
           d={edgePath}
-          fill="none"
-          stroke={selectionColor}
-          strokeWidth={strokeWidth + selectionThickness + 1}
-          strokeLinecap="round"
-          opacity={0.25}
           className="pointer-events-none"
+          style={{
+            fill: 'none',
+            stroke: selectionColor,
+            strokeWidth: strokeWidth + selectionThickness + 1,
+            strokeLinecap: 'round',
+            opacity: 0.25,
+          }}
         />
       )}
 

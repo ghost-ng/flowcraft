@@ -101,30 +101,32 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
       {/* Static background path (subtle, lower opacity) */}
       <path
         d={edgePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={opacity * 0.2}
         className="pointer-events-none"
+        style={{
+          fill: 'none',
+          stroke: strokeColor,
+          strokeWidth,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          opacity: opacity * 0.2,
+        }}
       />
 
-      {/* Animated dashed path */}
+      {/* Animated dashed path — inline styles override React Flow's CSS */}
       <path
         id={id}
         d={edgePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeDasharray={strokeDasharray}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={opacity}
         markerEnd={markerEnd}
         markerStart={markerStart}
         className={`react-flow__edge-path ${selected ? 'selected' : ''}`}
         style={{
+          fill: 'none',
+          stroke: strokeColor,
+          strokeWidth,
+          strokeDasharray,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          opacity,
           animation: `charthero-edge-dash ${speed}s linear infinite`,
         }}
       />
@@ -133,13 +135,15 @@ const AnimatedEdge: React.FC<EdgeProps> = ({
       {selected && (
         <path
           d={edgePath}
-          fill="none"
-          stroke={selectionColor}
-          strokeWidth={strokeWidth + selectionThickness + 1}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.25}
           className="pointer-events-none"
+          style={{
+            fill: 'none',
+            stroke: selectionColor,
+            strokeWidth: strokeWidth + selectionThickness + 1,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            opacity: 0.25,
+          }}
         />
       )}
 
