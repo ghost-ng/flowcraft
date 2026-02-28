@@ -95,6 +95,10 @@ body,
   cursor: pointer !important;
 }
 
+.react-flow__edgeupdater {
+  cursor: url('../assets/cursors/cursor_elbow_move.png') 16 16, move !important;
+}
+
 .react-flow__handle {
   width: 10px;
   height: 10px;
