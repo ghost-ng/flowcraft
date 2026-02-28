@@ -2,7 +2,7 @@
 
 Connectors (also called edges) are the lines that link nodes together on the canvas. Chart Hero provides four routing algorithms, five arrowhead marker styles, draggable labels, dependency annotations, and full color and line-style control.
 
-![Connector types overview](../../assets/connectors-overview.png)
+![Connector types overview](../../assets/wiki-connectors-overview.png)
 
 ---
 
@@ -44,11 +44,32 @@ You can quickly switch a connector's type by **clicking and dragging perpendicul
 
 A small **dead zone** (6 px) prevents accidental type changes from regular clicks. The type advances one step per ~40 px of perpendicular drag.
 
+### Selection Handles
+
+When a connector is selected, three visual indicators appear on it:
+
+![Selected edge with handles](../../assets/wiki-edge-selected-handles.png)
+
+| Handle | Shape | Location | Purpose |
+|--------|-------|----------|---------|
+| **Type-cycle handle** | Diamond | Midpoint of the connector | Drag perpendicular to cycle the connector type (Straight, Bezier, SmoothStep, Step) |
+| **Reconnect indicators** | Triangle | Source and target endpoints | Shows where to click-and-drag to detach and reconnect the connector to a different node |
+
+The diamond and triangle indicators match the connector's stroke color and are semi-transparent by default, brightening on hover. Each indicator uses a custom cursor to signal its purpose:
+
+- **Diamond handle** -- elbow-move cursor (indicates drag to change type)
+- **Triangles** -- crosshair cursor (indicates drag to reconnect)
+- **Node connection dots** -- crosshair cursor (indicates drag to create a new connection)
+
+> **Tip:** Drag a reconnect triangle off into empty space to delete the connector.
+
 ---
 
 ## Edge Properties
 
 Every connector exposes the following properties, all editable from the **Edge tab** in the Properties Panel.
+
+![Edge properties panel](../../assets/wiki-edge-handles-fullpage.png)
 
 ### Style Properties
 
@@ -115,7 +136,7 @@ Edge labels are text annotations displayed along the connector path.
 
 **Repositioning a label:**
 
-Labels are **draggable**. Click and drag a label along the connector path to reposition it. The position snaps to 0.05 increments along the path (0 = source, 0.5 = center, 1 = target).
+Labels are **draggable**. Click and drag a label along the connector path to reposition it. The position snaps to 0.05 increments along the path (0 = source, 0.5 = center, 1 = target). Labels follow the actual path geometry -- on curved or right-angle connectors, the label stays on the line rather than cutting across corners.
 
 **Styling a label:**
 
