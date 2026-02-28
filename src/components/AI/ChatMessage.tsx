@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, Wrench } from 'lucide-react';
+import { Check, X, Wrench, Loader2 } from 'lucide-react';
 import type { AIMessage } from '@/store/aiStore';
 
 // ---------------------------------------------------------------------------
@@ -174,7 +174,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode }) => {
         {message.content ? (
           renderInlineMarkdown(message.content)
         ) : isStreaming ? (
-          <span className="inline-block w-2 h-4 bg-current opacity-40 animate-pulse rounded-sm" />
+          <span className="inline-flex items-center gap-1.5 text-xs opacity-60 italic">
+            <Loader2 size={12} className="animate-spin" />
+            Thinking…
+          </span>
         ) : null}
 
         {/* Show tool call names as small chips under the message text */}

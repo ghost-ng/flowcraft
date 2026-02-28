@@ -100,6 +100,20 @@ Rulers display pixel measurements along the top and left edges of the canvas. Th
 
 ---
 
+## Custom Cursors
+
+Chart Hero uses custom cursors on the canvas to indicate the current interaction mode:
+
+| Cursor | Name | When it appears |
+|--------|------|-----------------|
+| ![default](../../assets/wiki-cursor-default.png) | **Default** | Over empty canvas (selection mode) |
+| ![select](../../assets/wiki-cursor-select.png) | **Select** | Hovering over a node, edge, or puck |
+| ![drag](../../assets/wiki-cursor-drag.png) | **Drag** | While panning (Ctrl+drag or middle-click drag) or moving a node |
+| ![crosshair](../../assets/wiki-cursor-crosshair.png) | **Crosshair** | Hovering a connection handle on a node |
+| ![elbow-move](../../assets/wiki-cursor-elbow-move.png) | **Elbow-move** | Hovering the type-cycle diamond on a connector |
+
+---
+
 ## Zoom and Pan
 
 ### Zooming
@@ -124,7 +138,7 @@ The following zoom behaviors can be individually enabled or disabled in the Sett
 
 ### Panning
 
-Click and drag on an empty area of the canvas to pan the viewport. The canvas is infinite in all directions.
+Hold **Ctrl** and drag on an empty area of the canvas to pan the viewport. You can also use the middle mouse button. The cursor changes to ![drag](../../assets/wiki-cursor-drag.png) while panning. The canvas is infinite in all directions.
 
 ### Fit View
 
@@ -166,7 +180,7 @@ Click any node or edge to select it. The Properties Panel on the right updates t
 | Method | How |
 |--------|-----|
 | **Shift+Click** | Hold Shift and click additional nodes to add them to the selection |
-| **Box select** | Hold Ctrl and drag on the canvas to draw a selection rectangle |
+| **Box select** | Drag on the canvas to draw a selection rectangle |
 | **Select All** | Press `Ctrl+A` to select every node and edge |
 
 Box selection uses **partial mode**: any node whose boundary touches the selection rectangle is included, even if the node is not fully enclosed.

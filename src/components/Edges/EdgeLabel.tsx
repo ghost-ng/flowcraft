@@ -12,6 +12,7 @@
 import React, { useCallback, useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { EdgeLabelRenderer, useReactFlow } from '@xyflow/react';
 import { useFlowStore } from '../../store/flowStore';
+import { CURSOR_SELECT, CURSOR_DRAG_ACTIVE } from '../../assets/cursors/cursors';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -332,7 +333,7 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
           borderColor: borderColor,
           fontSize,
           whiteSpace: 'nowrap',
-          cursor: isDragging ? 'grabbing' : 'grab',
+          cursor: isDragging ? CURSOR_DRAG_ACTIVE : CURSOR_SELECT,
           zIndex: isDragging ? 1000 : undefined,
         }}
         onMouseDown={handleMouseDown}

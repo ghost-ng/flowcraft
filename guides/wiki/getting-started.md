@@ -40,9 +40,9 @@ Click the collapse arrow at the top of the palette to hide it and reclaim canvas
 
 The canvas is your infinite working area. Key interactions:
 
-- **Pan** -- Click and drag on empty space, or hold the middle mouse button
+- **Select** -- Click a node or edge (cursor changes to ![select](../../assets/wiki-cursor-select.png)); hold <kbd>Shift</kbd> to add to the selection; drag on empty canvas to box-select
+- **Pan** -- Hold <kbd>Ctrl</kbd> and drag on empty space (cursor changes to ![drag](../../assets/wiki-cursor-drag.png)), or use the middle mouse button
 - **Zoom** -- Scroll wheel, or use the zoom controls in the toolbar
-- **Select** -- Click a node or edge; hold <kbd>Shift</kbd> to add to the selection; drag a rectangle to box-select
 
 ![Select All](../../assets/wiki-select-all.png)
 

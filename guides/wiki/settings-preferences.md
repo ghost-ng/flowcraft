@@ -87,7 +87,7 @@ Fine-tune how the canvas responds to mouse, keyboard, and touch input.
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | Multi-Select Key | Selection | `shift` | Modifier key for adding to the selection (`shift`, `ctrl`, `meta`) |
-| Pan on Drag | Toggle | On | Left-click drag on empty canvas pans the viewport |
+| Pan on Drag | Toggle | On | Left-click drag on empty canvas pans the viewport (when enabled, hold Ctrl to pan; default is selection drag) |
 | Pan on Scroll | Toggle | Off | Scroll wheel pans instead of zooming |
 | Zoom on Scroll | Toggle | On | Scroll wheel zooms the canvas |
 | Zoom on Pinch | Toggle | On | Pinch gesture zooms on touch devices |

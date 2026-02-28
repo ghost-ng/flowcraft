@@ -90,6 +90,49 @@ const handlers: Record<string, ToolHandler> = {
       return { success: false, result: 'Error: Missing diagram object' };
     }
     const result = importFromJson(diagram);
+
+    // Auto-layout after generation to eliminate overlaps
+    const { nodes, edges, setNodes, setEdges } = flowState();
+    if (nodes.length >= 2) {
+      const layoutEdges = edges.map((e) => ({
+        ...e,
+        label: (e.data?.label as string) || undefined,
+      }));
+      const laidOut = applyDagreLayout(nodes, layoutEdges, 'TB', 80, 80);
+      const positionMap = new Map(laidOut.map((n) => [n.id, n.position]));
+      const updatedNodes = nodes.map((n) => {
+        const newPos = positionMap.get(n.id);
+        return newPos ? { ...n, position: newPos } : n;
+      });
+      setNodes(updatedNodes);
+
+      // Reassign edge handles
+      const nodeMap = new Map<string, FlowNode>();
+      for (const n of updatedNodes) nodeMap.set(n.id, n);
+      const updatedEdges = edges.map((edge) => {
+        const src = nodeMap.get(edge.source);
+        const tgt = nodeMap.get(edge.target);
+        if (!src || !tgt) return edge;
+        const srcCx = src.position.x + (src.measured?.width ?? src.width ?? 172) / 2;
+        const srcCy = src.position.y + (src.measured?.height ?? src.height ?? 40) / 2;
+        const tgtCx = tgt.position.x + (tgt.measured?.width ?? tgt.width ?? 172) / 2;
+        const tgtCy = tgt.position.y + (tgt.measured?.height ?? tgt.height ?? 40) / 2;
+        const dx = tgtCx - srcCx;
+        const dy = tgtCy - srcCy;
+        let sourceHandle: string;
+        let targetHandle: string;
+        if (Math.abs(dy) >= Math.abs(dx)) {
+          sourceHandle = dy > 0 ? 'bottom' : 'top';
+          targetHandle = dy > 0 ? 'top' : 'bottom';
+        } else {
+          sourceHandle = dx > 0 ? 'right' : 'left';
+          targetHandle = dx > 0 ? 'left' : 'right';
+        }
+        return { ...edge, sourceHandle, targetHandle };
+      });
+      setEdges(updatedEdges);
+    }
+
     const warnings = result.warnings.length > 0 ? `, ${result.warnings.length} warnings` : '';
     return {
       success: true,
@@ -108,18 +151,50 @@ const handlers: Record<string, ToolHandler> = {
     const direction = (args.direction as LayoutDirection) || 'TB';
     const spacingX = (args.spacing_x as number) || 80;
     const spacingY = (args.spacing_y as number) || 100;
-    const { nodes, edges, batchUpdatePositions } = flowState();
+    const { nodes, edges, setNodes, setEdges } = flowState();
 
     if (nodes.length === 0) {
       return { success: true, result: 'Nothing to layout — canvas is empty' };
     }
 
-    const laidOut = applyDagreLayout(nodes, edges, direction, spacingX, spacingY);
-    const positions = new Map<string, { x: number; y: number }>();
-    for (const node of laidOut) {
-      positions.set(node.id, node.position);
-    }
-    batchUpdatePositions(positions);
+    // Pass edge labels so dagre reserves space for them
+    const layoutEdges = edges.map((e) => ({
+      ...e,
+      label: (e.data?.label as string) || undefined,
+    }));
+    const laidOut = applyDagreLayout(nodes, layoutEdges, direction, spacingX, spacingY);
+    const positionMap = new Map(laidOut.map((n) => [n.id, n.position]));
+    const updatedNodes = nodes.map((n) => {
+      const newPos = positionMap.get(n.id);
+      return newPos ? { ...n, position: newPos } : n;
+    });
+    setNodes(updatedNodes);
+
+    // Reassign edge handles based on new node positions
+    const nodeMap = new Map<string, FlowNode>();
+    for (const n of updatedNodes) nodeMap.set(n.id, n);
+    const updatedEdges = edges.map((edge) => {
+      const src = nodeMap.get(edge.source);
+      const tgt = nodeMap.get(edge.target);
+      if (!src || !tgt) return edge;
+      const srcCx = src.position.x + (src.measured?.width ?? src.width ?? 172) / 2;
+      const srcCy = src.position.y + (src.measured?.height ?? src.height ?? 40) / 2;
+      const tgtCx = tgt.position.x + (tgt.measured?.width ?? tgt.width ?? 172) / 2;
+      const tgtCy = tgt.position.y + (tgt.measured?.height ?? tgt.height ?? 40) / 2;
+      const dx = tgtCx - srcCx;
+      const dy = tgtCy - srcCy;
+      let sourceHandle: string;
+      let targetHandle: string;
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        sourceHandle = dy > 0 ? 'bottom' : 'top';
+        targetHandle = dy > 0 ? 'top' : 'bottom';
+      } else {
+        sourceHandle = dx > 0 ? 'right' : 'left';
+        targetHandle = dx > 0 ? 'left' : 'right';
+      }
+      return { ...edge, sourceHandle, targetHandle };
+    });
+    setEdges(updatedEdges);
 
     return {
       success: true,

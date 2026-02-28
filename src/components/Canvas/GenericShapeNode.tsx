@@ -7,6 +7,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { DependencyBadge } from '../Dependencies';
 import { ensureReadableText, darkenColor } from '../../utils/colorUtils';
+import { CURSOR_SELECT } from '../../assets/cursors/cursors';
 
 // ---------------------------------------------------------------------------
 // Shape SVG paths (clip-path / outline)
@@ -94,7 +95,7 @@ const ShapeSvgs: Record<string, React.FC<ShapeSvgProps>> = {
 const shapeStyles: Record<string, React.CSSProperties> = {
   rectangle: { borderRadius: 4 },
   roundedRectangle: { borderRadius: 12 },
-  diamond: { borderRadius: 4, transform: 'rotate(45deg)' },
+  // diamond is rendered via SVG (like hexagon/parallelogram) — no CSS entry needed
   circle: { borderRadius: '50%' },
   parallelogram: { borderRadius: 4 },
   hexagon: { borderRadius: 4 },
@@ -162,24 +163,45 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const bStyle = statusIndicator.borderStyle ?? 'solid';
   const borderStr = bStyle === 'none' ? 'none' : `${bWidth}px ${bStyle} ${bColor}`;
 
-  // For diamonds, position pucks at the midpoint of each diamond edge
-  // instead of at the bounding box corners (which are outside the shape).
-  const isDiamondShape = shape === 'diamond';
   // Side-by-side offset when multiple pucks share the same corner.
   // Right corners spread leftward; left corners spread rightward.
   const spacing = size + bWidth * 2 + 2; // puck diameter + border + 2px gap
   const sideOffset = indexInGroup * spacing;
   const isRight = position === 'top-right' || position === 'bottom-right';
+  const isDiamondShape = shape === 'diamond';
 
   const positionStyle: React.CSSProperties = {};
+
   if (isDiamondShape) {
-    // Diamond edge midpoints: TL→(25%,25%), TR→(75%,25%), BL→(25%,75%), BR→(75%,75%)
-    positionStyle.transform = `translate(-50%, -50%) translateX(${isRight ? -sideOffset : sideOffset}px)`;
-    if (position === 'top-right')        { positionStyle.left = '75%'; positionStyle.top = '25%'; }
-    else if (position === 'top-left')    { positionStyle.left = '25%'; positionStyle.top = '25%'; }
-    else if (position === 'bottom-right'){ positionStyle.left = '75%'; positionStyle.top = '75%'; }
-    else                                 { positionStyle.left = '25%'; positionStyle.top = '75%'; }
+    // Diamond edge midpoints (percentage of bounding box):
+    //   top-right  → midpoint of top→right edge → (75%, 25%)
+    //   top-left   → midpoint of left→top edge  → (25%, 25%)
+    //   bottom-right → midpoint of right→bottom → (75%, 75%)
+    //   bottom-left  → midpoint of bottom→left  → (25%, 75%)
+    // For multiple pucks, spread along the edge direction.
+    const half = size / 2;
+    const edgeSpread = sideOffset * 0.5; // half-speed spread along edge
+    switch (position) {
+      case 'top-right':
+        positionStyle.left = `calc(75% - ${half}px + ${edgeSpread}px)`;
+        positionStyle.top = `calc(25% - ${half}px + ${edgeSpread}px)`;
+        break;
+      case 'top-left':
+        positionStyle.left = `calc(25% - ${half}px - ${edgeSpread}px)`;
+        positionStyle.top = `calc(25% - ${half}px + ${edgeSpread}px)`;
+        break;
+      case 'bottom-right':
+        positionStyle.left = `calc(75% - ${half}px + ${edgeSpread}px)`;
+        positionStyle.top = `calc(75% - ${half}px - ${edgeSpread}px)`;
+        break;
+      case 'bottom-left':
+      default:
+        positionStyle.left = `calc(25% - ${half}px - ${edgeSpread}px)`;
+        positionStyle.top = `calc(75% - ${half}px - ${edgeSpread}px)`;
+        break;
+    }
   } else {
+    // Standard rectangular positioning
     if (isRight) {
       positionStyle.right = offset + sideOffset;
     } else {
@@ -386,17 +408,41 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
   const hitSize = Math.max(24, size + bWidth * 2);
   const hitOffset = -(hitSize / 2); // centre the hit zone on the node corner
 
-  // Position the hit zone (same logic as visible puck, with hitOffset + side-by-side offset)
+  // Position the hit zone — for diamonds, use diamond edge midpoints
   const hitPositionStyle: React.CSSProperties = {};
-  if (isRight) {
-    hitPositionStyle.right = hitOffset + sideOffset;
+  if (isDiamondShape) {
+    const hitHalf = hitSize / 2;
+    const edgeSpreadHit = sideOffset * 0.5;
+    switch (position) {
+      case 'top-right':
+        hitPositionStyle.left = `calc(75% - ${hitHalf}px + ${edgeSpreadHit}px)`;
+        hitPositionStyle.top = `calc(25% - ${hitHalf}px + ${edgeSpreadHit}px)`;
+        break;
+      case 'top-left':
+        hitPositionStyle.left = `calc(25% - ${hitHalf}px - ${edgeSpreadHit}px)`;
+        hitPositionStyle.top = `calc(25% - ${hitHalf}px + ${edgeSpreadHit}px)`;
+        break;
+      case 'bottom-right':
+        hitPositionStyle.left = `calc(75% - ${hitHalf}px + ${edgeSpreadHit}px)`;
+        hitPositionStyle.top = `calc(75% - ${hitHalf}px - ${edgeSpreadHit}px)`;
+        break;
+      case 'bottom-left':
+      default:
+        hitPositionStyle.left = `calc(25% - ${hitHalf}px - ${edgeSpreadHit}px)`;
+        hitPositionStyle.top = `calc(75% - ${hitHalf}px - ${edgeSpreadHit}px)`;
+        break;
+    }
   } else {
-    hitPositionStyle.left = hitOffset + sideOffset;
-  }
-  if (position === 'top-right' || position === 'top-left') {
-    hitPositionStyle.top = hitOffset;
-  } else {
-    hitPositionStyle.bottom = hitOffset;
+    if (isRight) {
+      hitPositionStyle.right = hitOffset + sideOffset;
+    } else {
+      hitPositionStyle.left = hitOffset + sideOffset;
+    }
+    if (position === 'top-right' || position === 'top-left') {
+      hitPositionStyle.top = hitOffset;
+    } else {
+      hitPositionStyle.bottom = hitOffset;
+    }
   }
 
   return (
@@ -417,7 +463,7 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: 'pointer',
+        cursor: CURSOR_SELECT,
         borderRadius: '50%',
       }}
     >
@@ -580,6 +626,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const isArrowShape = ARROW_SHAPES.has(shape);
   const isSvgShape = SVG_SHAPES.has(shape);
   const isDiamond = shape === 'diamond';
+  // Diamond uses SVG rendering (like hexagon/parallelogram) — treat it as noBox
   const isCircle = shape === 'circle';
   const isCircularArrow = shape === 'circularArrow';
   const defaultWidth = isArrowShape
@@ -622,8 +669,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     }
   }, [nodeData.label, width, height, proportionalFontSize, isEditing]);
 
-  // For arrow / SVG / icon-only shapes, we use transparent background
-  const noBox = isArrowShape || isSvgShape || isIconOnly;
+  // For arrow / SVG / diamond / icon-only shapes, we use transparent background
+  const noBox = isArrowShape || isSvgShape || isDiamond || isIconOnly;
   const opacity = nodeData.opacity ?? 1;
   const borderStyleProp = nodeData.borderStyle || 'solid';
   const borderW = nodeData.borderWidth ?? 2;
@@ -635,7 +682,9 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const borderShadow = (!noBox && borderColor !== 'transparent' && !hasDashedBorder)
     ? `0 0 0 ${borderW}px ${borderColor}`
     : '';
-  const selectionShadow = isSelected
+  // SVG-rendered shapes (parallelogram, hexagon, diamond, etc.) use SVG stroke
+  // for selection — skip the rectangular box-shadow selection ring for those.
+  const selectionShadow = (isSelected && !noBox)
     ? `0 0 0 ${selectionThickness + 0.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
     : '';
   const isInEditedGroup = !!(linkGroupEditorId && nodeData.linkGroupId === linkGroupEditorId);
@@ -694,7 +743,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
 
   const labelStyle: React.CSSProperties = isDiamond
-    ? { transform: 'rotate(-45deg)', fontSize: Math.min(12, scaledFontSize) }
+    ? { fontSize: Math.min(12, scaledFontSize) }
     : {};
 
   const ArrowSvg = isArrowShape ? ArrowSvgs[shape] : null;
@@ -795,6 +844,27 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             fill={fillColor}
             stroke={isSelected ? selectionColor : borderColor}
             strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+          />
+        </svg>
+      )}
+
+      {/* Diamond SVG layer — rendered as a proper polygon so selection
+          borders, NodeResizer, and pucks all track the bounding box correctly
+          instead of relying on a CSS rotate(45deg) hack. */}
+      {isDiamond && (
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="absolute inset-0 pointer-events-none"
+        >
+          <polygon
+            points="50,0 100,50 50,100 0,50"
+            fill={fillColor}
+            stroke={isSelected ? selectionColor : borderColor}
+            strokeWidth={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+            strokeLinejoin="round"
           />
         </svg>
       )}

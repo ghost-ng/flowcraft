@@ -50,16 +50,13 @@ When a connector is selected, three visual indicators appear on it:
 
 ![Selected edge with handles](../../assets/wiki-edge-selected-handles.png)
 
-| Handle | Shape | Location | Purpose |
-|--------|-------|----------|---------|
-| **Type-cycle handle** | Diamond | Midpoint of the connector | Drag perpendicular to cycle the connector type (Straight, Bezier, SmoothStep, Step) |
-| **Reconnect indicators** | Triangle | Source and target endpoints | Shows where to click-and-drag to detach and reconnect the connector to a different node |
+| Handle | Shape | Location | Cursor | Purpose |
+|--------|-------|----------|--------|---------|
+| **Type-cycle handle** | Diamond | Midpoint of the connector | ![elbow-move](../../assets/wiki-cursor-elbow-move.png) Elbow-move | Drag perpendicular to cycle the connector type (Straight, Bezier, SmoothStep, Step) |
+| **Reconnect indicators** | Triangle | Source and target endpoints | ![crosshair](../../assets/wiki-cursor-crosshair.png) Crosshair | Shows where to click-and-drag to detach and reconnect the connector to a different node |
+| **Node connection dots** | Circle | Node edges (top, bottom, left, right) | ![crosshair](../../assets/wiki-cursor-crosshair.png) Crosshair | Drag from a dot to create a new connection to another node |
 
-The diamond and triangle indicators match the connector's stroke color and are semi-transparent by default, brightening on hover. Each indicator uses a custom cursor to signal its purpose:
-
-- **Diamond handle** -- elbow-move cursor (indicates drag to change type)
-- **Triangles** -- crosshair cursor (indicates drag to reconnect)
-- **Node connection dots** -- crosshair cursor (indicates drag to create a new connection)
+The diamond and triangle indicators match the connector's stroke color and are semi-transparent by default, brightening on hover. Each indicator uses a custom cursor (shown above) to signal its purpose.
 
 > **Tip:** Drag a reconnect triangle off into empty space to delete the connector.
 

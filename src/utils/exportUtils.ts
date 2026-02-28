@@ -1547,6 +1547,17 @@ export function importFromJson(
       }
     }
 
+    // Circle shapes must be square — normalize non-square dimensions
+    if (shape === 'circle') {
+      const w = nodeData.width as number | undefined;
+      const h = nodeData.height as number | undefined;
+      if (w && h && w !== h) {
+        const side = Math.max(w, h);
+        nodeData.width = side;
+        nodeData.height = side;
+      }
+    }
+
     // Optional boolean fields
     if (typeof rawData.iconOnly === 'boolean') nodeData.iconOnly = rawData.iconOnly;
     if (typeof rawData.flipH === 'boolean') nodeData.flipH = rawData.flipH;
@@ -1689,14 +1700,39 @@ export function importFromJson(
       if (edgeData.strokeDasharray) edgeStyle.strokeDasharray = edgeData.strokeDasharray;
       if (Object.keys(edgeStyle).length > 0) topLevel.style = edgeStyle;
 
+      // Infer handles from node positions when not explicitly provided
+      let sourceHandle = typeof r.sourceHandle === 'string' ? r.sourceHandle : undefined;
+      let targetHandle = typeof r.targetHandle === 'string' ? r.targetHandle : undefined;
+      if (!sourceHandle || !targetHandle) {
+        const srcNode = nodes.find((n) => n.id === source);
+        const tgtNode = nodes.find((n) => n.id === target);
+        if (srcNode && tgtNode) {
+          const srcCx = srcNode.position.x + ((srcNode.data.width as number) || 160) / 2;
+          const srcCy = srcNode.position.y + ((srcNode.data.height as number) || 60) / 2;
+          const tgtCx = tgtNode.position.x + ((tgtNode.data.width as number) || 160) / 2;
+          const tgtCy = tgtNode.position.y + ((tgtNode.data.height as number) || 60) / 2;
+          const dx = tgtCx - srcCx;
+          const dy = tgtCy - srcCy;
+          if (Math.abs(dy) >= Math.abs(dx)) {
+            // Vertical: source below/above target
+            if (!sourceHandle) sourceHandle = dy > 0 ? 'bottom' : 'top';
+            if (!targetHandle) targetHandle = dy > 0 ? 'top' : 'bottom';
+          } else {
+            // Horizontal: source left/right of target
+            if (!sourceHandle) sourceHandle = dx > 0 ? 'right' : 'left';
+            if (!targetHandle) targetHandle = dx > 0 ? 'left' : 'right';
+          }
+        }
+      }
+
       edges.push({
         id,
         source,
         target,
         ...(type ? { type } : {}),
         ...(Object.keys(edgeData).length > 0 ? { data: edgeData } : {}),
-        ...(typeof r.sourceHandle === 'string' ? { sourceHandle: r.sourceHandle } : {}),
-        ...(typeof r.targetHandle === 'string' ? { targetHandle: r.targetHandle } : {}),
+        ...(sourceHandle ? { sourceHandle } : {}),
+        ...(targetHandle ? { targetHandle } : {}),
         ...topLevel,
       } as FlowEdge);
     }

@@ -99,8 +99,8 @@ Complete reference for all keyboard shortcuts and mouse interactions in Chart He
 | Left-click empty canvas | Deselect all nodes and edges |
 | Double-click empty canvas | Create a new node at that position and enter label edit mode |
 | Right-click empty canvas | Open the canvas context menu |
-| Drag on empty canvas | Pan the viewport |
-| Ctrl+drag on empty canvas | Draw a selection rectangle (selects nodes it touches) |
+| Drag on empty canvas | Draw a selection rectangle (selects nodes it touches) |
+| Ctrl+drag on empty canvas | Pan the viewport |
 | Scroll wheel | Zoom in and out, centered on the cursor |
 
 ### Nodes

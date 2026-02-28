@@ -1,0 +1,33 @@
+// ---------------------------------------------------------------------------
+// cursors.ts — Single source of truth for all custom cursor definitions.
+//
+// Every component that needs a custom cursor imports from HERE.
+// CSS custom properties (--cursor-*) are defined in app.css alongside these
+// values — when changing sizes/hotspots, update BOTH this file and app.css.
+// ---------------------------------------------------------------------------
+
+import imgDefault from './cursor_default.png';
+import imgSelect from './cursor_select.png';
+import imgDrag from './cursor_drag.png';
+import imgCrosshair from './cursor_crosshair.png';
+import imgElbowMove from './cursor_elbow_move.png';
+
+// -- Ready-to-use CSS cursor value strings --------------------------------
+
+/** Blue arrow — default canvas cursor (selection mode). */
+export const CURSOR_DEFAULT = `url(${imgDefault}) 3 1, default`;
+
+/** Blue pointing hand — hover over selectable items (nodes, edges, pucks). */
+export const CURSOR_SELECT = `url(${imgSelect}) 8 2, pointer`;
+
+/** Grab hand — panning the canvas (Ctrl+drag / middle-click). */
+export const CURSOR_DRAG = `url(${imgDrag}) 14 14, grab`;
+
+/** Grab hand (active) — actively dragging / panning. */
+export const CURSOR_DRAG_ACTIVE = `url(${imgDrag}) 14 14, grabbing`;
+
+/** Crosshair — creating connections from node handles. */
+export const CURSOR_CROSSHAIR = `url(${imgCrosshair}) 14 14, crosshair`;
+
+/** Elbow-move — drag-to-cycle connector type on edge midpoint (32×32). */
+export const CURSOR_ELBOW_MOVE = `url(${imgElbowMove}) 16 16, grab`;

@@ -433,6 +433,30 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                 </div>
               </Field>
             )}
+
+            {/* Animated toggle */}
+            <Field label="Animated">
+              <button
+                onClick={() => {
+                  const next = !edgeData.animated;
+                  // When enabling animation, auto-set a dashed pattern if currently solid
+                  const patch: Partial<FlowEdgeData> = { animated: next };
+                  if (next && currentLineStyle === 'solid') {
+                    patch.strokeDasharray = '8 4';
+                  }
+                  update(patch);
+                }}
+                className={`
+                  w-full py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
+                  ${edgeData.animated
+                    ? 'bg-primary/10 border-primary/30 text-primary'
+                    : 'border-border text-text-muted hover:bg-slate-50 dark:hover:bg-dk-hover'
+                  }
+                `}
+              >
+                {edgeData.animated ? 'On' : 'Off'}
+              </button>
+            </Field>
           </>
         )}
 

@@ -75,28 +75,71 @@ body,
 }
 
 /* React Flow overrides */
+
+/* ---- Custom cursor definitions (single source of truth for CSS) ----
+   TypeScript equivalent: src/assets/cursors/cursors.ts
+   When changing sizes or hotspots, update BOTH files. */
+:root {
+  --cursor-default: url('../assets/cursors/cursor_default.png') 3 1, default;
+  --cursor-select: url('../assets/cursors/cursor_select.png') 8 2, pointer;
+  --cursor-drag: url('../assets/cursors/cursor_drag.png') 14 14, grab;
+  --cursor-drag-active: url('../assets/cursors/cursor_drag.png') 14 14, grabbing;
+  --cursor-crosshair: url('../assets/cursors/cursor_crosshair.png') 14 14, crosshair;
+  --cursor-elbow-move: url('../assets/cursors/cursor_elbow_move.png') 16 16, grab;
+}
+
+/* Default canvas cursor: custom blue arrow (selection mode) */
+.react-flow__pane {
+  cursor: var(--cursor-default) !important;
+}
+
+/* When Ctrl is held or middle-click panning, switch to drag/pan cursor */
+.react-flow.pan-mode .react-flow__pane {
+  cursor: var(--cursor-drag) !important;
+}
+
+.react-flow.pan-mode .react-flow__pane:active {
+  cursor: var(--cursor-drag-active) !important;
+}
+
+/* Middle-click drag (xyflow adds .dragging class to pane during pan) */
+.react-flow__pane.dragging {
+  cursor: var(--cursor-drag-active) !important;
+}
+
+/* Selectable items: blue pointing hand cursor */
 .react-flow__node {
-  cursor: pointer !important;
+  cursor: var(--cursor-select) !important;
 }
 
 .react-flow__node:active {
-  cursor: grabbing !important;
+  cursor: var(--cursor-drag-active) !important;
+}
+
+/* Dragging a node */
+.react-flow__node.dragging {
+  cursor: var(--cursor-drag-active) !important;
 }
 
 .react-flow__edge {
-  cursor: pointer !important;
+  cursor: var(--cursor-select) !important;
 }
 
 .react-flow__edge-path {
-  cursor: pointer !important;
+  cursor: var(--cursor-select) !important;
 }
 
 .react-flow__edge-interaction {
-  cursor: pointer !important;
+  cursor: var(--cursor-select) !important;
 }
 
 .react-flow__edgeupdater {
-  cursor: url('../assets/cursors/cursor_elbow_move.png') 16 16, move !important;
+  cursor: var(--cursor-elbow-move) !important;
+}
+
+/* Multi-node selection box: drag cursor when moving the selection group */
+.react-flow__nodesselection-rect {
+  cursor: var(--cursor-drag) !important;
 }
 
 .react-flow__handle {
@@ -109,7 +152,7 @@ body,
   transition: opacity 0.15s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 50;
-  cursor: url('../assets/cursors/cursor_crosshair.png') 16 16, crosshair !important;
+  cursor: var(--cursor-crosshair) !important;
 }
 
 .dark .react-flow__handle {

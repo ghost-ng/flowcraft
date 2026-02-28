@@ -158,7 +158,7 @@ When in inline edit mode:
 |--------|------------|
 | **Single select** | Click a node |
 | **Multi-select** | Hold `Shift` and click additional nodes |
-| **Box select** | Hold `Ctrl` and drag on the canvas to draw a selection rectangle |
+| **Box select** | Drag on the canvas to draw a selection rectangle |
 | **Select all** | Press `Ctrl+A` |
 | **Select same type** | Use the "Select Same Type" button in the toolbar to select all nodes of the same shape as the current selection |
 

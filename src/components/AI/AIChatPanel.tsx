@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, Minus, X, Send, Square, Sparkles } from 'lucide-react';
 import { useAIStore } from '@/store/aiStore';
 import type { AIToolCall, AIToolResult } from '@/store/aiStore';
@@ -19,6 +20,10 @@ const DEFAULT_WIDTH = 400;
 const DEFAULT_HEIGHT = 500;
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 350;
+
+// Persisted across close/open cycles (survives component unmount)
+let savedPosition: { x: number; y: number } | null = null;
+let savedSize: { width: number; height: number } | null = null;
 
 // ---------------------------------------------------------------------------
 // AIChatPanel
@@ -42,12 +47,19 @@ const AIChatPanel: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const roundRef = useRef(0);
 
-  // Position & size — initialize directly to bottom-right to avoid flash at (0,0)
-  const [position, setPosition] = useState(() => ({
-    x: window.innerWidth - DEFAULT_WIDTH - 16,
-    y: window.innerHeight - DEFAULT_HEIGHT - 16,
-  }));
-  const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
+  // Position & size — restore from module-level cache, or default to bottom-right
+  const [position, setPosition] = useState(() => {
+    if (savedPosition) return savedPosition;
+    return {
+      x: Math.max(0, window.innerWidth - DEFAULT_WIDTH - 16),
+      y: Math.max(0, window.innerHeight - DEFAULT_HEIGHT - 16),
+    };
+  });
+  const [size, setSize] = useState(() => savedSize ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
+
+  // Persist position & size so they survive close/reopen (unmount/remount)
+  useEffect(() => { savedPosition = position; }, [position]);
+  useEffect(() => { savedSize = size; }, [size]);
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
@@ -110,9 +122,9 @@ const AIChatPanel: React.FC = () => {
       let newX = e.clientX - dragOffset.current.x;
       let newY = e.clientY - dragOffset.current.y;
 
-      // Clamp: keep at least 40px visible on each edge
+      // Clamp: keep at least 40px visible on each edge, ensure header never clips at top
       newX = Math.max(-size.width + 80, Math.min(newX, window.innerWidth - 80));
-      newY = Math.max(0, Math.min(newY, window.innerHeight - 40));
+      newY = Math.max(2, Math.min(newY, window.innerHeight - 40));
 
       setPosition({ x: newX, y: newY });
     };
@@ -129,17 +141,17 @@ const AIChatPanel: React.FC = () => {
     };
   }, [isDragging, size]);
 
-  // Re-clamp position when window resizes (prevents header cutoff)
+  // Re-clamp position when window resizes or panel re-opens (prevents header cutoff)
   useEffect(() => {
     const handleWindowResize = () => {
       setPosition((prev) => ({
-        x: Math.min(prev.x, window.innerWidth - 80),
-        y: Math.min(prev.y, window.innerHeight - 40),
+        x: Math.max(-size.width + 80, Math.min(prev.x, window.innerWidth - 80)),
+        y: Math.max(2, Math.min(prev.y, window.innerHeight - 40)),
       }));
     };
     window.addEventListener('resize', handleWindowResize);
     return () => window.removeEventListener('resize', handleWindowResize);
-  }, []);
+  }, [size.width]);
 
   // -------------------------------------------------------------------------
   // Resizing
@@ -196,9 +208,9 @@ const AIChatPanel: React.FC = () => {
         newY = origY + dh;
       }
 
-      // Clamp to viewport
+      // Clamp to viewport (keep 2px margin at top to avoid header clipping)
       if (newX < 0) { newW += newX; newX = 0; }
-      if (newY < 0) { newH += newY; newY = 0; }
+      if (newY < 2) { newH += (newY - 2); newY = 2; }
       newW = Math.min(newW, window.innerWidth - newX);
       newH = Math.min(newH, window.innerHeight - newY);
 
@@ -366,13 +378,26 @@ const AIChatPanel: React.FC = () => {
     }
   }, [isStreaming, input, handleSend]);
 
+  // Re-validate position whenever the panel opens
+  useEffect(() => {
+    if (isPanelOpen) {
+      setPosition((prev) => ({
+        x: Math.max(-size.width + 80, Math.min(prev.x, window.innerWidth - 80)),
+        y: Math.max(2, Math.min(prev.y, window.innerHeight - 40)),
+      }));
+    }
+  }, [isPanelOpen, size.width]);
+
   // Don't render when closed
   if (!isPanelOpen) return null;
 
   const hasMessages = messages.length > 0;
 
-  return (
-    <>
+  // Render via portal to document.body so the panel is never clipped by
+  // ancestor overflow-hidden or stacking context issues.
+  // Wrap in a dark-mode-aware container so Tailwind dark: classes work.
+  return createPortal(
+    <div className={darkMode ? 'dark' : ''}>
       {/* Settings dialog */}
       <AISettingsDialog
         open={isSettingsOpen}
@@ -382,16 +407,17 @@ const AIChatPanel: React.FC = () => {
       {/* Chat panel */}
       <div
         className={`
-          fixed z-50 flex flex-col rounded-xl shadow-2xl border overflow-hidden
+          fixed z-[999] flex flex-col rounded-xl border-2 overflow-hidden
+          shadow-[0_4px_24px_rgba(0,0,0,0.15),0_-2px_8px_rgba(0,0,0,0.05)]
           ${darkMode
             ? 'bg-dk-panel border-dk-border'
-            : 'bg-white border-slate-200'
+            : 'bg-white border-slate-300'
           }
           ${isDragging || isResizing ? 'select-none' : ''}
         `}
         style={{
           left: position.x,
-          top: position.y,
+          top: Math.max(0, position.y),
           width: size.width,
           height: size.height,
         }}
@@ -399,7 +425,7 @@ const AIChatPanel: React.FC = () => {
         {/* Header — draggable */}
         <div
           className={`
-            flex items-center justify-between px-3 py-2 border-b shrink-0
+            flex items-center justify-between px-3 py-2.5 border-b shrink-0 rounded-t-xl
             ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
             ${darkMode ? 'border-dk-border bg-dk-panel' : 'border-slate-200 bg-slate-50'}
           `}
@@ -534,7 +560,8 @@ const AIChatPanel: React.FC = () => {
         <div className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize" onMouseDown={handleResizeStart('sw')} />
         <div className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize" onMouseDown={handleResizeStart('se')} />
       </div>
-    </>
+    </div>,
+    document.body,
   );
 };
 

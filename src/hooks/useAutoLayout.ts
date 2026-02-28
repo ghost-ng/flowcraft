@@ -4,6 +4,7 @@
 
 import { useCallback } from 'react';
 import { useFlowStore } from '../store/flowStore';
+import type { FlowNode, FlowEdge } from '../store/flowStore';
 import {
   applyDagreLayout,
   type LayoutDirection,
@@ -22,12 +23,84 @@ export interface AutoLayoutResult {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Resolve the pixel width of a node. */
+function nw(n: FlowNode): number {
+  return n.measured?.width ?? n.width ?? 172;
+}
+
+/** Resolve the pixel height of a node. */
+function nh(n: FlowNode): number {
+  return n.measured?.height ?? n.height ?? 40;
+}
+
+/**
+ * After layout, reassign sourceHandle / targetHandle on every edge so that
+ * connectors attach at the side that makes sense for the flow direction
+ * and the relative positions of the connected nodes.
+ */
+function reassignEdgeHandles(
+  updatedNodes: FlowNode[],
+  edges: FlowEdge[],
+): FlowEdge[] {
+  const nodeMap = new Map<string, FlowNode>();
+  for (const n of updatedNodes) nodeMap.set(n.id, n);
+
+  return edges.map((edge) => {
+    const src = nodeMap.get(edge.source);
+    const tgt = nodeMap.get(edge.target);
+    if (!src || !tgt) return edge;
+
+    // Compute center points
+    const srcCx = src.position.x + nw(src) / 2;
+    const srcCy = src.position.y + nh(src) / 2;
+    const tgtCx = tgt.position.x + nw(tgt) / 2;
+    const tgtCy = tgt.position.y + nh(tgt) / 2;
+
+    const dx = tgtCx - srcCx;
+    const dy = tgtCy - srcCy;
+
+    let sourceHandle: string;
+    let targetHandle: string;
+
+    if (Math.abs(dy) >= Math.abs(dx)) {
+      // Primarily vertical relationship
+      if (dy > 0) {
+        sourceHandle = 'bottom';
+        targetHandle = 'top';
+      } else {
+        sourceHandle = 'top';
+        targetHandle = 'bottom';
+      }
+    } else {
+      // Primarily horizontal relationship
+      if (dx > 0) {
+        sourceHandle = 'right';
+        targetHandle = 'left';
+      } else {
+        sourceHandle = 'left';
+        targetHandle = 'right';
+      }
+    }
+
+    return {
+      ...edge,
+      sourceHandle,
+      targetHandle,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
 /**
  * Hook that wraps the dagre layout engine, reading nodes/edges from the flow
- * store and writing updated positions back.
+ * store and writing updated positions back. Also reassigns edge handles based
+ * on the new node positions so connectors attach at the correct sides.
  *
  * Usage:
  * ```ts
@@ -37,7 +110,7 @@ export interface AutoLayoutResult {
  */
 export function useAutoLayout(): AutoLayoutResult {
   const applyLayout = useCallback((direction: LayoutDirection = 'TB', nodeIds?: string[]) => {
-    const { nodes, edges, setNodes } = useFlowStore.getState();
+    const { nodes, edges, setNodes, setEdges } = useFlowStore.getState();
 
     if (nodeIds && nodeIds.length > 0) {
       // Layout only selected nodes
@@ -59,6 +132,7 @@ export function useAutoLayout(): AutoLayoutResult {
           id: e.id,
           source: e.source,
           target: e.target,
+          label: (e.data?.label as string) || undefined,
         }));
 
       // Compute original center of selected nodes
@@ -102,6 +176,15 @@ export function useAutoLayout(): AutoLayoutResult {
         return { ...n, position: newPos };
       });
       setNodes(merged);
+
+      // Reassign edge handles for affected edges
+      const affectedEdges = edges.filter(
+        (e) => targetIds.has(e.source) || targetIds.has(e.target),
+      );
+      if (affectedEdges.length > 0) {
+        const updatedEdges = reassignEdgeHandles(merged, edges);
+        setEdges(updatedEdges);
+      }
     } else {
       // Layout all nodes (existing behavior)
       const layoutNodes: LayoutNode[] = nodes.map((n) => ({
@@ -117,6 +200,7 @@ export function useAutoLayout(): AutoLayoutResult {
         id: e.id,
         source: e.source,
         target: e.target,
+        label: (e.data?.label as string) || undefined,
       }));
 
       const laidOut = applyDagreLayout(layoutNodes, layoutEdges, direction);
@@ -131,6 +215,10 @@ export function useAutoLayout(): AutoLayoutResult {
       });
 
       setNodes(updatedNodes);
+
+      // Reassign edge handles based on new positions
+      const updatedEdges = reassignEdgeHandles(updatedNodes, edges);
+      setEdges(updatedEdges);
     }
   }, []);
 

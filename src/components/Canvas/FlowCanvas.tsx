@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -210,6 +210,70 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activeStyle = diagramStyles[activeStyleId] || diagramStyles.cleanMinimal;
+
+  // Track Ctrl key for pan-on-drag mode (Ctrl+drag = pan, default drag = select)
+  const [ctrlPressed, setCtrlPressed] = useState(false);
+  const ctrlRef = useRef(false);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control') { ctrlRef.current = true; setCtrlPressed(true); }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control') { ctrlRef.current = false; setCtrlPressed(false); }
+    };
+    const onBlur = () => { ctrlRef.current = false; setCtrlPressed(false); };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  // Manual Ctrl+drag panning — bypasses d3-zoom for reliable pan behavior
+  const panState = useRef<{ active: boolean; startX: number; startY: number; startVp: { x: number; y: number; zoom: number } } | null>(null);
+  useEffect(() => {
+    const wrapper = reactFlowWrapper.current;
+    if (!wrapper) return;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!ctrlRef.current || e.button !== 0) return;
+      // Only start pan if clicking on the pane itself (not on a node/edge)
+      const target = e.target as HTMLElement;
+      if (target.closest('.react-flow__node') || target.closest('.react-flow__edge')) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      const vp = rfInstance.getViewport();
+      panState.current = { active: true, startX: e.clientX, startY: e.clientY, startVp: vp };
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!panState.current?.active) return;
+      const dx = e.clientX - panState.current.startX;
+      const dy = e.clientY - panState.current.startY;
+      const { x, y, zoom } = panState.current.startVp;
+      rfInstance.setViewport({ x: x + dx, y: y + dy, zoom }, { duration: 0 });
+    };
+
+    const onPointerUp = (_e: PointerEvent) => {
+      if (panState.current?.active) {
+        panState.current = null;
+      }
+    };
+
+    wrapper.addEventListener('pointerdown', onPointerDown, { capture: true });
+    wrapper.addEventListener('pointermove', onPointerMove);
+    wrapper.addEventListener('pointerup', onPointerUp);
+    return () => {
+      wrapper.removeEventListener('pointerdown', onPointerDown, { capture: true });
+      wrapper.removeEventListener('pointermove', onPointerMove);
+      wrapper.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [rfInstance]);
 
   // Dependency store
   const walkModeActive = useDependencyStore((s) => s.walkModeActive);
@@ -780,10 +844,19 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     const tgtW = (targetNode.data as Record<string, unknown>).width as number || 160;
     const tgtH = (targetNode.data as Record<string, unknown>).height as number || 60;
 
-    // Determine direction from handle positions
+    // Determine direction from handle positions; infer from node positions if no handles
     const sh = edge.sourceHandle || '';
     const th = edge.targetHandle || '';
-    const isVertical = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+    let isVertical: boolean;
+    if (sh || th) {
+      isVertical = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+    } else {
+      const srcCx = sourceNode.position.x + srcW / 2;
+      const srcCy = sourceNode.position.y + srcH / 2;
+      const tgtCx = targetNode.position.x + tgtW / 2;
+      const tgtCy = targetNode.position.y + tgtH / 2;
+      isVertical = Math.abs(tgtCy - srcCy) >= Math.abs(tgtCx - srcCx);
+    }
 
     if (isVertical) {
       // Align target X center to source X center
@@ -1148,17 +1221,17 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         elementsSelectable={!presentationMode}
         snapToGrid={presentationMode ? false : snapEnabled}
         snapGrid={[snapDistance, snapDistance]}
-        selectionOnDrag={false}
+        selectionOnDrag={!presentationMode && !ctrlPressed}
         selectionMode={SelectionMode.Partial}
-        selectionKeyCode={presentationMode ? null : "Control"}
-        panOnDrag={true}
+        selectionKeyCode={null}
+        panOnDrag={presentationMode ? true : [1]}
         deleteKeyCode={presentationMode ? null : "Delete"}
         multiSelectionKeyCode={presentationMode ? null : "Shift"}
         elevateNodesOnSelect={false}
         minZoom={0.3}
         fitView
         attributionPosition="bottom-left"
-        className={`${darkMode ? 'dark' : ''}${rulerVisible ? ' ruler-active' : ''}`}
+        className={`${darkMode ? 'dark' : ''}${rulerVisible ? ' ruler-active' : ''}${ctrlPressed ? ' pan-mode' : ''}`}
         defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
       >
         {gridVisible && (

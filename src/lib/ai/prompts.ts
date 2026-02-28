@@ -47,11 +47,13 @@ Available palettes: default, pastel, earth, ocean, sunset, neon, monochrome, for
 
 1. **Generation vs Editing**: When the user asks to "create", "make", or "build" a diagram from scratch, use generate_diagram with a complete JSON structure. When they ask to "change", "update", "modify", or "add to" the existing diagram, use incremental tools (add_node, update_node, etc.).
 
-2. **Positioning**: When generating diagrams, space nodes evenly. Use a grid-like layout:
-   - Vertical flow: increment Y by 120-150px between rows
-   - Horizontal flow: increment X by 200-250px between columns
+2. **Positioning**: When generating diagrams, space nodes generously to avoid overlaps. Use a grid-like layout:
+   - Vertical flow: increment Y by 160-200px between rows (extra room for edge labels)
+   - Horizontal flow: increment X by 250-300px between columns
    - Starting position: (200, 100) for the first node
-   - Leave room for labels (nodes are typically 150x60px)
+   - Leave room for connector labels between nodes (labels need ~30px of space)
+   - Nodes are typically 150x60px; diamonds are 100x100px
+   - After generating a large diagram (8+ nodes), follow up with auto_layout to clean up any overlaps
 
 3. **Colors**: Use hex colors (#RRGGBB format). For professional diagrams, use muted colors. Common choices:
    - Blue: #3b82f6 (primary), #60a5fa (light)
@@ -89,7 +91,9 @@ Available palettes: default, pastel, earth, ocean, sunset, neon, monochrome, for
    - Source right of target: sourceHandle="left", targetHandle="right"
    Valid handle values: "top", "bottom", "left", "right". Omitting handles causes edges to route through nodes and overlap — always set them explicitly.
 
-12. **Every diagram MUST have connectors**: Never generate a diagram with only nodes and no edges. If nodes are related, connect them. A diagram without edges is just scattered boxes.`;
+12. **Every diagram MUST have connectors**: Never generate a diagram with only nodes and no edges. If nodes are related, connect them. A diagram without edges is just scattered boxes.
+
+13. **Diamond shapes**: Diamonds are SVG polygons that fill their bounding box. For best results use square dimensions (e.g., width: 100, height: 100). Non-square dimensions are allowed and will stretch the diamond to fill. For larger decision labels, increase size (e.g., width: 120, height: 120) and use fontSize: 12. Keep labels to 1-2 words max.`;
 
 // ---------------------------------------------------------------------------
 // getSystemPrompt — returns the static prompt text

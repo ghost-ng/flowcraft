@@ -23,6 +23,8 @@ export interface LayoutEdge {
   id: string;
   source: string;
   target: string;
+  /** Optional label text — used to compute label dimensions for spacing */
+  label?: string;
 }
 
 export interface LaneBoundary {
@@ -66,8 +68,8 @@ export function applyDagreLayout(
   nodes: LayoutNode[],
   edges: LayoutEdge[],
   direction: LayoutDirection = 'TB',
-  nodeSpacingX: number = 60,
-  nodeSpacingY: number = 40,
+  nodeSpacingX: number = 80,
+  nodeSpacingY: number = 80,
 ): LayoutNode[] {
   if (nodes.length === 0) return [];
 
@@ -90,10 +92,22 @@ export function applyDagreLayout(
   }
 
   // Add edges (only between nodes that exist in the graph)
+  // When edges have labels, pass estimated label dimensions so dagre reserves space
   const nodeIds = new Set(nodes.map((n) => n.id));
   for (const edge of edges) {
     if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
-      g.setEdge(edge.source, edge.target);
+      if (edge.label) {
+        // Estimate label dimensions: ~7px per char width, 22px height with padding
+        const labelWidth = Math.max(40, edge.label.length * 7 + 16);
+        const labelHeight = 22;
+        g.setEdge(edge.source, edge.target, {
+          width: labelWidth,
+          height: labelHeight,
+          labelpos: 'c',
+        });
+      } else {
+        g.setEdge(edge.source, edge.target);
+      }
     }
   }
 

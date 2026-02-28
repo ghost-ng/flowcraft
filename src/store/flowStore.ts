@@ -465,7 +465,18 @@ export const useFlowStore = create<FlowState>()(
           const tgtH = target.data.height || 60;
           const sh = edge.sourceHandle || '';
           const th = edge.targetHandle || '';
-          const isVert = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+          // Determine direction from handles; if no handles, infer from node positions
+          let isVert: boolean;
+          if (sh || th) {
+            isVert = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+          } else {
+            // No handles set — infer from relative positions of source & target centers
+            const srcCx = source.position.x + srcW / 2;
+            const srcCy = source.position.y + srcH / 2;
+            const tgtCx = target.position.x + tgtW / 2;
+            const tgtCy = target.position.y + tgtH / 2;
+            isVert = Math.abs(tgtCy - srcCy) >= Math.abs(tgtCx - srcCx);
+          }
           if (isVert) {
             const srcCenterX = source.position.x + srcW / 2;
             target.position = { x: srcCenterX - tgtW / 2, y: target.position.y };
