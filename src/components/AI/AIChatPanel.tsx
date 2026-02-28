@@ -42,10 +42,12 @@ const AIChatPanel: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const roundRef = useRef(0);
 
-  // Position & size
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // Position & size — initialize directly to bottom-right to avoid flash at (0,0)
+  const [position, setPosition] = useState(() => ({
+    x: window.innerWidth - DEFAULT_WIDTH - 16,
+    y: window.innerHeight - DEFAULT_HEIGHT - 16,
+  }));
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
-  const [initialized, setInitialized] = useState(false);
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
@@ -56,17 +58,6 @@ const AIChatPanel: React.FC = () => {
   const [isResizing, setIsResizing] = useState(false);
   const resizeDir = useRef<ResizeDir>('');
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0, px: 0, py: 0 });
-
-  // Initialize position to bottom-right on first open
-  useEffect(() => {
-    if (isPanelOpen && !initialized) {
-      setPosition({
-        x: window.innerWidth - DEFAULT_WIDTH - 16,
-        y: window.innerHeight - DEFAULT_HEIGHT - 16,
-      });
-      setInitialized(true);
-    }
-  }, [isPanelOpen, initialized]);
 
   // Load API key on mount
   useEffect(() => {

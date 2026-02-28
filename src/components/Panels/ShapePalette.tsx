@@ -317,7 +317,7 @@ const ShapePalette: React.FC = () => {
                            transition-all duration-100
                            hover:bg-primary/10 text-text-muted hover:text-primary cursor-pointer"
               >
-                <Rows3 size={20} />
+                <Rows3 size={26} />
               </button>
             </div>
           </div>

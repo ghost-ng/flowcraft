@@ -17,7 +17,7 @@ import { useAIStore } from './store/aiStore';
 const AIChatPanel = React.lazy(() => import('./components/AI/AIChatPanel'));
 const AISettingsDialog = React.lazy(() => import('./components/AI/AISettingsDialog'));
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { useUndoRedo } from './hooks/useUndoRedo';
+import { useHistoryStore } from './store/historyStore';
 import { useAutoLayout } from './hooks/useAutoLayout';
 import ScreenshotOverlay from './components/Screenshot/ScreenshotOverlay';
 import { log } from './utils/logger';
@@ -59,8 +59,11 @@ const App: React.FC = () => {
   const shortcutsDialogOpen = useUIStore((s) => s.shortcutsDialogOpen);
   const setShortcutsDialogOpen = useUIStore((s) => s.setShortcutsDialogOpen);
 
-  // Undo/redo
-  const { undo, redo, canUndo, canRedo, takeSnapshot } = useUndoRedo<FlowNode, FlowEdge>();
+  // Undo/redo — automatic via historyStore subscription to flowStore
+  const canUndo = useHistoryStore((s) => s.canUndo);
+  const canRedo = useHistoryStore((s) => s.canRedo);
+  const handleUndo = useCallback(() => useHistoryStore.getState().undo(), []);
+  const handleRedo = useCallback(() => useHistoryStore.getState().redo(), []);
 
   // Auto layout
   const { applyLayout } = useAutoLayout();
@@ -79,39 +82,13 @@ const App: React.FC = () => {
     [],
   );
 
-  // Undo handler
-  const handleUndo = useCallback(() => {
-    const snapshot = undo();
-    if (snapshot) {
-      useFlowStore.getState().setNodes(snapshot.nodes);
-      useFlowStore.getState().setEdges(snapshot.edges);
-    }
-  }, [undo]);
-
-  // Redo handler
-  const handleRedo = useCallback(() => {
-    const snapshot = redo();
-    if (snapshot) {
-      useFlowStore.getState().setNodes(snapshot.nodes);
-      useFlowStore.getState().setEdges(snapshot.edges);
-    }
-  }, [redo]);
-
-  // Take a snapshot before any mutation that we want to be undoable
-  // We subscribe to the store to capture snapshots on changes
-  const takeSnapshotNow = useCallback(() => {
-    const { nodes, edges } = useFlowStore.getState();
-    takeSnapshot(nodes, edges);
-  }, [takeSnapshot]);
-
   // Delete selected
   const handleDeleteSelected = useCallback(() => {
-    takeSnapshotNow();
     const { selectedNodes, removeNode } = useFlowStore.getState();
     for (const id of selectedNodes) {
       removeNode(id);
     }
-  }, [takeSnapshotNow]);
+  }, []);
 
   // Select all
   const handleSelectAll = useCallback(() => {
@@ -134,13 +111,11 @@ const App: React.FC = () => {
 
   // Auto layout
   const handleAutoLayout = useCallback(() => {
-    takeSnapshotNow();
     applyLayout('TB');
-  }, [takeSnapshotNow, applyLayout]);
+  }, [applyLayout]);
 
   // Group selected nodes (region container)
   const handleGroup = useCallback(() => {
-    takeSnapshotNow();
     const { nodes, selectedNodes, addNode, setNodes } = useFlowStore.getState();
     if (selectedNodes.length < 2) return;
 
@@ -178,15 +153,14 @@ const App: React.FC = () => {
         data: { ...n.data, groupId },
       }));
     setNodes([...otherNodes, theGroup, ...childNodes]);
-  }, [takeSnapshotNow]);
+  }, []);
 
   // Link group selected nodes (logical, no container)
   const handleLinkGroup = useCallback(() => {
-    takeSnapshotNow();
     const { selectedNodes, createLinkGroup } = useFlowStore.getState();
     if (selectedNodes.length < 2) return;
     createLinkGroup(selectedNodes);
-  }, [takeSnapshotNow]);
+  }, []);
 
   // Mirror / Rotate helpers
   const applyPositions = useCallback((positions: Map<string, { x: number; y: number }>) => {
@@ -203,61 +177,53 @@ const App: React.FC = () => {
   }, []);
 
   const handleMirrorH = useCallback(() => {
-    takeSnapshotNow();
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
     applyPositions(mirrorHorizontal(nodes));
-  }, [takeSnapshotNow, getSelectedFlowNodes, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   const handleMirrorV = useCallback(() => {
-    takeSnapshotNow();
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
     applyPositions(mirrorVertical(nodes));
-  }, [takeSnapshotNow, getSelectedFlowNodes, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   // Alignment keyboard shortcut handlers
   const handleAlignLeft = useCallback(() => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
-    takeSnapshotNow();
     applyPositions(alignment.alignLeft(nodes));
-  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   const handleAlignCenterH = useCallback(() => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
-    takeSnapshotNow();
     applyPositions(alignment.alignCenterH(nodes));
-  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   const handleAlignRight = useCallback(() => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
-    takeSnapshotNow();
     applyPositions(alignment.alignRight(nodes));
-  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   const handleAlignTop = useCallback(() => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
-    takeSnapshotNow();
     applyPositions(alignment.alignTop(nodes));
-  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   const handleAlignCenterV = useCallback(() => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
-    takeSnapshotNow();
     applyPositions(alignment.alignCenterV(nodes));
-  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   const handleAlignBottom = useCallback(() => {
     const nodes = getSelectedFlowNodes();
     if (nodes.length < 2) return;
-    takeSnapshotNow();
     applyPositions(alignment.alignBottom(nodes));
-  }, [getSelectedFlowNodes, takeSnapshotNow, applyPositions]);
+  }, [getSelectedFlowNodes, applyPositions]);
 
   // Z-order: keyboard shortcut handlers (operate on all selected nodes)
   const handleSendBackward = useCallback(() => {
@@ -306,7 +272,6 @@ const App: React.FC = () => {
 
   // Duplicate selected nodes
   const handleDuplicate = useCallback(() => {
-    takeSnapshotNow();
     const { nodes, selectedNodes, addNode } = useFlowStore.getState();
     const newIds: string[] = [];
     for (const id of selectedNodes) {
@@ -322,7 +287,7 @@ const App: React.FC = () => {
       newIds.push(newId);
     }
     if (newIds.length) useFlowStore.getState().setSelectedNodes(newIds);
-  }, [takeSnapshotNow]);
+  }, []);
 
   // Edit label of first selected node
   const handleEditLabel = useCallback(() => {
@@ -334,7 +299,6 @@ const App: React.FC = () => {
 
   // Add node at canvas center (via view controls)
   const handleAddNode = useCallback(() => {
-    takeSnapshotNow();
     const { addNode } = useFlowStore.getState();
     addNode({
       id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -342,7 +306,7 @@ const App: React.FC = () => {
       position: { x: 400, y: 300 },
       data: { label: 'New Node', shape: 'rectangle' },
     });
-  }, [takeSnapshotNow]);
+  }, []);
 
   // Open export dialog
   const handleExport = useCallback(() => {
@@ -455,7 +419,6 @@ const App: React.FC = () => {
   // Paste: pucks onto selected node, or nodes at offset
   const handlePaste = useCallback(() => {
     if (!clipboard) return;
-    takeSnapshotNow();
 
     if (clipboard.type === 'pucks') {
       // Paste pucks onto the first selected node
@@ -522,7 +485,7 @@ const App: React.FC = () => {
 
     state.setSelectedNodes(newIds);
     useUIStore.getState().showToast(`Pasted ${newIds.length} block${newIds.length > 1 ? 's' : ''}`, 'success');
-  }, [takeSnapshotNow]);
+  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -592,6 +555,8 @@ const App: React.FC = () => {
     } catch (e) {
       log.error('Autosave load failed', e);
     }
+    // Clear history so the initial load isn't an undo-able action
+    useHistoryStore.getState().clearHistory();
 
     // Save on changes (debounced)
     let timeout: ReturnType<typeof setTimeout>;

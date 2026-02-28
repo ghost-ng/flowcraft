@@ -7,6 +7,7 @@ import { type EdgeProps, getSmoothStepPath } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useEdgeVisuals } from './useEdgeVisuals';
+import { useEdgeTypeDrag } from './useEdgeTypeDrag';
 import EdgeLabel from './EdgeLabel';
 
 // ---------------------------------------------------------------------------
@@ -47,6 +48,7 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
   const label = ev.label;
   const markerEnd = ev.markerEnd ?? markerEndProp;
   const markerStart = ev.markerStart ?? markerStartProp;
+  const onInteractionMouseDown = useEdgeTypeDrag(id, sourceX, sourceY, targetX, targetY);
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -60,7 +62,7 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
 
   return (
     <>
-      {/* Invisible wider interaction path for easier clicking */}
+      {/* Invisible wider interaction path for easier clicking + drag-to-cycle type */}
       <path
         id={`${id}-interaction`}
         d={edgePath}
@@ -68,6 +70,7 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
         stroke="transparent"
         strokeWidth={INTERACTION_PATH_WIDTH}
         className="react-flow__edge-interaction"
+        onMouseDown={onInteractionMouseDown}
       />
 
       {/* Visible edge path */}
