@@ -190,7 +190,7 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               <RotateCcw size={12} className="text-slate-400" />
               Reset to Theme
             </button>
-            <div className="px-3 py-1.5">
+            <div className="px-3 py-1.5" onMouseDown={(e) => e.stopPropagation()}>
               <input
                 type="color"
                 value={canvasColorOverride || '#ffffff'}

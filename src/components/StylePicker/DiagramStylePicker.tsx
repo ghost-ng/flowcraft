@@ -198,9 +198,11 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         setPalette(style.defaultPaletteId);
       }
 
-      // Auto-enable dark mode for dark themes
+      // Sync dark mode to match theme preference
       if (style?.dark) {
         useStyleStore.getState().setDarkMode(true);
+      } else {
+        useStyleStore.getState().setDarkMode(false);
       }
     },
     [setStyle, setPalette],
