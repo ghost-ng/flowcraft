@@ -1,16 +1,16 @@
 # Styles & Themes
 
-Chart Hero offers 19 visual diagram themes and 11 color palettes that let you completely transform the look of your diagram with a single click. Access them via the **Paintbrush** icon in the toolbar.
+Chart Hero offers 24 visual diagram themes and 21 color palettes that let you completely transform the look of your diagram with a single click. Access them via the **Paintbrush** icon in the toolbar.
 
 ![Style & Palette Picker](../../assets/wiki-style-picker.png)
 
 ---
 
-## Diagram Styles (19 Themes)
+## Diagram Styles (24 Themes)
 
 Each style completely transforms the visual appearance of your diagram: canvas background, grid style, node fills, borders, fonts, edge colors, and accent palette. Applying a style updates every node and edge on the canvas at once.
 
-### Light Themes (10)
+### Light Themes (13)
 
 | Style | Font | Node Look | Edge Style | Character |
 |-------|------|-----------|------------|-----------|
@@ -24,8 +24,11 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 | **Wireframe** | Inter | Transparent fill, gray border (1.5px), cross grid | Gray straight | Wireframe/mockup prototyping |
 | **Infographic Bold** | Poppins (bold 700) | Bright blue fill, purple border (3px), 24px radius | Purple smoothstep | Eye-catching infographics |
 | **Colorful Gradient** | Inter (semibold 600) | Indigo fill, no border, 12px radius | Gray smoothstep | Vibrant, modern presentations |
+| **Zinc Modern** | Inter | White fill, zinc border (1px), 8px radius, no shadow | Gray smoothstep | Ultra-clean SaaS aesthetic |
+| **Soft Gradient** | Inter | Semi-transparent white fill, 14px radius, soft shadow | Violet bezier | Modern editorial pastel feel |
+| **Paper Print** | Georgia (serif) | Off-white fill, hairline border (0.75px), 2px radius | Muted brown straight | Warm book typography, print-ready |
 
-### Dark Themes (6)
+### Dark Themes (8)
 
 ![Neon Dark Style](../../assets/wiki-neon-dark-style.png)
 
@@ -37,6 +40,8 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 | **Military C2** | Share Tech Mono | Olive fill, sage border (2px), 2px radius | Sage step | Military command and control |
 | **Dark Neon Glow** | JetBrains Mono | Dark fill, magenta border (2px, glow), cyan text | Neon green animated smoothstep | Cyberpunk with pink/green |
 | **Glass Morphism** | Inter (semibold 600) | Semi-transparent white fill, glass blur effect, 16px radius | Semi-transparent smoothstep | Modern glass / frosted aesthetic |
+| **Midnight Luxe** | Georgia (serif) | Near-black fill, gold border (1.5px), gold glow shadow | Gold bezier | Luxury dark theme, elegant serif |
+| **Aurora Borealis** | Inter | Semi-transparent dark fill, cyan border (glow), 12px radius | Cyan animated bezier | Northern lights with neon accents |
 
 ### Additional Themes (3)
 
@@ -50,7 +55,7 @@ Each style completely transforms the visual appearance of your diagram: canvas b
 
 ---
 
-## Color Palettes (11)
+## Color Palettes (21)
 
 Palettes provide curated fill colors for selected nodes. Press number keys **1** through **9** to quickly apply a color to selected nodes. Each palette contains 5 curated colors shown below.
 
@@ -67,6 +72,16 @@ Palettes provide curated fill colors for selected nodes. Press number keys **1**
 | **Military** | Army green `#4b5320` | Olive drab `#556b2f` | Dark khaki `#8b8000` | Khaki `#c2b280` | Tan `#d2b48c` | Military/defense diagrams |
 | **Accessible (AAA)** | Dark blue `#0b5394` | Brown `#6b3a0a` | Green `#1a6b3c` | Dark red `#8b1a1a` | Purple `#4a2d73` | WCAG AAA contrast-safe (7:1 ratio) |
 | **Slate Command** | Slate blue `#5B7A9A` | Light slate `#829AB5` | Pale blue `#A9BBD2` | Light gray `#D9D9D9` | Ivory `#FFFFF0` | Professional command/control |
+| **Midnight Aurora** | Deep purple `#1a0a2e` | Dark blue `#16213e` | Teal `#0f9b8e` | Mint `#6fedd6` | Violet `#8b5cf6` | Northern lights, aurora theme |
+| **Rose Gold** | Rose `#b76e79` | Peach `#e8a87c` | Gold `#d4a373` | Cream `#f0e5cf` | Blush `#c8847e` | Luxury, warm femininity |
+| **Nordic Frost** | Ice `#d6e5e3` | Frost `#9dc5bb` | Teal `#5fa8a0` | Deep teal `#3a7d7b` | Dark sea `#1f4e5f` | Scandinavian cool tones |
+| **Terracotta** | Clay `#c2703e` | Adobe `#d4956b` | Sand `#ddb892` | Sage `#8a9a5b` | Olive `#5f6b3c` | Mediterranean warmth |
+| **Lavender Fields** | Lilac `#b8a9c9` | Purple `#967aa1` | Rose `#d4a5a5` | Mint `#9dc8c8` | Cream `#f2e6d9` | Soft, dreamy pastels |
+| **Tropical** | Emerald `#06d6a0` | Ocean `#118ab2` | Yellow `#ffd166` | Coral `#ef476f` | Dark teal `#073b4c` | Vivid island colors |
+| **Candy Pop** | Hot pink `#ff6b9d` | Pink `#ffa9c6` | Yellow `#ffeaa7` | Mint `#55efc4` | Lavender `#a29bfe` | Fun, bright pop colors |
+| **Tokyo Night** | Dark blue `#1a1b27` | Slate `#414868` | Blue `#7aa2f7` | Purple `#bb9af7` | Pink `#f7768e` | Neon city at night |
+| **Coral Reef** | Teal `#006d77` | Seafoam `#83c5be` | Pale ice `#edf6f9` | Peach `#ffddd2` | Coral `#e29578` | Ocean and coral tones |
+| **Vintage Sage** | Sage `#87986a` | Mint `#b7c4a3` | Wheat `#d4c5a9` | Dusty rose `#c9a9a6` | Walnut `#a3816a` | Muted, vintage naturals |
 
 ### Using Palette Colors
 
@@ -89,7 +104,7 @@ Dark mode inverts the application UI (toolbar, panels, menus, dialogs) to a dark
 - **AI command**: "Switch to dark mode" or "Turn on dark mode"
 - Canvas background adapts to the current diagram style
 - Can be toggled independently of diagram style -- light themes still work in dark mode, with only the panels and menus inverted
-- Dark diagram styles (Blueprint, Neon Dark, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
+- Dark diagram styles (Blueprint, Neon Dark, Midnight Luxe, Aurora Borealis, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
 
 ---
 

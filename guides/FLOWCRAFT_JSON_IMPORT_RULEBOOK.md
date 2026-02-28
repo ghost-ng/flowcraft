@@ -397,6 +397,11 @@ Apply a visual theme to the entire diagram.
 | `notebook` | Lined notebook paper style |
 | `gradientCards` | Gradient card design |
 | `cyberC2` | Cyberpunk command & control |
+| `zincModern` | Ultra-clean SaaS look, zinc/gray tones |
+| `softGradient` | Pastel gradient bg, soft editorial feel |
+| `midnightLuxe` | Dark luxury with gold accents |
+| `paperPrint` | Warm off-white, book typography |
+| `auroraBorealis` | Dark gradient with neon aurora accents |
 
 ### 6.2 Available Palette IDs
 
@@ -415,6 +420,16 @@ Color palettes control the colors assigned to nodes via number keys (1-9).
 | `military` | Olive/khaki/navy |
 | `accessible` | High-contrast accessible colors |
 | `cyberC2` | Cyberpunk command & control colors |
+| `midnightAurora` | Deep purples, aurora greens/teals |
+| `roseGold` | Pinks, warm gold, soft neutrals |
+| `nordicFrost` | Icy blues, cool grays |
+| `terracotta` | Warm reds, ochre, sage green |
+| `lavenderFields` | Soft purples, mint, warm tones |
+| `tropical` | Vivid greens, turquoise, sunset |
+| `candyPop` | Bright pinks, yellows, mint |
+| `tokyoNight` | Neon purples, magentas, deep blues |
+| `coralReef` | Ocean blues, corals, seafoam |
+| `vintageSage` | Muted sage, dusty rose, cream |
 
 ---
 
@@ -1231,7 +1246,7 @@ When using dark styles (`darkMode: true` or dark diagram styles like `neonDark`,
 - **Pastel fills** — Pale colors like `#dbeafe` look washed out on dark backgrounds. Use saturated versions (`#3b82f6`)
 - **Default `textColor: "#ffffff"`** on light-filled nodes — If a node has `"color": "#fbbf24"` (yellow) in dark mode, the white text may lack contrast. Use `"textColor": "#1e293b"` (dark) instead
 
-**Dark-friendly style IDs:** `neonDark`, `retroTerminal`, `darkNeonGlow`, `cyberC2`, `militaryC2`, `glassMorphism`
+**Dark-friendly style IDs:** `neonDark`, `retroTerminal`, `darkNeonGlow`, `cyberC2`, `militaryC2`, `glassMorphism`, `midnightLuxe`, `auroraBorealis`
 
 **Example — dark mode system diagram:**
 ```json
@@ -1326,7 +1341,7 @@ Before finalizing a diagram JSON, verify:
 
 ### 15.3 Dark Mode Tips
 
-18. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`).
+18. **Set `darkMode: true` in styles** AND choose a dark-friendly style ID (`neonDark`, `darkNeonGlow`, `cyberC2`, `retroTerminal`, `midnightLuxe`, `auroraBorealis`).
 
 19. **Use saturated fill colors** — Pale/pastel fills look washed out on dark backgrounds. Use full-saturation colors (`#3b82f6` not `#dbeafe`).
 

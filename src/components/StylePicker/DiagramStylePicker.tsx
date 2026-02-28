@@ -150,17 +150,15 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
     (id: string) => {
       setStyle(id);
 
-      // Apply style formatting (fonts, borders, edges) but NOT fill colors.
-      // Fill colors are controlled independently via the color palette.
+      // Apply the full style to every node (fill, border, fonts) and edge.
       const style = diagramStyles[id];
       if (style) {
         const { nodes } = useFlowStore.getState();
         for (const node of nodes) {
-          const textColor = ensureReadableText(
-            node.data.color || style.nodeDefaults.fill,
-            style.nodeDefaults.fontColor,
-          );
+          const fill = style.nodeDefaults.fill;
+          const textColor = ensureReadableText(fill, style.nodeDefaults.fontColor);
           useFlowStore.getState().updateNodeData(node.id, {
+            color: fill,
             borderColor: style.nodeDefaults.stroke,
             textColor,
             fontFamily: style.nodeDefaults.fontFamily,
@@ -228,15 +226,17 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
       `}
     >
       {/* Diagram Styles */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="px-4 pt-4 pb-1">
         <h3
-          className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
+          className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
             darkMode ? 'text-dk-muted' : 'text-slate-500'
           }`}
         >
           Diagram Style
         </h3>
-        <div className="grid grid-cols-3 gap-2 mb-5">
+      </div>
+      <div className="overflow-y-auto max-h-[35vh] px-4 pb-2">
+        <div className="grid grid-cols-3 gap-2">
           {styleEntries.map(([id, style]) => (
             <StyleCard
               key={id}
@@ -252,15 +252,22 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
             />
           ))}
         </div>
+      </div>
 
-        {/* Color Palettes */}
+      {/* Divider */}
+      <div className={`mx-4 border-t ${darkMode ? 'border-dk-border' : 'border-slate-200'}`} />
+
+      {/* Color Palettes */}
+      <div className="px-4 pt-2 pb-1">
         <h3
-          className={`text-xs font-semibold uppercase tracking-wider mb-3 ${
+          className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
             darkMode ? 'text-dk-muted' : 'text-slate-500'
           }`}
         >
           Color Palette
         </h3>
+      </div>
+      <div className="overflow-y-auto max-h-[25vh] px-4 pb-4">
         <div className="grid grid-cols-2 gap-2">
           {paletteEntries.map(([id, palette]) => (
             <PaletteSwatch

@@ -19,6 +19,11 @@ import { darkNeonGlow } from './darkNeonGlow';
 import { notebook } from './notebook';
 import { gradientCards } from './gradientCards';
 import { cyberC2 } from './cyberC2';
+import { zincModern } from './zincModern';
+import { softGradient } from './softGradient';
+import { midnightLuxe } from './midnightLuxe';
+import { paperPrint } from './paperPrint';
+import { auroraBorealis } from './auroraBorealis';
 
 export const diagramStyles: Record<string, DiagramStyle> = {
   cleanMinimal,
@@ -40,6 +45,11 @@ export const diagramStyles: Record<string, DiagramStyle> = {
   notebook,
   gradientCards,
   cyberC2,
+  zincModern,
+  softGradient,
+  midnightLuxe,
+  paperPrint,
+  auroraBorealis,
 };
 
 export const defaultStyleId = 'cleanMinimal';
@@ -64,4 +74,9 @@ export {
   notebook,
   gradientCards,
   cyberC2,
+  zincModern,
+  softGradient,
+  midnightLuxe,
+  paperPrint,
+  auroraBorealis,
 };

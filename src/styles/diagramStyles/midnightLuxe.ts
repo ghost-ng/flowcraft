@@ -1,0 +1,31 @@
+import type { DiagramStyle } from '../types';
+
+export const midnightLuxe: DiagramStyle = {
+  id: 'midnightLuxe',
+  displayName: 'Midnight Luxe',
+  dark: true,
+  canvas: {
+    background: '#0c0c0f',
+    gridColor: 'rgba(212, 175, 55, 0.06)',
+    gridStyle: 'lines',
+  },
+  nodeDefaults: {
+    fill: '#18181b',
+    stroke: '#d4af37',
+    strokeWidth: 1.5,
+    borderRadius: 4,
+    shadow: '0 4px 24px rgba(0, 0, 0, 0.5), 0 0 1px rgba(212, 175, 55, 0.3)',
+    fontFamily: "'Georgia', 'Playfair Display', serif",
+    fontSize: 14,
+    fontColor: '#e8e0cc',
+    fontWeight: 400,
+  },
+  edgeDefaults: {
+    stroke: '#d4af37',
+    strokeWidth: 1.5,
+    type: 'bezier',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#d4af37', '#c0a36e', '#8b7355', '#a08060', '#e8d5b5'],
+};
