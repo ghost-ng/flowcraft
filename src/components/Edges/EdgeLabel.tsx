@@ -4,9 +4,12 @@
 // Renders the label for an edge and allows the user to click-and-drag it
 // along the connector path to reposition. The label position is stored as
 // a `t` parameter (0 = source, 0.5 = center, 1 = target) in edge data.
+//
+// Positioning uses the actual SVG <path> element via getPointAtLength()
+// so labels follow curves & right-angle bends accurately.
 // ---------------------------------------------------------------------------
 
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { EdgeLabelRenderer, useReactFlow } from '@xyflow/react';
 import { useFlowStore } from '../../store/flowStore';
 
@@ -43,16 +46,22 @@ export interface EdgeLabelProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// SVG path helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Compute (lx, ly) from t using the same piecewise linear interpolation
- * that the edge components previously used inline.
- *
- * t = 0   => (sourceX, sourceY)
- * t = 0.5 => (midX, midY)
- * t = 1   => (targetX, targetY)
+ * Get the SVG <path> element for an edge by its ID.
+ * Returns null if the element doesn't exist or isn't an SVGPathElement.
+ */
+function getPathElement(edgeId: string): SVGPathElement | null {
+  const el = document.getElementById(edgeId);
+  if (el instanceof SVGPathElement) return el;
+  return null;
+}
+
+/**
+ * Compute (x, y) at position t (0-1) along the actual SVG path.
+ * Falls back to piecewise linear interpolation if the DOM element isn't found.
  */
 export function computeLabelXY(
   t: number,
@@ -62,15 +71,25 @@ export function computeLabelXY(
   midY: number,
   targetX: number,
   targetY: number,
+  edgeId?: string,
 ): [number, number] {
+  if (edgeId) {
+    const pathEl = getPathElement(edgeId);
+    if (pathEl) {
+      const totalLen = pathEl.getTotalLength();
+      const pt = pathEl.getPointAtLength(t * totalLen);
+      return [pt.x, pt.y];
+    }
+  }
+  // Fallback: piecewise linear through 3 points
   if (t <= 0.5) {
-    const s = t * 2; // 0..1 within the first half
+    const s = t * 2;
     return [
       sourceX + s * (midX - sourceX),
       sourceY + s * (midY - sourceY),
     ];
   } else {
-    const s = (t - 0.5) * 2; // 0..1 within the second half
+    const s = (t - 0.5) * 2;
     return [
       midX + s * (targetX - midX),
       midY + s * (targetY - midY),
@@ -79,10 +98,9 @@ export function computeLabelXY(
 }
 
 /**
- * Given a mouse position in flow coordinates, compute the nearest t along
- * the piecewise linear path source -> mid -> target.
- *
- * We project the point onto each segment and pick the closest.
+ * Given a mouse position in flow coordinates, find the nearest t (0-1)
+ * along the actual SVG path by sampling.
+ * Falls back to segment projection if the DOM element isn't found.
  */
 function projectToT(
   px: number,
@@ -93,35 +111,72 @@ function projectToT(
   midY: number,
   targetX: number,
   targetY: number,
+  edgeId?: string,
 ): number {
-  // Project onto segment A: source -> mid  (t = 0 .. 0.5)
+  if (edgeId) {
+    const pathEl = getPathElement(edgeId);
+    if (pathEl) {
+      const totalLen = pathEl.getTotalLength();
+      if (totalLen === 0) return 0.5;
+      // Coarse pass: sample 40 points
+      const COARSE = 40;
+      let bestT = 0.5;
+      let bestDist = Infinity;
+      for (let i = 0; i <= COARSE; i++) {
+        const sampleT = i / COARSE;
+        const pt = pathEl.getPointAtLength(sampleT * totalLen);
+        const dist = (px - pt.x) ** 2 + (py - pt.y) ** 2;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestT = sampleT;
+        }
+      }
+      // Fine pass: refine within ±1 coarse step
+      const lo = Math.max(0, bestT - 1 / COARSE);
+      const hi = Math.min(1, bestT + 1 / COARSE);
+      const FINE = 20;
+      for (let i = 0; i <= FINE; i++) {
+        const sampleT = lo + (hi - lo) * (i / FINE);
+        const pt = pathEl.getPointAtLength(sampleT * totalLen);
+        const dist = (px - pt.x) ** 2 + (py - pt.y) ** 2;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestT = sampleT;
+        }
+      }
+      return bestT;
+    }
+  }
+  // Fallback: piecewise segment projection
+  return projectToTFallback(px, py, sourceX, sourceY, midX, midY, targetX, targetY);
+}
+
+/** Fallback projection onto source→mid→target segments */
+function projectToTFallback(
+  px: number, py: number,
+  sourceX: number, sourceY: number,
+  midX: number, midY: number,
+  targetX: number, targetY: number,
+): number {
   const tA = projectOntoSegment(px, py, sourceX, sourceY, midX, midY);
   const axA = sourceX + tA * (midX - sourceX);
   const ayA = sourceY + tA * (midY - sourceY);
   const distA = (px - axA) ** 2 + (py - ayA) ** 2;
 
-  // Project onto segment B: mid -> target  (t = 0.5 .. 1)
   const tB = projectOntoSegment(px, py, midX, midY, targetX, targetY);
   const axB = midX + tB * (targetX - midX);
   const ayB = midY + tB * (targetY - midY);
   const distB = (px - axB) ** 2 + (py - ayB) ** 2;
 
-  // Pick the closer segment and map back to global t
-  if (distA <= distB) {
-    return tA * 0.5; // segment A maps to t 0..0.5
-  } else {
-    return 0.5 + tB * 0.5; // segment B maps to t 0.5..1
-  }
+  if (distA <= distB) return tA * 0.5;
+  return 0.5 + tB * 0.5;
 }
 
-/** Project point (px,py) onto line segment (ax,ay)-(bx,by), return clamped t in [0,1] */
+/** Project point onto line segment, return clamped t in [0,1] */
 function projectOntoSegment(
-  px: number,
-  py: number,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
+  px: number, py: number,
+  ax: number, ay: number,
+  bx: number, by: number,
 ): number {
   const dx = bx - ax;
   const dy = by - ay;
@@ -166,7 +221,18 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
 
   // The effective t: use drag position while dragging, otherwise the stored value
   const effectiveT = dragT !== null ? dragT : labelPosition;
-  const [lx, ly] = computeLabelXY(effectiveT, sourceX, sourceY, midX, midY, targetX, targetY);
+
+  // Compute position — initial render uses whatever is available (may fall back to linear)
+  const initialPos = computeLabelXY(effectiveT, sourceX, sourceY, midX, midY, targetX, targetY, edgeId);
+  const [pos, setPos] = useState<[number, number]>(initialPos);
+
+  // After DOM commit, recompute using the actual SVG path element (handles edge type changes)
+  useLayoutEffect(() => {
+    const updated = computeLabelXY(effectiveT, sourceX, sourceY, midX, midY, targetX, targetY, edgeId);
+    setPos((prev) => (prev[0] === updated[0] && prev[1] === updated[1]) ? prev : updated);
+  }, [effectiveT, sourceX, sourceY, midX, midY, targetX, targetY, edgeId]);
+
+  const [lx, ly] = pos;
 
   // Keep refs for values needed in window event handlers (to avoid stale closures)
   const edgeIdRef = useRef(edgeId);
@@ -186,7 +252,7 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
       const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const p = pathRef.current;
 
-      // Compute new t by projecting onto path
+      // Compute new t by projecting onto actual SVG path
       const rawT = projectToT(
         flowPos.x,
         flowPos.y,
@@ -196,6 +262,7 @@ const EdgeLabel: React.FC<EdgeLabelProps> = ({
         p.midY,
         p.targetX,
         p.targetY,
+        edgeIdRef.current,
       );
       const snapped = snapT(rawT);
       dragTRef.current = snapped;

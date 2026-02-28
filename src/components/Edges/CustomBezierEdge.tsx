@@ -9,6 +9,8 @@ import { useStyleStore } from '../../store/styleStore';
 import { useEdgeVisuals } from './useEdgeVisuals';
 import { useEdgeTypeDrag } from './useEdgeTypeDrag';
 import EdgeLabel from './EdgeLabel';
+import EdgeTypeDragHandle from './EdgeTypeDragHandle';
+import EdgeReconnectIndicator from './EdgeReconnectIndicator';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -106,6 +108,17 @@ const CustomBezierEdge: React.FC<EdgeProps> = ({
             opacity: 0.25,
           }}
         />
+      )}
+
+      {/* Selected-only indicators */}
+      {selected && (
+        <>
+          {/* Drag-to-cycle type handle at midpoint */}
+          <EdgeTypeDragHandle cx={labelX} cy={labelY} color={strokeColor} onMouseDown={onInteractionMouseDown} />
+          {/* Reconnect triangles at endpoints */}
+          <EdgeReconnectIndicator cx={sourceX} cy={sourceY} position={sourcePosition} color={strokeColor} />
+          <EdgeReconnectIndicator cx={targetX} cy={targetY} position={targetPosition} color={strokeColor} />
+        </>
       )}
 
       {/* Label (draggable along the path) */}
