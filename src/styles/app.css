@@ -55,7 +55,40 @@ body,
   background: var(--color-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  cursor: var(--cursor-default);
 }
+
+/* Global custom cursors — apply custom pointer hand to ALL interactive elements */
+a,
+button,
+select,
+summary,
+label[for],
+[role="button"],
+[role="tab"],
+[role="option"],
+[role="menuitem"],
+[role="checkbox"],
+[role="radio"],
+[role="switch"],
+[tabindex]:not([tabindex="-1"]),
+input[type="range"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+input[type="color"],
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  cursor: var(--cursor-select);
+}
+
+/* Override Tailwind cursor utilities to use custom cursors app-wide */
+.cursor-pointer { cursor: var(--cursor-select) !important; }
+.cursor-grab    { cursor: var(--cursor-drag) !important; }
+.cursor-grabbing { cursor: var(--cursor-drag-active) !important; }
+.cursor-default { cursor: var(--cursor-default) !important; }
+.cursor-crosshair { cursor: var(--cursor-crosshair) !important; }
 
 /* Toast slide-up animation */
 @keyframes slideUp {

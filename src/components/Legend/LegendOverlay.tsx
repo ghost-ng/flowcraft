@@ -661,7 +661,7 @@ const LegendOverlay: React.FC<LegendOverlayProps> = ({ which }) => {
                 fontWeight: 600,
                 color: titleColor,
                 borderBottom: `1px solid ${borderColor}`,
-                cursor: editingTitle ? 'text' : 'grab',
+                cursor: editingTitle ? 'text' : 'var(--cursor-drag)',
                 userSelect: 'none',
               }}
             >
@@ -711,7 +711,7 @@ const LegendOverlay: React.FC<LegendOverlayProps> = ({ which }) => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
-                      cursor: 'default',
+                      cursor: 'var(--cursor-default)',
                     }}
                   >
                     <LegendSwatch

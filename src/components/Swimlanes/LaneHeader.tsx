@@ -450,7 +450,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             marginRight: isHorizontal ? 0 : 4,
             transform: isHorizontal ? 'rotate(90deg)' : undefined,
             pointerEvents: 'auto',
-            cursor: 'pointer',
+            cursor: 'var(--cursor-select)',
           }}
         />
 
