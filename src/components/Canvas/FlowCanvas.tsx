@@ -29,8 +29,9 @@ import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
 import AlignmentGuideOverlay from './AlignmentGuideOverlay';
+import DistanceGuideOverlay from './DistanceGuideOverlay';
 import MiniMapOverlays from './MiniMapOverlays';
-import { findAlignmentGuides, snapToAlignmentGuides, type SnapNode } from '../../utils/snapUtils';
+import { findAlignmentGuides, snapToAlignmentGuides, findDistanceGuides, type SnapNode, type DistanceGuides } from '../../utils/snapUtils';
 import { useLegendStore } from '../../store/legendStore';
 import { useBannerStore } from '../../store/bannerStore';
 import { BannerBar } from './CanvasBanner';
@@ -406,6 +407,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   // Alignment guide lines (computed during drag)
   const [alignmentGuides, setAlignmentGuides] = useState<{ vertical: number[]; horizontal: number[] }>({ vertical: [], horizontal: [] });
+  // Distance guide measurements (computed during drag)
+  const [distanceGuides, setDistanceGuides] = useState<DistanceGuides>({ gaps: [] });
 
   // ---- Helpers ------------------------------------------------------------
 
@@ -1087,12 +1090,31 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         const guides = findAlignmentGuides(node as unknown as SnapNode, allNodes as unknown as SnapNode[], snapDistance);
         setAlignmentGuides(guides);
 
+        // Distance guides (edge-to-edge measurements)
+        const dGuides = findDistanceGuides(node as unknown as SnapNode, allNodes as unknown as SnapNode[]);
+        setDistanceGuides(dGuides);
+
         // Shift-to-snap: when Shift is held and guides are visible, snap to guide
-        if (event.shiftKey && (guides.vertical.length > 0 || guides.horizontal.length > 0)) {
-          const snapped = snapToAlignmentGuides(node as unknown as SnapNode, guides, snapDistance);
-          if (snapped.x !== node.position.x || snapped.y !== node.position.y) {
-            useFlowStore.getState().updateNodePosition(node.id, snapped);
-            alignSnapRef.current = { nodeId: node.id, pos: snapped };
+        if (event.shiftKey) {
+          let snapPos: { x: number; y: number } | null = null;
+
+          // Alignment snap
+          if (guides.vertical.length > 0 || guides.horizontal.length > 0) {
+            snapPos = snapToAlignmentGuides(node as unknown as SnapNode, guides, snapDistance);
+          }
+
+          // Equal-spacing snap (overrides alignment snap on matching axes)
+          if (dGuides.equalSpacingSnap) {
+            const eq = dGuides.equalSpacingSnap;
+            snapPos = {
+              x: eq.x !== node.position.x ? eq.x : (snapPos?.x ?? node.position.x),
+              y: eq.y !== node.position.y ? eq.y : (snapPos?.y ?? node.position.y),
+            };
+          }
+
+          if (snapPos && (snapPos.x !== node.position.x || snapPos.y !== node.position.y)) {
+            useFlowStore.getState().updateNodePosition(node.id, snapPos);
+            alignSnapRef.current = { nodeId: node.id, pos: snapPos };
           } else {
             alignSnapRef.current = null;
           }
@@ -1101,6 +1123,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         }
       } else {
         alignSnapRef.current = null;
+        setDistanceGuides({ gaps: [] });
       }
     },
     [showAlignmentGuides, snapDistance],
@@ -1123,8 +1146,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         assignSwimlaneToNode(node.id, node.position, nodeW, nodeH);
       }
 
-      // Clear alignment guides
+      // Clear alignment and distance guides
       setAlignmentGuides({ vertical: [], horizontal: [] });
+      setDistanceGuides({ gaps: [] });
     },
     [],
   );
@@ -1304,6 +1328,11 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         {/* Alignment guide lines during drag */}
         {showAlignmentGuides && (alignmentGuides.vertical.length > 0 || alignmentGuides.horizontal.length > 0) && (
           <AlignmentGuideOverlay guides={alignmentGuides} />
+        )}
+
+        {/* Distance measurement guides during drag */}
+        {showAlignmentGuides && distanceGuides.gaps.length > 0 && (
+          <DistanceGuideOverlay guides={distanceGuides} />
         )}
 
         {minimapVisible && (
