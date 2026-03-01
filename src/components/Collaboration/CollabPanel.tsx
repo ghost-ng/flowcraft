@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Copy, LogOut, Users, Wifi, WifiOff, Check, Pencil } from 'lucide-react';
+import { Copy, LogOut, Users, Wifi, WifiOff, Check, Pencil, RefreshCw } from 'lucide-react';
 import { useCollabStore } from '../../store/collabStore';
 import { useStyleStore } from '../../store/styleStore';
 
@@ -30,6 +30,7 @@ const CollabPanel: React.FC<CollabPanelProps> = ({ onClose }) => {
   const [joinRoomId, setJoinRoomId] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const editNameRef = useRef<HTMLInputElement>(null);
@@ -119,6 +120,18 @@ const CollabPanel: React.FC<CollabPanelProps> = ({ onClose }) => {
       // Fallback
     }
   }, [roomId]);
+
+  const handleRefreshRoom = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { refreshRoom } = await import('../../collab');
+      await refreshRoom();
+    } catch (err) {
+      console.error('Failed to refresh room:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const bg = darkMode ? 'bg-dk-surface border-dk-border' : 'bg-white border-slate-200';
   const inputClass = `w-full px-2.5 py-1.5 rounded text-xs border outline-none ${
@@ -256,6 +269,18 @@ const CollabPanel: React.FC<CollabPanelProps> = ({ onClose }) => {
                     data-tooltip="Copy link"
                   >
                     {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                  </button>
+                  <button
+                    onClick={handleRefreshRoom}
+                    disabled={refreshing}
+                    className={`shrink-0 px-2 py-1.5 rounded text-xs border transition-colors ${
+                      darkMode
+                        ? 'border-dk-border hover:bg-dk-hover text-dk-muted'
+                        : 'border-slate-300 hover:bg-slate-50 text-slate-600'
+                    } disabled:opacity-50`}
+                    data-tooltip="New room URL"
+                  >
+                    <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
                   </button>
                 </div>
               </div>

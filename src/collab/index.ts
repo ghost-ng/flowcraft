@@ -80,6 +80,24 @@ export async function joinRoom(config: RoomConfig): Promise<void> {
 }
 
 /**
+ * Refresh the room URL — leave the current room, generate a new room ID,
+ * and rejoin with the same diagram state. The new share link replaces the old.
+ * Returns the new room ID.
+ */
+export async function refreshRoom(): Promise<string> {
+  const store = useCollabStore.getState();
+  const userName = store.localUser?.name || localStorage.getItem('charthero-collab-name') || 'Anonymous';
+
+  // Leave current room (diagram state stays in Zustand stores)
+  await leaveRoom();
+
+  // Create new room with fresh ID
+  const newRoomId = generateRoomId();
+  await joinRoom({ roomId: newRoomId, userName });
+  return newRoomId;
+}
+
+/**
  * Leave the current room and clean up all resources.
  */
 export async function leaveRoom(): Promise<void> {

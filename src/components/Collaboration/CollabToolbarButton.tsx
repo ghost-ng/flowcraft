@@ -7,17 +7,18 @@
 // ---------------------------------------------------------------------------
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, LogIn, LogOut as LogOutIcon } from 'lucide-react';
+import { Users, LogIn, LogOut as LogOutIcon, ArrowRight } from 'lucide-react';
 import { useCollabStore } from '../../store/collabStore';
 import { useStyleStore } from '../../store/styleStore';
 import CollabPanel from './CollabPanel';
 import UserAvatars from './UserAvatars';
 
-interface JoinNotification {
+interface CollabNotification {
   id: number;
   name: string;
   color: string;
-  type: 'joined' | 'left';
+  type: 'joined' | 'left' | 'renamed';
+  oldName?: string;
 }
 
 let _notifId = 0;
@@ -29,22 +30,25 @@ const CollabToolbarButton: React.FC = () => {
   const remoteUsers = useCollabStore((s) => s.remoteUsers);
   const darkMode = useStyleStore((s) => s.darkMode);
 
-  const [notifications, setNotifications] = useState<JoinNotification[]>([]);
+  const [notifications, setNotifications] = useState<CollabNotification[]>([]);
   const prevUserIdsRef = useRef<Set<number>>(new Set());
+  const prevUserNamesRef = useRef<Map<number, string>>(new Map());
 
   const dismissNotification = useCallback((id: number) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  // Detect user joins and leaves
+  // Detect user joins, leaves, and name changes
   useEffect(() => {
     if (!isCollaborating) {
       prevUserIdsRef.current = new Set();
+      prevUserNamesRef.current = new Map();
       return;
     }
 
     const currentIds = new Set(remoteUsers.map((u) => u.clientId));
     const prevIds = prevUserIdsRef.current;
+    const prevNames = prevUserNamesRef.current;
 
     // New joins
     for (const user of remoteUsers) {
@@ -52,23 +56,34 @@ const CollabToolbarButton: React.FC = () => {
         const id = ++_notifId;
         setNotifications((prev) => [...prev, { id, name: user.name, color: user.color, type: 'joined' }]);
         setTimeout(() => dismissNotification(id), 4000);
-      }
-    }
-
-    // Departures
-    for (const prevId of prevIds) {
-      if (!currentIds.has(prevId)) {
-        // We don't have the user object anymore, but we can track it
-        // Only show if we had users before (avoid initial load noise)
-        if (prevIds.size > 0) {
+      } else {
+        // Check for name changes on existing users
+        const oldName = prevNames.get(user.clientId);
+        if (oldName && oldName !== user.name) {
           const id = ++_notifId;
-          setNotifications((prev) => [...prev, { id, name: 'A user', color: '#94a3b8', type: 'left' }]);
-          setTimeout(() => dismissNotification(id), 3000);
+          setNotifications((prev) => [...prev, { id, name: user.name, color: user.color, type: 'renamed', oldName }]);
+          setTimeout(() => dismissNotification(id), 4000);
         }
       }
     }
 
+    // Departures — use previous names so we can show who left
+    for (const prevId of prevIds) {
+      if (!currentIds.has(prevId)) {
+        const leftName = prevNames.get(prevId) || 'A user';
+        const id = ++_notifId;
+        setNotifications((prev) => [...prev, { id, name: leftName, color: '#94a3b8', type: 'left' }]);
+        setTimeout(() => dismissNotification(id), 3000);
+      }
+    }
+
+    // Update tracked state
     prevUserIdsRef.current = currentIds;
+    const newNames = new Map<number, string>();
+    for (const user of remoteUsers) {
+      newNames.set(user.clientId, user.name);
+    }
+    prevUserNamesRef.current = newNames;
   }, [remoteUsers, isCollaborating, dismissNotification]);
 
   return (
@@ -128,16 +143,30 @@ const CollabToolbarButton: React.FC = () => {
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: notif.color }}
               />
-              <span className={darkMode ? 'text-dk-text' : 'text-slate-700'}>
-                {notif.name}
-              </span>
-              <span className={`text-[10px] ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>
-                {notif.type === 'joined' ? 'joined' : 'left'}
-              </span>
-              {notif.type === 'joined' ? (
-                <LogIn size={10} className="text-green-500 shrink-0" />
+              {notif.type === 'renamed' ? (
+                <>
+                  <span className={darkMode ? 'text-dk-text' : 'text-slate-700'}>
+                    {notif.oldName}
+                  </span>
+                  <ArrowRight size={10} className={`shrink-0 ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`} />
+                  <span className={darkMode ? 'text-dk-text' : 'text-slate-700'}>
+                    {notif.name}
+                  </span>
+                </>
               ) : (
-                <LogOutIcon size={10} className="text-slate-400 shrink-0" />
+                <>
+                  <span className={darkMode ? 'text-dk-text' : 'text-slate-700'}>
+                    {notif.name}
+                  </span>
+                  <span className={`text-[10px] ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>
+                    {notif.type === 'joined' ? 'joined' : 'left'}
+                  </span>
+                  {notif.type === 'joined' ? (
+                    <LogIn size={10} className="text-green-500 shrink-0" />
+                  ) : (
+                    <LogOutIcon size={10} className="text-slate-400 shrink-0" />
+                  )}
+                </>
               )}
             </div>
           ))}
