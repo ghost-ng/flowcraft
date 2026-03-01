@@ -83,7 +83,7 @@ body,
    When changing sizes or hotspots, update BOTH files. */
 :root {
   --cursor-default: url('../assets/cursors/cursor_default.png') 3 1, default;
-  --cursor-select: url('../assets/cursors/cursor_select.png') 8 2, pointer;
+  --cursor-select: url('../assets/cursors/cursor_select.png') 7 2, pointer;
   --cursor-drag: url('../assets/cursors/cursor_drag.png') 14 14, grab;
   --cursor-drag-active: url('../assets/cursors/cursor_drag.png') 14 14, grabbing;
   --cursor-crosshair: url('../assets/cursors/cursor_crosshair.png') 14 14, crosshair;

@@ -18,7 +18,7 @@ import imgElbowMove from './cursor_elbow_move.png';
 export const CURSOR_DEFAULT = `url(${imgDefault}) 3 1, default`;
 
 /** Blue pointing hand — hover over selectable items (nodes, edges, pucks). */
-export const CURSOR_SELECT = `url(${imgSelect}) 8 2, pointer`;
+export const CURSOR_SELECT = `url(${imgSelect}) 7 2, pointer`;
 
 /** Grab hand — panning the canvas (Ctrl+drag / middle-click). */
 export const CURSOR_DRAG = `url(${imgDrag}) 14 14, grab`;

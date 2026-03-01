@@ -129,7 +129,7 @@ export default function MiniMapOverlays() {
     return () => { g.remove(); };
   }, [hLanes, vLanes, containerOffset, hHeaderWidth, vHeaderHeight, darkMode]);
 
-  // --- Legend overlay ---
+  // --- Legend overlay (shaded region in flow-space) ---
   useEffect(() => {
     const svg = document.querySelector('.react-flow__minimap-svg') as SVGSVGElement | null;
     if (!svg) return;
@@ -138,52 +138,71 @@ export default function MiniMapOverlays() {
 
     if (!nodeLegend.visible || nodeLegend.items.length === 0) return;
 
-    // The legend is a viewport overlay (screen coords), not in flow-space.
-    // To show it on the minimap, we convert its screen position to flow-space
-    // using the current viewport transform stored on the React Flow instance.
-    // We read the viewBox to determine the visible flow region instead.
-    const vb = svg.getAttribute('viewBox');
-    if (!vb) return;
-    const [vbX, vbY, vbW] = vb.split(' ').map(Number);
-
-    // Place legend indicator at top-right of the minimap viewBox
-    const legendW = 24;
-    const legendH = 16;
-    const lx = vbX + vbW - legendW - 8;
-    const ly = vbY + 8;
+    // Legend position is in flow-space (same coordinate system as the minimap).
+    // Width comes from style; height is estimated from item count + title bar.
+    const { position, style, items, title } = nodeLegend;
+    const legendW = style.width;
+    // Estimate height: title bar (~24px) + each item row (~(fontSize + 8)px) + padding
+    const rowH = style.fontSize + 8;
+    const visibleItems = items.filter((i) => !i.hidden);
+    const legendH = 24 + visibleItems.length * rowH + 8;
 
     const g = document.createElementNS(SVG_NS, 'g');
     g.id = LEGEND_OVERLAY_ID;
 
-    const rect = document.createElementNS(SVG_NS, 'rect');
-    rect.setAttribute('x', String(lx));
-    rect.setAttribute('y', String(ly));
-    rect.setAttribute('width', String(legendW));
-    rect.setAttribute('height', String(legendH));
-    rect.setAttribute('fill', darkMode ? 'rgba(20,30,45,0.8)' : 'rgba(255,255,255,0.8)');
-    rect.setAttribute('stroke', darkMode ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.3)');
-    rect.setAttribute('stroke-width', '1');
-    rect.setAttribute('rx', '2');
-    g.appendChild(rect);
+    // Main background
+    const bg = document.createElementNS(SVG_NS, 'rect');
+    bg.setAttribute('x', String(position.x));
+    bg.setAttribute('y', String(position.y));
+    bg.setAttribute('width', String(legendW));
+    bg.setAttribute('height', String(legendH));
+    bg.setAttribute('fill', darkMode ? 'rgba(20,30,45,0.6)' : 'rgba(255,255,255,0.6)');
+    bg.setAttribute('stroke', darkMode ? 'rgba(148,163,184,0.35)' : 'rgba(100,116,139,0.25)');
+    bg.setAttribute('stroke-width', '1.5');
+    bg.setAttribute('rx', '4');
+    g.appendChild(bg);
 
-    // Small "L" text label
-    const text = document.createElementNS(SVG_NS, 'text');
-    text.setAttribute('x', String(lx + legendW / 2));
-    text.setAttribute('y', String(ly + legendH / 2 + 1));
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('font-size', '8');
-    text.setAttribute('fill', darkMode ? '#94a3b8' : '#64748b');
-    text.textContent = 'L';
-    g.appendChild(text);
+    // Title text
+    const titleEl = document.createElementNS(SVG_NS, 'text');
+    titleEl.setAttribute('x', String(position.x + 8));
+    titleEl.setAttribute('y', String(position.y + 15));
+    titleEl.setAttribute('font-size', String(Math.max(8, style.fontSize - 1)));
+    titleEl.setAttribute('font-weight', '600');
+    titleEl.setAttribute('fill', darkMode ? '#94a3b8' : '#475569');
+    titleEl.textContent = title || 'Legend';
+    g.appendChild(titleEl);
 
-    // Insert before the mask path (after nodes)
-    const mask = svg.querySelector('.react-flow__minimap-mask');
-    if (mask) svg.insertBefore(g, mask);
-    else svg.appendChild(g);
+    // Color swatches for each visible item
+    let rowY = position.y + 26;
+    for (const item of visibleItems) {
+      // Swatch rect
+      const sw = document.createElementNS(SVG_NS, 'rect');
+      const swSize = Math.max(6, style.fontSize - 2);
+      sw.setAttribute('x', String(position.x + 8));
+      sw.setAttribute('y', String(rowY));
+      sw.setAttribute('width', String(swSize));
+      sw.setAttribute('height', String(swSize));
+      sw.setAttribute('fill', item.color);
+      sw.setAttribute('rx', item.kind === 'puck' ? String(swSize / 2) : '1');
+      g.appendChild(sw);
+
+      // Label
+      const label = document.createElementNS(SVG_NS, 'text');
+      label.setAttribute('x', String(position.x + 8 + swSize + 4));
+      label.setAttribute('y', String(rowY + swSize - 1));
+      label.setAttribute('font-size', String(Math.max(6, style.fontSize - 2)));
+      label.setAttribute('fill', darkMode ? '#7e8d9f' : '#64748b');
+      label.textContent = item.label;
+      g.appendChild(label);
+
+      rowY += rowH;
+    }
+
+    // Insert before the first child (behind nodes) so it doesn't cover them
+    svg.insertBefore(g, svg.firstChild);
 
     return () => { g.remove(); };
-  }, [nodeLegend.visible, nodeLegend.items.length, darkMode]);
+  }, [nodeLegend, darkMode]);
 
   return null; // This component doesn't render DOM — it injects into MiniMap SVG
 }
