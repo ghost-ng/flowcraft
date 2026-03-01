@@ -16,7 +16,7 @@ export const softGradient: DiagramStyle = {
     shadow: '0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
     fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif",
     fontSize: 14,
-    fontColor: '#374151',
+    fontColor: '#1f2937',
     fontWeight: 500,
   },
   edgeDefaults: {

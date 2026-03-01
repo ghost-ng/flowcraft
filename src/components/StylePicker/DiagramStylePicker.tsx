@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -35,6 +35,7 @@ const StyleCard: React.FC<StyleCardProps> = React.memo(
   ({ displayName, accentColors, nodeColor, bgColor, isActive, darkMode, onClick }) => (
     <button
       onClick={onClick}
+      title={displayName}
       className={`
         relative flex flex-col items-center rounded-lg border p-2 transition-all duration-150 cursor-pointer
         ${isActive
@@ -101,6 +102,7 @@ const PaletteSwatch: React.FC<PaletteSwatchProps> = React.memo(
   ({ displayName, colors, isActive, darkMode, onClick }) => (
     <button
       onClick={onClick}
+      title={displayName}
       className={`
         flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all duration-150 cursor-pointer
         ${isActive
@@ -137,6 +139,10 @@ PaletteSwatch.displayName = 'PaletteSwatch';
 // Main component
 // ---------------------------------------------------------------------------
 
+const MIN_WIDTH = 280;
+const MAX_WIDTH = 600;
+const DEFAULT_WIDTH = 320;
+
 const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
@@ -145,6 +151,37 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   const setPalette = useStyleStore((s) => s.setPalette);
   const clearStyle = useStyleStore((s) => s.clearStyle);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_WIDTH);
+  const isDragging = useRef(false);
+
+  // Left-edge resize drag
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isDragging.current = true;
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      // Dragging left increases width (right-anchored panel)
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth + delta));
+      setPanelWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [panelWidth]);
 
   const handleResetStyle = useCallback(() => {
     clearStyle();
@@ -222,6 +259,8 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
+      // Don't close while resizing
+      if (isDragging.current) return;
       const target = e.target as HTMLElement;
       // Skip close if clicking the toggle button (avoids close-then-reopen race)
       if (target.closest('[data-style-picker-toggle]')) return;
@@ -247,14 +286,21 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   return (
     <div
       ref={panelRef}
+      style={{ width: panelWidth }}
       className={`
-        absolute top-12 right-4 w-80 max-h-[70vh] rounded-xl shadow-2xl border overflow-hidden flex flex-col z-50
+        absolute top-12 right-4 max-h-[70vh] rounded-xl shadow-2xl border overflow-hidden flex flex-col z-50
         ${darkMode
           ? 'bg-dk-panel border-dk-border'
           : 'bg-white border-slate-200'
         }
       `}
     >
+      {/* Left-edge resize handle */}
+      <div
+        onMouseDown={handleResizeStart}
+        className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize z-10
+          hover:bg-blue-500/30 active:bg-blue-500/40 transition-colors`}
+      />
       {/* Diagram Styles */}
       <div className="px-4 pt-4 pb-1 flex items-center justify-between">
         <h3
@@ -279,7 +325,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         )}
       </div>
       <div className="overflow-y-auto max-h-[35vh] px-4 pb-2">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))' }}>
           {styleEntries.map(([id, style]) => (
             <StyleCard
               key={id}
@@ -311,7 +357,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         </h3>
       </div>
       <div className="overflow-y-auto max-h-[25vh] px-4 pb-4">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
           {paletteEntries.map(([id, palette]) => (
             <PaletteSwatch
               key={id}

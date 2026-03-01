@@ -1,0 +1,47 @@
+import type { DiagramStyle } from '../types';
+
+export const solarizedDark: DiagramStyle = {
+  id: 'solarizedDark',
+  displayName: 'Solarized Dark',
+  dark: true,
+  canvas: {
+    background: '#002b36',
+    gridColor: '#073642',
+    gridStyle: 'lines',
+  },
+  nodeDefaults: {
+    fill: '#073642',
+    stroke: '#586e75',
+    strokeWidth: 1,
+    borderRadius: 6,
+    shadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+    fontFamily: "'Source Code Pro', 'Fira Code', monospace",
+    fontSize: 13,
+    fontColor: '#93a1a1',
+    fontWeight: 400,
+  },
+  edgeDefaults: {
+    stroke: '#586e75',
+    strokeWidth: 1.5,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#268bd2', '#2aa198', '#859900', '#b58900', '#cb4b16'],
+  shapeColors: {
+    rectangle: '#073642',
+    roundedRectangle: '#073642',
+    diamond: '#b58900',
+    circle: '#2aa198',
+    parallelogram: '#6c71c4',
+    hexagon: '#dc322f',
+    document: '#268bd2',
+    cloud: '#d33682',
+    stickyNote: '#b58900',
+    textbox: 'transparent',
+    blockArrow: '#268bd2',
+    chevronArrow: '#859900',
+    doubleArrow: '#2aa198',
+    circularArrow: '#cb4b16',
+  },
+};

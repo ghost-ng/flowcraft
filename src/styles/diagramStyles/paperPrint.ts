@@ -16,7 +16,7 @@ export const paperPrint: DiagramStyle = {
     shadow: 'none',
     fontFamily: "'Georgia', 'Times New Roman', serif",
     fontSize: 13,
-    fontColor: '#3b3228',
+    fontColor: '#1a1510',
     fontWeight: 400,
   },
   edgeDefaults: {

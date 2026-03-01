@@ -135,6 +135,11 @@ export function darkenColor(color: string, amount: number = 0.2): string {
  */
 export function ensureReadableText(bgColor: string, preferredColor: string): string {
   try {
+    // Semi-transparent fills (alpha < 0.5) depend on what's behind them, so
+    // we can't reliably compute contrast — trust the theme's preferred color.
+    const parsed = chroma(bgColor);
+    if (parsed.alpha() < 0.5) return preferredColor;
+
     const ratio = chroma.contrast(bgColor, preferredColor);
     if (ratio >= 3) return preferredColor;
     return getAutoTextColor(bgColor);

@@ -23,6 +23,7 @@ import { useLayerStore } from '../store/layerStore';
 import type { Layer } from '../store/layerStore';
 import { useLegendStore } from '../store/legendStore';
 import type { LegendItemKind, LegendItem } from '../store/legendStore';
+import { useTimerStore } from '../store/timerStore';
 import { log } from './logger';
 import {
   type ExportFormat,
@@ -1283,7 +1284,10 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
 // JSON Export
 // ---------------------------------------------------------------------------
 
-export function exportAsJson(options: JsonExportOptions): void {
+/**
+ * Builds the JSON export data object (shared by file export and clipboard copy).
+ */
+export function buildJsonExportData(options: JsonExportOptions): Record<string, unknown> {
   const state = useFlowStore.getState();
   const styleState = useStyleStore.getState();
   const swimlaneState = useSwimlaneStore.getState();
@@ -1381,10 +1385,31 @@ export function exportAsJson(options: JsonExportOptions): void {
     };
   }
 
+  // Time spent creating this diagram (in seconds)
+  const timeSpent = useTimerStore.getState().getElapsed();
+  if (timeSpent > 0) {
+    exportData.timeSpent = timeSpent;
+  }
+
+  return exportData;
+}
+
+export function exportAsJson(options: JsonExportOptions): void {
+  const exportData = buildJsonExportData(options);
   const indent = options.pretty ? 2 : undefined;
   const jsonString = JSON.stringify(exportData, null, indent);
   const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
   saveAs(blob, getFilename('fc'));
+}
+
+/**
+ * Copies the JSON export data to the clipboard.
+ */
+export async function copyJsonToClipboard(options: JsonExportOptions): Promise<void> {
+  const exportData = buildJsonExportData(options);
+  const indent = options.pretty ? 2 : undefined;
+  const jsonString = JSON.stringify(exportData, null, indent);
+  await navigator.clipboard.writeText(jsonString);
 }
 
 // ---------------------------------------------------------------------------
@@ -2000,6 +2025,13 @@ export function importFromJson(
       importBanner(b.topBanner, bannerSt.updateTopBanner);
       importBanner(b.bottomBanner, bannerSt.updateBottomBanner);
     }
+  }
+
+  // Time spent — restore if present, otherwise reset to zero
+  if (typeof data.timeSpent === 'number' && data.timeSpent > 0) {
+    useTimerStore.getState().setElapsed(data.timeSpent);
+  } else {
+    useTimerStore.getState().reset();
   }
 
   log.info(`Import complete: ${nodes.length} nodes, ${edges.length} edges, ${warnings.length} warnings`);

@@ -7,6 +7,7 @@ import type { FlowNode, FlowEdge, FlowNodeData, FlowEdgeData, StatusIndicator } 
 import { useStyleStore } from '@/store/styleStore';
 import { useSwimlaneStore } from '@/store/swimlaneStore';
 import type { SwimlaneOrientation, SwimlaneItem } from '@/store/swimlaneStore';
+import { useLegendStore } from '@/store/legendStore';
 import { importFromJson } from '@/utils/exportUtils';
 import { applyDagreLayout } from '@/utils/layoutEngine';
 import type { LayoutDirection } from '@/utils/layoutEngine';
@@ -73,11 +74,15 @@ function swimlaneState() {
   return useSwimlaneStore.getState();
 }
 
+function legendState() {
+  return useLegendStore.getState();
+}
+
 // ---------------------------------------------------------------------------
 // Handler map
 // ---------------------------------------------------------------------------
 
-type ToolHandler = (args: Record<string, unknown>) => ToolResult;
+type ToolHandler = (args: Record<string, unknown>) => ToolResult | Promise<ToolResult>;
 
 const handlers: Record<string, ToolHandler> = {
   // =========================================================================
@@ -457,12 +462,34 @@ const handlers: Record<string, ToolHandler> = {
     if (args.color !== undefined) edgeData.color = args.color as string;
     if (args.animated !== undefined) edgeData.animated = args.animated as boolean;
     if (args.thickness !== undefined) edgeData.thickness = args.thickness as number;
+    if (args.strokeDasharray !== undefined) edgeData.strokeDasharray = args.strokeDasharray as string;
+
+    // Compute handle positions from relative node positions if not explicitly provided
+    let sourceHandle = args.sourceHandle as string | undefined;
+    let targetHandle = args.targetHandle as string | undefined;
+    if (!sourceHandle || !targetHandle) {
+      const srcCx = sourceNode.position.x + ((sourceNode.data as FlowNodeData).width || 160) / 2;
+      const srcCy = sourceNode.position.y + ((sourceNode.data as FlowNodeData).height || 60) / 2;
+      const tgtCx = targetNode.position.x + ((targetNode.data as FlowNodeData).width || 160) / 2;
+      const tgtCy = targetNode.position.y + ((targetNode.data as FlowNodeData).height || 60) / 2;
+      const dx = tgtCx - srcCx;
+      const dy = tgtCy - srcCy;
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        sourceHandle = sourceHandle || (dy > 0 ? 'bottom' : 'top');
+        targetHandle = targetHandle || (dy > 0 ? 'top' : 'bottom');
+      } else {
+        sourceHandle = sourceHandle || (dx > 0 ? 'right' : 'left');
+        targetHandle = targetHandle || (dx > 0 ? 'left' : 'right');
+      }
+    }
 
     const newEdge: FlowEdge = {
       id: edgeId,
       source,
       target,
       type: edgeType,
+      sourceHandle,
+      targetHandle,
       data: edgeData,
     };
 
@@ -507,6 +534,10 @@ const handlers: Record<string, ToolHandler> = {
     if (args.opacity !== undefined) {
       dataPatch.opacity = args.opacity as number;
       changes.push(`opacity → ${args.opacity}`);
+    }
+    if (args.strokeDasharray !== undefined) {
+      dataPatch.strokeDasharray = args.strokeDasharray as string;
+      changes.push(`strokeDasharray → "${args.strokeDasharray}"`);
     }
 
     if (Object.keys(dataPatch).length > 0) {
@@ -1046,6 +1077,153 @@ const handlers: Record<string, ToolHandler> = {
       result: `Export triggered for ${format.toUpperCase()}. Please use the Export dialog (File > Export > ${format.toUpperCase()}) to complete the export.`,
     };
   },
+
+  // =========================================================================
+  // Category 9: Legend
+  // =========================================================================
+
+  generate_legend: (args) => {
+    const title = (args.title as string) || 'Legend';
+    const position = args.position as { x: number; y: number } | undefined;
+
+    // Auto-generate from current diagram nodes/edges
+    legendState().generateNodeLegend();
+
+    // Apply title if specified
+    if (title !== 'Legend') {
+      legendState().setTitle('node', title);
+    }
+    // Apply position if specified
+    if (position) {
+      legendState().setPosition('node', position);
+    }
+    // Ensure visible
+    legendState().setVisible('node', true);
+
+    const items = legendState().nodeLegend.items;
+    return {
+      success: true,
+      result: `Generated legend with ${items.length} items: ${items.map((i) => i.label).join(', ')}`,
+    };
+  },
+
+  configure_legend: (args) => {
+    const changes: string[] = [];
+
+    if (args.visible !== undefined) {
+      legendState().setVisible('node', args.visible as boolean);
+      changes.push(`visible → ${args.visible}`);
+    }
+    if (args.title !== undefined) {
+      legendState().setTitle('node', args.title as string);
+      changes.push(`title → "${args.title}"`);
+    }
+    if (args.position !== undefined) {
+      legendState().setPosition('node', args.position as { x: number; y: number });
+      changes.push(`position updated`);
+    }
+
+    // Style updates
+    const stylePatch: Record<string, unknown> = {};
+    for (const key of ['bgColor', 'borderColor', 'fontSize', 'opacity', 'width'] as const) {
+      if (args[key] !== undefined) {
+        stylePatch[key] = args[key];
+        changes.push(`${key} → ${args[key]}`);
+      }
+    }
+    if (Object.keys(stylePatch).length > 0) {
+      legendState().updateStyle('node', stylePatch as Record<string, number | string>);
+    }
+
+    if (changes.length === 0) {
+      return { success: true, result: 'No changes specified for legend' };
+    }
+
+    return { success: true, result: `Legend updated: ${changes.join(', ')}` };
+  },
+
+  // =========================================================================
+  // Category 10: Research
+  // =========================================================================
+
+  web_search: async (args): Promise<ToolResult> => {
+    const query = args.query as string;
+    if (!query) return { success: false, result: 'Error: Missing search query' };
+
+    try {
+      const sections: string[] = [];
+
+      // --- Source 1: DuckDuckGo Instant Answer API ---
+      try {
+        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+        const ddgRes = await fetch(ddgUrl);
+        if (ddgRes.ok) {
+          const data = await ddgRes.json();
+          if (data.AbstractText) {
+            sections.push(`**${data.Heading || query}** (${data.AbstractSource || 'Source'})\n${data.AbstractText}`);
+          }
+          if (data.Answer) {
+            sections.push(`**Answer:** ${data.Answer}`);
+          }
+          // Flatten related topics
+          type DDGTopic = { Text?: string; FirstURL?: string; Topics?: DDGTopic[] };
+          const related = (data.RelatedTopics || []) as DDGTopic[];
+          const flatTopics: string[] = [];
+          for (const item of related) {
+            if (item.Text) flatTopics.push(item.Text);
+            else if (item.Topics) {
+              for (const sub of item.Topics) {
+                if (sub.Text) flatTopics.push(sub.Text);
+              }
+            }
+          }
+          if (flatTopics.length > 0) {
+            sections.push('**Related topics:**\n' + flatTopics.slice(0, 6).map((t, i) => `${i + 1}. ${t}`).join('\n'));
+          }
+        }
+      } catch { /* DDG failed, continue to Wikipedia */ }
+
+      // --- Source 2: Wikipedia Search API (better for niche/technical topics) ---
+      try {
+        const wikiSearchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json&origin=*`;
+        const wikiRes = await fetch(wikiSearchUrl);
+        if (wikiRes.ok) {
+          const wikiData = await wikiRes.json();
+          const results = wikiData?.query?.search as Array<{ pageid: number; title: string; snippet: string }> | undefined;
+          if (results && results.length > 0) {
+            // Fetch page extracts for the top results
+            const pageIds = results.map((r) => r.pageid).join('|');
+            const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&exlimit=${results.length}&pageids=${pageIds}&format=json&origin=*`;
+            const extractRes = await fetch(extractUrl);
+            let extracts: Record<string, string> = {};
+            if (extractRes.ok) {
+              const extractData = await extractRes.json();
+              const pages = extractData?.query?.pages as Record<string, { extract?: string }> | undefined;
+              if (pages) {
+                for (const [id, page] of Object.entries(pages)) {
+                  if (page.extract) extracts[id] = page.extract.slice(0, 500);
+                }
+              }
+            }
+            const wikiResults = results.map((r, i) => {
+              const extract = extracts[String(r.pageid)] || r.snippet.replace(/<[^>]+>/g, '');
+              return `${i + 1}. **${r.title}**\n   ${extract}`;
+            }).join('\n\n');
+            sections.push('**Wikipedia results:**\n\n' + wikiResults);
+          }
+        }
+      } catch { /* Wikipedia failed, use whatever DDG returned */ }
+
+      if (sections.length === 0) {
+        return { success: true, result: `No results found for "${query}". Try rephrasing with more common terms.` };
+      }
+
+      return { success: true, result: `Web search results for "${query}":\n\n${sections.join('\n\n')}` };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      return { success: false, result: `Web search failed: ${msg}` };
+    }
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1059,14 +1237,14 @@ const handlers: Record<string, ToolHandler> = {
  * @param args  Arguments parsed from the AI tool call
  * @returns     A ToolResult with success status and a human-readable message
  */
-export function executeTool(name: string, args: Record<string, unknown>): ToolResult {
+export async function executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
   const handler = handlers[name];
   if (!handler) {
     return { success: false, result: `Error: Unknown tool '${name}'` };
   }
 
   try {
-    return handler(args);
+    return await handler(args);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return { success: false, result: `Error: ${message}` };

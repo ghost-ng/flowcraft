@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// AI Tool Definitions — 35 tools in 8 categories
+// AI Tool Definitions — 37 tools in 11 categories
 // ---------------------------------------------------------------------------
 
 import type { ToolDefinition } from '@/lib/ai/client';
@@ -19,14 +19,19 @@ const SHAPE_ENUM = [
 const EDGE_TYPE_ENUM = ['smoothstep', 'bezier', 'straight', 'step'];
 
 const DIAGRAM_STYLE_ENUM = [
-  'default', 'blueprint', 'neon', 'pastel', 'corporate', 'minimalist',
-  'retro', 'watercolor', 'darkModern', 'sketch', 'gradient', 'terminal',
-  'whiteboard', 'elegant', 'vibrant', 'monochrome', 'nature', 'ocean', 'sunset',
+  'cleanMinimal', 'corporateProfessional', 'blueprint', 'whiteboardSketch',
+  'neonDark', 'pastelSoft', 'flatMaterial', 'monochromeInk', 'retroTerminal',
+  'watercolor', 'glassMorphism', 'wireframe', 'militaryC2', 'infographicBold',
+  'colorfulGradient', 'darkNeonGlow', 'notebook', 'gradientCards', 'cyberC2',
+  'zincModern', 'softGradient', 'midnightLuxe', 'paperPrint', 'auroraBorealis',
+  'neonGlass', 'osxAqua', 'solarizedDark', 'claudeAI', 'openAI',
 ];
 
 const PALETTE_ENUM = [
-  'default', 'pastel', 'earth', 'ocean', 'sunset', 'neon',
-  'monochrome', 'forest', 'berry', 'autumn', 'ice',
+  'ocean', 'berry', 'forest', 'sunset', 'grayscale', 'cyber', 'pastelDream',
+  'earthTone', 'military', 'accessible', 'cyberC2', 'midnightAurora', 'roseGold',
+  'nordicFrost', 'terracotta', 'lavenderFields', 'tropical', 'candyPop',
+  'tokyoNight', 'coralReef', 'vintageSage',
 ];
 
 // ---------------------------------------------------------------------------
@@ -317,6 +322,20 @@ const add_edge: ToolDefinition = {
       color: { type: 'string', description: 'Connector color (hex)' },
       animated: { type: 'boolean', description: 'Show flowing animation' },
       thickness: { type: 'number', description: 'Line thickness in pixels' },
+      strokeDasharray: {
+        type: 'string',
+        description: 'SVG dash pattern for dashed/dotted lines. Examples: "6 4" (dashed), "2 4" (dotted), "10 4 2 4" (dash-dot). Omit for solid lines.',
+      },
+      sourceHandle: {
+        type: 'string',
+        enum: ['top', 'bottom', 'left', 'right'],
+        description: 'Which handle on the source node the edge exits from. ALWAYS set this based on node positions.',
+      },
+      targetHandle: {
+        type: 'string',
+        enum: ['top', 'bottom', 'left', 'right'],
+        description: 'Which handle on the target node the edge enters. ALWAYS set this based on node positions.',
+      },
     },
     required: ['source', 'target'],
   },
@@ -335,6 +354,10 @@ const update_edge: ToolDefinition = {
       animated: { type: 'boolean' },
       opacity: { type: 'number', minimum: 0, maximum: 1 },
       type: { type: 'string', enum: EDGE_TYPE_ENUM },
+      strokeDasharray: {
+        type: 'string',
+        description: 'SVG dash pattern. "6 4" (dashed), "2 4" (dotted), "10 4 2 4" (dash-dot). Empty string for solid.',
+      },
     },
     required: ['edge_id'],
   },
@@ -651,6 +674,63 @@ const add_dependency: ToolDefinition = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Category 9: Legend
+// ---------------------------------------------------------------------------
+
+const generate_legend: ToolDefinition = {
+  name: 'generate_legend',
+  description:
+    'Auto-generate a legend overlay from the current diagram. Scans node fill colors, edge colors, and status pucks to build legend items. The legend renders as a floating overlay on the canvas — NOT as textbox nodes. Always use this instead of creating manual legend nodes.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      title: {
+        type: 'string',
+        description: 'Legend title. Default: "Legend"',
+      },
+      position: {
+        type: 'object',
+        description: 'Position of the legend on the canvas',
+        properties: {
+          x: { type: 'number' },
+          y: { type: 'number' },
+        },
+      },
+    },
+  },
+};
+
+const configure_legend: ToolDefinition = {
+  name: 'configure_legend',
+  description:
+    'Update legend overlay settings (title, visibility, position, styling). Use generate_legend first to create items, then configure_legend to adjust appearance.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      visible: { type: 'boolean', description: 'Show or hide the legend' },
+      title: { type: 'string', description: 'Legend title text' },
+      position: {
+        type: 'object',
+        description: 'Legend position on canvas',
+        properties: {
+          x: { type: 'number' },
+          y: { type: 'number' },
+        },
+      },
+      bgColor: { type: 'string', description: 'Background color (hex)' },
+      borderColor: { type: 'string', description: 'Border color (hex)' },
+      fontSize: { type: 'number', description: 'Font size in px' },
+      opacity: { type: 'number', minimum: 0, maximum: 1 },
+      width: { type: 'number', description: 'Legend width in px' },
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Category 10: Export
+// ---------------------------------------------------------------------------
+
 const export_diagram: ToolDefinition = {
   name: 'export_diagram',
   description: 'Export the current diagram in a specified format.',
@@ -664,6 +744,25 @@ const export_diagram: ToolDefinition = {
       },
     },
     required: ['format'],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Category 11: Research
+// ---------------------------------------------------------------------------
+
+const web_search: ToolDefinition = {
+  name: 'web_search',
+  description: 'Search the web for information on a topic. Use this when you need current data, technical details, or domain-specific knowledge to create an accurate diagram. Searches DuckDuckGo and Wikipedia for comprehensive results.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Search query (e.g., "TCP three-way handshake", "AWS Well-Architected Framework pillars")',
+      },
+    },
+    required: ['query'],
   },
 };
 
@@ -710,7 +809,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   // Status / Dependencies
   set_status_puck,
   add_dependency,
+  // Legend
+  generate_legend,
+  configure_legend,
+  // Export
   export_diagram,
+  // Research
+  web_search,
 ];
 
 // ---------------------------------------------------------------------------

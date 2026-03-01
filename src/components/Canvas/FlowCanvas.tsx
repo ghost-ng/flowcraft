@@ -29,6 +29,7 @@ import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
 import AlignmentGuideOverlay from './AlignmentGuideOverlay';
+import MiniMapOverlays from './MiniMapOverlays';
 import { findAlignmentGuides, snapToAlignmentGuides, type SnapNode } from '../../utils/snapUtils';
 import { useLegendStore } from '../../store/legendStore';
 import { useBannerStore } from '../../store/bannerStore';
@@ -286,6 +287,20 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const vLanes = useSwimlaneStore((s) => s.config.vertical);
   const hasLanes = hLanes.length > 0 || vLanes.length > 0;
   const setIsCreatingSwimlanes = useSwimlaneStore((s) => s.setIsCreating);
+  const swimlaneContainerOffset = useSwimlaneStore((s) => s.containerOffset);
+
+  // Re-assign all nodes to swimlanes when lane config or container offset changes
+  useEffect(() => {
+    if (!hasLanes) return;
+    const allNodes = useFlowStore.getState().nodes;
+    for (const n of allNodes) {
+      if (n.type === 'groupNode') continue;
+      const w = (n.data as FlowNodeData).width || 160;
+      const h = (n.data as FlowNodeData).height || 60;
+      assignSwimlaneToNode(n.id, n.position, w, h);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hLanes, vLanes, swimlaneContainerOffset]);
 
   // Compute hidden lane IDs and filter nodes/edges for hidden lanes
   const hiddenLaneIds = useMemo(() => {
@@ -1290,6 +1305,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
             zoomable
           />
         )}
+        {minimapVisible && <MiniMapOverlays />}
 
         {!presentationMode && (
           <Controls

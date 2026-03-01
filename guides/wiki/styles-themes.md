@@ -1,55 +1,76 @@
 # Styles & Themes
 
-Chart Hero offers 24 visual diagram themes and 21 color palettes that let you completely transform the look of your diagram with a single click. Access them via the **Paintbrush** icon in the toolbar.
+Chart Hero offers 29 visual diagram themes and 21 color palettes that let you completely transform the look of your diagram with a single click. Access them via the **Paintbrush** icon in the toolbar.
 
 ![Style & Palette Picker](../../assets/wiki-style-picker.png)
 
 ---
 
-## Diagram Styles (24 Themes)
+## Diagram Styles (29 Themes)
 
 Each style completely transforms the visual appearance of your diagram: canvas background, grid style, node fills, borders, fonts, edge colors, and accent palette. Applying a style updates every node and edge on the canvas at once.
 
-### Light Themes (13)
+<div class="theme-carousel-section">
+<h4>Light Themes (15)</h4>
+<div class="theme-slider-wrapper">
+<button class="theme-nav prev" aria-label="Previous">&#8249;</button>
+<div class="theme-slider"><div class="theme-slider-track">
+<div class="theme-card"><img src="assets/themes/theme-cleanMinimal.png" alt="Clean Minimal" /><div class="theme-label">Clean Minimal</div><div class="theme-meta">Inter &middot; Crisp, modern, professional</div></div>
+<div class="theme-card"><img src="assets/themes/theme-corporateProfessional.png" alt="Corporate Professional" /><div class="theme-label">Corporate Professional</div><div class="theme-meta">Georgia &middot; Business reports</div></div>
+<div class="theme-card"><img src="assets/themes/theme-pastelSoft.png" alt="Pastel Soft" /><div class="theme-label">Pastel Soft</div><div class="theme-meta">Nunito &middot; Friendly, approachable</div></div>
+<div class="theme-card"><img src="assets/themes/theme-flatMaterial.png" alt="Flat Material" /><div class="theme-label">Flat Material</div><div class="theme-meta">Roboto &middot; Material Design</div></div>
+<div class="theme-card"><img src="assets/themes/theme-watercolor.png" alt="Watercolor" /><div class="theme-label">Watercolor</div><div class="theme-meta">Lora &middot; Artistic, hand-crafted</div></div>
+<div class="theme-card"><img src="assets/themes/theme-whiteboardSketch.png" alt="Whiteboard Sketch" /><div class="theme-label">Whiteboard Sketch</div><div class="theme-meta">Caveat &middot; Hand-drawn look</div></div>
+<div class="theme-card"><img src="assets/themes/theme-monochromeInk.png" alt="Monochrome Ink" /><div class="theme-label">Monochrome Ink</div><div class="theme-meta">IBM Plex Mono &middot; High-contrast</div></div>
+<div class="theme-card"><img src="assets/themes/theme-wireframe.png" alt="Wireframe" /><div class="theme-label">Wireframe</div><div class="theme-meta">Inter &middot; Mockup prototyping</div></div>
+<div class="theme-card"><img src="assets/themes/theme-infographicBold.png" alt="Infographic Bold" /><div class="theme-label">Infographic Bold</div><div class="theme-meta">Poppins &middot; Eye-catching</div></div>
+<div class="theme-card"><img src="assets/themes/theme-colorfulGradient.png" alt="Colorful Gradient" /><div class="theme-label">Colorful Gradient</div><div class="theme-meta">Inter &middot; Vibrant presentations</div></div>
+<div class="theme-card"><img src="assets/themes/theme-zincModern.png" alt="Zinc Modern" /><div class="theme-label">Zinc Modern</div><div class="theme-meta">Inter &middot; Ultra-clean SaaS</div></div>
+<div class="theme-card"><img src="assets/themes/theme-softGradient.png" alt="Soft Gradient" /><div class="theme-label">Soft Gradient</div><div class="theme-meta">Inter &middot; Modern editorial pastel</div></div>
+<div class="theme-card"><img src="assets/themes/theme-paperPrint.png" alt="Paper Print" /><div class="theme-label">Paper Print</div><div class="theme-meta">Georgia &middot; Book typography</div></div>
+<div class="theme-card"><img src="assets/themes/theme-osxAqua.png" alt="macOS Aqua" /><div class="theme-label">macOS Aqua</div><div class="theme-meta">SF Pro Display &middot; Clean Apple design</div></div>
+<div class="theme-card"><img src="assets/themes/theme-claudeAI.png" alt="Claude" /><div class="theme-label">Claude</div><div class="theme-meta">Inter &middot; Warm terracotta tones</div></div>
+</div></div>
+<button class="theme-nav next" aria-label="Next">&#8250;</button>
+<div class="theme-dots"></div>
+</div>
+</div>
 
-| Style | Font | Node Look | Edge Style | Character |
-|-------|------|-----------|------------|-----------|
-| **Clean Minimal** | Inter | White fill, gray border (1px), 8px radius | Gray smoothstep | Default. Crisp, modern, professional |
-| **Corporate Professional** | Georgia (serif) | White fill, dark slate border (1.5px), 4px radius, subtle shadow | Dark slate smoothstep | Business reports, executive presentations |
-| **Pastel Soft** | Nunito | Soft purple fill, purple border (1.5px), 16px radius | Purple smoothstep | Friendly, approachable, workshops |
-| **Flat Material** | Roboto | Bold blue fill, no border, Material Design shadow | Gray smoothstep | Google Material Design aesthetic |
-| **Watercolor** | Lora (serif) | Muted tan fill, tan border (1px), 12px radius | Tan bezier (default) | Artistic, warm, hand-crafted feel |
-| **Whiteboard Sketch** | Caveat (cursive) | Off-white fill, brown border (2px), 6px radius | Brown bezier (default) | Hand-drawn whiteboard look |
-| **Monochrome Ink** | IBM Plex Mono | White fill, black border (2.5px), no radius | Black straight | Stark, high-contrast technical |
-| **Wireframe** | Inter | Transparent fill, gray border (1.5px), cross grid | Gray straight | Wireframe/mockup prototyping |
-| **Infographic Bold** | Poppins (bold 700) | Bright blue fill, purple border (3px), 24px radius | Purple smoothstep | Eye-catching infographics |
-| **Colorful Gradient** | Inter (semibold 600) | Indigo fill, no border, 12px radius | Gray smoothstep | Vibrant, modern presentations |
-| **Zinc Modern** | Inter | White fill, zinc border (1px), 8px radius, no shadow | Gray smoothstep | Ultra-clean SaaS aesthetic |
-| **Soft Gradient** | Inter | Semi-transparent white fill, 14px radius, soft shadow | Violet bezier | Modern editorial pastel feel |
-| **Paper Print** | Georgia (serif) | Off-white fill, hairline border (0.75px), 2px radius | Muted brown straight | Warm book typography, print-ready |
+<div class="theme-carousel-section">
+<h4>Dark Themes (11)</h4>
+<div class="theme-slider-wrapper">
+<button class="theme-nav prev" aria-label="Previous">&#8249;</button>
+<div class="theme-slider"><div class="theme-slider-track">
+<div class="theme-card"><img src="assets/themes/theme-blueprint.png" alt="Blueprint" /><div class="theme-label">Blueprint</div><div class="theme-meta">JetBrains Mono &middot; Technical blueprint</div></div>
+<div class="theme-card"><img src="assets/themes/theme-neonDark.png" alt="Neon Dark" /><div class="theme-label">Neon Dark</div><div class="theme-meta">JetBrains Mono &middot; Cyberpunk glow</div></div>
+<div class="theme-card"><img src="assets/themes/theme-retroTerminal.png" alt="Retro Terminal" /><div class="theme-label">Retro Terminal</div><div class="theme-meta">VT323 &middot; CRT terminal aesthetic</div></div>
+<div class="theme-card"><img src="assets/themes/theme-militaryC2.png" alt="Military C2" /><div class="theme-label">Military C2</div><div class="theme-meta">Share Tech Mono &middot; Command &amp; control</div></div>
+<div class="theme-card"><img src="assets/themes/theme-darkNeonGlow.png" alt="Dark Neon Glow" /><div class="theme-label">Dark Neon Glow</div><div class="theme-meta">JetBrains Mono &middot; Pink/green neon</div></div>
+<div class="theme-card"><img src="assets/themes/theme-glassMorphism.png" alt="Glass Morphism" /><div class="theme-label">Glass Morphism</div><div class="theme-meta">Inter &middot; Frosted glass blur</div></div>
+<div class="theme-card"><img src="assets/themes/theme-midnightLuxe.png" alt="Midnight Luxe" /><div class="theme-label">Midnight Luxe</div><div class="theme-meta">Georgia &middot; Luxury gold accents</div></div>
+<div class="theme-card"><img src="assets/themes/theme-auroraBorealis.png" alt="Aurora Borealis" /><div class="theme-label">Aurora Borealis</div><div class="theme-meta">Inter &middot; Northern lights neon</div></div>
+<div class="theme-card"><img src="assets/themes/theme-neonGlass.png" alt="Neon Glass" /><div class="theme-label">Neon Glass</div><div class="theme-meta">JetBrains Mono &middot; Neon frosted glass</div></div>
+<div class="theme-card"><img src="assets/themes/theme-solarizedDark.png" alt="Solarized Dark" /><div class="theme-label">Solarized Dark</div><div class="theme-meta">Source Code Pro &middot; Solarized palette</div></div>
+<div class="theme-card"><img src="assets/themes/theme-openAI.png" alt="OpenAI" /><div class="theme-label">OpenAI</div><div class="theme-meta">Inter &middot; Dark with green accents</div></div>
+</div></div>
+<button class="theme-nav next" aria-label="Next">&#8250;</button>
+<div class="theme-dots"></div>
+</div>
+</div>
 
-### Dark Themes (8)
-
-![Neon Dark Style](../../assets/wiki-neon-dark-style.png)
-
-| Style | Font | Node Look | Edge Style | Character |
-|-------|------|-----------|------------|-----------|
-| **Blueprint** | JetBrains Mono | Transparent fill, cyan border (1.5px), 2px radius | Cyan straight | Technical blueprint on dark navy |
-| **Neon Dark** | JetBrains Mono | Dark blue fill, neon cyan border (glow), 8px radius | Magenta animated smoothstep | Cyberpunk neon glow effect |
-| **Retro Terminal** | VT323 | Black fill, bright green border (1px, glow), 0px radius | Green animated step | CRT terminal / hacker aesthetic |
-| **Military C2** | Share Tech Mono | Olive fill, sage border (2px), 2px radius | Sage step | Military command and control |
-| **Dark Neon Glow** | JetBrains Mono | Dark fill, magenta border (2px, glow), cyan text | Neon green animated smoothstep | Cyberpunk with pink/green |
-| **Glass Morphism** | Inter (semibold 600) | Semi-transparent white fill, glass blur effect, 16px radius | Semi-transparent smoothstep | Modern glass / frosted aesthetic |
-| **Midnight Luxe** | Georgia (serif) | Near-black fill, gold border (1.5px), gold glow shadow | Gold bezier | Luxury dark theme, elegant serif |
-| **Aurora Borealis** | Inter | Semi-transparent dark fill, cyan border (glow), 12px radius | Cyan animated bezier | Northern lights with neon accents |
-
-### Additional Themes (3)
-
-| Style | Font | Node Look | Edge Style | Character |
-|-------|------|-----------|------------|-----------|
-| **Handwritten Notebook** | Comic Sans MS / Caveat | White fill, gray border (1.5px), 4px radius, lined grid | Gray smoothstep | Casual notebook / sketch feel |
-| **Gradient Cards** | Inter | White fill, no border, elevated card shadow, 12px radius | Light gray smoothstep | Clean card UI with depth |
-| **Slate Command** | Arial | Ivory fill, black border (1.5px), 6px radius, lined grid | Black smoothstep | Professional command/control |
+<div class="theme-carousel-section">
+<h4>Specialty Themes (3)</h4>
+<div class="theme-slider-wrapper">
+<button class="theme-nav prev" aria-label="Previous">&#8249;</button>
+<div class="theme-slider"><div class="theme-slider-track">
+<div class="theme-card"><img src="assets/themes/theme-notebook.png" alt="Notebook" /><div class="theme-label">Handwritten Notebook</div><div class="theme-meta">Caveat &middot; Casual sketch feel</div></div>
+<div class="theme-card"><img src="assets/themes/theme-gradientCards.png" alt="Gradient Cards" /><div class="theme-label">Gradient Cards</div><div class="theme-meta">Inter &middot; Clean card UI</div></div>
+<div class="theme-card"><img src="assets/themes/theme-cyberC2.png" alt="Cyber C2" /><div class="theme-label">Cyber C2</div><div class="theme-meta">Arial &middot; Cybersecurity ops</div></div>
+</div></div>
+<button class="theme-nav next" aria-label="Next">&#8250;</button>
+<div class="theme-dots"></div>
+</div>
+</div>
 
 > Dark themes are designed for use with dark mode enabled. Toggle dark mode separately with `Ctrl+Shift+K`.
 
@@ -104,7 +125,7 @@ Dark mode inverts the application UI (toolbar, panels, menus, dialogs) to a dark
 - **AI command**: "Switch to dark mode" or "Turn on dark mode"
 - Canvas background adapts to the current diagram style
 - Can be toggled independently of diagram style -- light themes still work in dark mode, with only the panels and menus inverted
-- Dark diagram styles (Blueprint, Neon Dark, Midnight Luxe, Aurora Borealis, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
+- Dark diagram styles (Blueprint, Neon Dark, Midnight Luxe, Aurora Borealis, Glass Morphism, Neon Glass, Solarized Dark, OpenAI, etc.) look best with dark mode enabled (`Ctrl+Shift+K`)
 
 ---
 

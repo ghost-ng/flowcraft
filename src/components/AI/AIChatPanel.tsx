@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Settings, Minus, X, Send, Square, Sparkles } from 'lucide-react';
+import { Settings, Minus, X, Send, Square, Sparkles, ImagePlus } from 'lucide-react';
 import { useAIStore } from '@/store/aiStore';
-import type { AIToolCall, AIToolResult } from '@/store/aiStore';
+import type { AIToolCall, AIToolResult, AIImageAttachment } from '@/store/aiStore';
 import { useStyleStore } from '@/store/styleStore';
 import { sendMessage } from '@/lib/ai/client';
 import { TOOL_DEFINITIONS } from '@/lib/ai/tools';
@@ -40,7 +40,9 @@ const AIChatPanel: React.FC = () => {
 
   // Input state
   const [input, setInput] = useState('');
+  const [pendingImages, setPendingImages] = useState<AIImageAttachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Streaming state
@@ -124,7 +126,7 @@ const AIChatPanel: React.FC = () => {
 
       // Clamp: keep at least 40px visible on each edge, ensure header never clips at top
       newX = Math.max(-size.width + 80, Math.min(newX, window.innerWidth - 80));
-      newY = Math.max(2, Math.min(newY, window.innerHeight - 40));
+      newY = Math.max(8, Math.min(newY, window.innerHeight - 40));
 
       setPosition({ x: newX, y: newY });
     };
@@ -143,14 +145,16 @@ const AIChatPanel: React.FC = () => {
 
   // Re-clamp position when window resizes or panel re-opens (prevents header cutoff)
   useEffect(() => {
-    const handleWindowResize = () => {
+    const clamp = () => {
       setPosition((prev) => ({
         x: Math.max(-size.width + 80, Math.min(prev.x, window.innerWidth - 80)),
-        y: Math.max(2, Math.min(prev.y, window.innerHeight - 40)),
+        y: Math.max(8, Math.min(prev.y, window.innerHeight - 40)),
       }));
     };
-    window.addEventListener('resize', handleWindowResize);
-    return () => window.removeEventListener('resize', handleWindowResize);
+    // Clamp immediately on mount (handles stale savedPosition after close/reopen)
+    clamp();
+    window.addEventListener('resize', clamp);
+    return () => window.removeEventListener('resize', clamp);
   }, [size.width]);
 
   // -------------------------------------------------------------------------
@@ -210,7 +214,7 @@ const AIChatPanel: React.FC = () => {
 
       // Clamp to viewport (keep 2px margin at top to avoid header clipping)
       if (newX < 0) { newW += newX; newX = 0; }
-      if (newY < 2) { newH += (newY - 2); newY = 2; }
+      if (newY < 8) { newH += (newY - 8); newY = 8; }
       newW = Math.min(newW, window.innerWidth - newX);
       newH = Math.min(newH, window.innerHeight - newY);
 
@@ -270,6 +274,7 @@ const AIChatPanel: React.FC = () => {
           break;
         case 'error':
           useAIStore.getState().setError(event.message);
+          useAIStore.getState().setStreaming(false);
           return;
       }
     }
@@ -289,7 +294,7 @@ const AIChatPanel: React.FC = () => {
           continue;
         }
         toolCalls.push({ id, name, args });
-        const result = executeTool(name, args);
+        const result = await executeTool(name, args);
         toolResults.push({ toolCallId: id, toolName: name, result: result.result, success: result.success });
       }
 
@@ -319,7 +324,8 @@ const AIChatPanel: React.FC = () => {
 
   const handleSend = useCallback(async (userText: string) => {
     const trimmed = userText.trim();
-    if (!trimmed) return;
+    const images = pendingImages.length > 0 ? [...pendingImages] : undefined;
+    if (!trimmed && !images) return;
 
     const store = useAIStore.getState();
     if (!store.apiKey) {
@@ -327,8 +333,9 @@ const AIChatPanel: React.FC = () => {
       return;
     }
 
-    // 1. Add user message
-    store.addMessage({ role: 'user', content: trimmed });
+    // 1. Add user message (with optional images)
+    store.addMessage({ role: 'user', content: trimmed, images });
+    setPendingImages([]);
     store.setStreaming(true);
     store.setError(null);
 
@@ -353,30 +360,74 @@ const AIChatPanel: React.FC = () => {
       useAIStore.getState().setStreaming(false);
       abortControllerRef.current = null;
     }
-  }, [processStream]);
+  }, [processStream, pendingImages]);
 
   const handleStop = useCallback(() => {
     abortControllerRef.current?.abort();
   }, []);
 
+  const canSend = input.trim() || pendingImages.length > 0;
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!isStreaming && input.trim()) {
+      if (!isStreaming && canSend) {
         const text = input;
         setInput('');
         handleSend(text);
       }
     }
-  }, [isStreaming, input, handleSend]);
+  }, [isStreaming, input, canSend, handleSend]);
 
   const handleSubmit = useCallback(() => {
-    if (!isStreaming && input.trim()) {
+    if (!isStreaming && canSend) {
       const text = input;
       setInput('');
       handleSend(text);
     }
-  }, [isStreaming, input, handleSend]);
+  }, [isStreaming, input, canSend, handleSend]);
+
+  // Image paste handler — reads clipboard image items as base64
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter((i) => i.type.startsWith('image/'));
+    if (imageItems.length === 0) return; // let normal text paste through
+    e.preventDefault();
+    for (const item of imageItems) {
+      const file = item.getAsFile();
+      if (!file) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.split(',')[1];
+        setPendingImages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), base64, mimeType: file.type },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  // File input handler (for the attach button)
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.split(',')[1];
+        setPendingImages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), base64, mimeType: file.type },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = ''; // reset so same file can be re-selected
+  }, []);
 
   // Re-validate position whenever the panel opens
   useEffect(() => {
@@ -417,7 +468,7 @@ const AIChatPanel: React.FC = () => {
         `}
         style={{
           left: position.x,
-          top: Math.max(0, position.y),
+          top: Math.max(8, position.y),
           width: size.width,
           height: size.height,
         }}
@@ -493,56 +544,112 @@ const AIChatPanel: React.FC = () => {
 
         {/* Error banner */}
         {error && (
-          <div className={`px-3 py-2 text-xs border-t shrink-0 ${darkMode ? 'bg-red-900/30 border-red-800/40 text-red-300' : 'bg-red-50 border-red-100 text-red-600'}`}>
-            {error}
+          <div className={`flex items-start gap-2 px-3 py-2 text-xs border-t shrink-0 ${darkMode ? 'bg-red-900/30 border-red-800/40 text-red-300' : 'bg-red-50 border-red-100 text-red-600'}`}>
+            <span className="flex-1 break-words">{error}</span>
+            <button
+              onClick={() => useAIStore.getState().setError(null)}
+              className={`shrink-0 p-0.5 rounded hover:bg-red-500/20 transition-colors cursor-pointer ${darkMode ? 'text-red-400' : 'text-red-500'}`}
+            >
+              <X size={12} />
+            </button>
           </div>
         )}
 
         {/* Input area */}
-        <div className={`flex items-end gap-2 px-3 py-2.5 border-t shrink-0 ${darkMode ? 'border-dk-border' : 'border-slate-200'}`}>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={apiKey ? 'Type a message...' : 'Set API key in settings to start...'}
-            disabled={!apiKey}
-            rows={1}
-            className={`
-              flex-1 resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors
-              ${darkMode
-                ? 'bg-dk-input text-dk-text placeholder:text-dk-faint border border-dk-border focus:border-blue-500'
-                : 'bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-blue-500'
-              }
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
-          />
-          {isStreaming ? (
+        <div className={`border-t shrink-0 ${darkMode ? 'border-dk-border' : 'border-slate-200'}`}>
+          {/* Image preview strip */}
+          {pendingImages.length > 0 && (
+            <div className={`flex gap-2 px-3 pt-2 pb-1 overflow-x-auto ${darkMode ? 'bg-dk-surface' : 'bg-white'}`}>
+              {pendingImages.map((img) => (
+                <div key={img.id} className="relative shrink-0 group">
+                  <img
+                    src={`data:${img.mimeType};base64,${img.base64}`}
+                    alt="Attached"
+                    className={`h-16 rounded-md border object-cover ${darkMode ? 'border-dk-border' : 'border-slate-200'}`}
+                  />
+                  <button
+                    onClick={() => setPendingImages((prev) => prev.filter((p) => p.id !== img.id))}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Text input + buttons */}
+          <div className="flex items-end gap-2 px-3 py-2.5">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            {/* Attach image button */}
             <button
-              onClick={handleStop}
-              className="shrink-0 p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
-              data-tooltip="Stop"
-            >
-              <Square size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim() || !apiKey}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!apiKey || isStreaming}
               className={`
                 shrink-0 p-2 rounded-lg transition-colors cursor-pointer
-                ${input.trim() && apiKey
-                  ? 'bg-blue-500 text-white hover:bg-blue-600'
-                  : darkMode
-                    ? 'bg-dk-hover text-dk-faint cursor-not-allowed'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                ${darkMode
+                  ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
                 }
+                disabled:opacity-50 disabled:cursor-not-allowed
               `}
-              data-tooltip="Send"
+              title="Attach image"
             >
-              <Send size={16} />
+              <ImagePlus size={16} />
             </button>
-          )}
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder={apiKey ? (pendingImages.length > 0 ? 'Add a message or just send the image...' : 'Type a message...') : 'Set API key in settings to start...'}
+              disabled={!apiKey}
+              rows={1}
+              className={`
+                flex-1 resize-none rounded-lg px-3 py-2 text-sm outline-none transition-colors
+                ${darkMode
+                  ? 'bg-dk-input text-dk-text placeholder:text-dk-faint border border-dk-border focus:border-blue-500'
+                  : 'bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-blue-500'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed
+              `}
+            />
+            {isStreaming ? (
+              <button
+                onClick={handleStop}
+                className="shrink-0 p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
+                data-tooltip="Stop"
+              >
+                <Square size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!canSend || !apiKey}
+                className={`
+                  shrink-0 p-2 rounded-lg transition-colors cursor-pointer
+                  ${canSend && apiKey
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : darkMode
+                      ? 'bg-dk-hover text-dk-faint cursor-not-allowed'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }
+                `}
+                data-tooltip="Send"
+              >
+                <Send size={16} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Resize handles — edges (6px wide strips) and corners (12px squares) */}

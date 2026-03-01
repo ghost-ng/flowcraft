@@ -38,7 +38,7 @@ export const retroTerminal: DiagramStyle = {
     hexagon: '#009900',
     document: '#00e600',
     cloud: '#1aff1a',
-    stickyNote: '#2d2d00',
+    stickyNote: '#3d3d00',
     textbox: 'transparent',
     blockArrow: '#00b300',
     chevronArrow: '#00d900',

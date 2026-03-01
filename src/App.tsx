@@ -13,6 +13,12 @@ import { useExportStore } from './store/exportStore';
 import { useFlowStore } from './store/flowStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useAIStore } from './store/aiStore';
+import { useSwimlaneStore } from './store/swimlaneStore';
+import { useLegendStore } from './store/legendStore';
+import { useLayerStore } from './store/layerStore';
+import type { Layer } from './store/layerStore';
+import { useBannerStore } from './store/bannerStore';
+import { useTimerStore } from './store/timerStore';
 
 const AIChatPanel = React.lazy(() => import('./components/AI/AIChatPanel'));
 const AISettingsDialog = React.lazy(() => import('./components/AI/AISettingsDialog'));
@@ -538,45 +544,160 @@ const App: React.FC = () => {
     }
   }, [formatPainterActive]);
 
-  // Auto-save to localStorage
+  // Auto-save to localStorage — saves all diagram-specific state
   useEffect(() => {
     const SAVE_KEY = 'charthero-autosave';
 
-    // Load on mount
-    try {
-      const saved = localStorage.getItem(SAVE_KEY);
-      if (saved) {
-        const { nodes, edges } = JSON.parse(saved);
-        if (nodes?.length > 0) {
-          useFlowStore.getState().setNodes(nodes);
-          useFlowStore.getState().setEdges(edges || []);
+    // Snapshot all diagram state into one blob
+    const buildSnapshot = () => {
+      const flow = useFlowStore.getState();
+      const swim = useSwimlaneStore.getState();
+      const legend = useLegendStore.getState();
+      const layer = useLayerStore.getState();
+      const banner = useBannerStore.getState();
+      const timer = useTimerStore.getState();
+      return {
+        nodes: flow.nodes,
+        edges: flow.edges,
+        swimlanes: {
+          config: swim.config,
+          containerOffset: swim.containerOffset,
+        },
+        legends: {
+          nodeLegend: legend.nodeLegend,
+          swimlaneLegend: legend.swimlaneLegend,
+        },
+        layers: {
+          layers: layer.layers,
+          activeLayerId: layer.activeLayerId,
+        },
+        banners: {
+          topBanner: banner.topBanner,
+          bottomBanner: banner.bottomBanner,
+        },
+        timeSpent: timer.getElapsed(),
+      };
+    };
+
+    // Restore all diagram state from saved blob
+    const restoreSnapshot = (saved: Record<string, unknown>) => {
+      // Nodes + edges
+      const nodes = saved.nodes as FlowNode[] | undefined;
+      const edges = saved.edges as FlowEdge[] | undefined;
+      if (nodes && nodes.length > 0) {
+        useFlowStore.getState().setNodes(nodes);
+        useFlowStore.getState().setEdges(edges || []);
+      }
+
+      // Swimlanes
+      const sw = saved.swimlanes as Record<string, unknown> | undefined;
+      if (sw?.config) {
+        useSwimlaneStore.setState({
+          config: sw.config as typeof useSwimlaneStore extends { getState: () => infer S } ? S extends { config: infer C } ? C : never : never,
+          containerOffset: (sw.containerOffset as { x: number; y: number }) || { x: 0, y: 0 },
+        });
+      }
+
+      // Legends
+      const lg = saved.legends as Record<string, unknown> | undefined;
+      if (lg) {
+        if (lg.nodeLegend) {
+          useLegendStore.setState({ nodeLegend: lg.nodeLegend as ReturnType<typeof useLegendStore.getState>['nodeLegend'] });
         }
+        if (lg.swimlaneLegend) {
+          useLegendStore.setState({ swimlaneLegend: lg.swimlaneLegend as ReturnType<typeof useLegendStore.getState>['swimlaneLegend'] });
+        }
+      }
+
+      // Layers
+      const ly = saved.layers as Record<string, unknown> | undefined;
+      if (ly?.layers && Array.isArray(ly.layers)) {
+        useLayerStore.setState({
+          layers: ly.layers as Layer[],
+          activeLayerId: (ly.activeLayerId as string) || 'default',
+        });
+      }
+
+      // Banners
+      const bn = saved.banners as Record<string, unknown> | undefined;
+      if (bn) {
+        if (bn.topBanner) useBannerStore.setState({ topBanner: bn.topBanner as ReturnType<typeof useBannerStore.getState>['topBanner'] });
+        if (bn.bottomBanner) useBannerStore.setState({ bottomBanner: bn.bottomBanner as ReturnType<typeof useBannerStore.getState>['bottomBanner'] });
+      }
+
+      // Timer — restore accumulated time spent
+      if (typeof saved.timeSpent === 'number' && saved.timeSpent > 0) {
+        useTimerStore.getState().start(saved.timeSpent);
+      } else {
+        useTimerStore.getState().start(0);
+      }
+    };
+
+    // Load on mount
+    let didRestore = false;
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        restoreSnapshot(saved);
+        didRestore = true;
       }
     } catch (e) {
       log.error('Autosave load failed', e);
     }
+    // Start the timer if restoreSnapshot didn't already (i.e. fresh session)
+    if (!didRestore) {
+      useTimerStore.getState().start(0);
+    }
     // Clear history so the initial load isn't an undo-able action
     useHistoryStore.getState().clearHistory();
 
-    // Save on changes (debounced)
+    // Debounced save — triggers on changes to any subscribed store
     let timeout: ReturnType<typeof setTimeout>;
-    const unsubscribe = useFlowStore.subscribe((state) => {
+    const debouncedSave = () => {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
         try {
-          localStorage.setItem(SAVE_KEY, JSON.stringify({
-            nodes: state.nodes,
-            edges: state.edges,
-          }));
+          localStorage.setItem(SAVE_KEY, JSON.stringify(buildSnapshot()));
         } catch (e) {
           log.error('Autosave write failed', e);
         }
       }, 1000);
-    });
+    };
+
+    // Subscribe to all diagram-specific stores
+    const unsubs = [
+      useFlowStore.subscribe(debouncedSave),
+      useSwimlaneStore.subscribe(debouncedSave),
+      useLegendStore.subscribe(debouncedSave),
+      useLayerStore.subscribe(debouncedSave),
+      useBannerStore.subscribe(debouncedSave),
+    ];
+
+    // Periodic save every 30s to capture elapsed time even when no stores change
+    const timerInterval = setInterval(() => {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(buildSnapshot()));
+      } catch (e) {
+        log.error('Autosave timer write failed', e);
+      }
+    }, 30_000);
+
+    // Save on page unload so timer is never lost
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(buildSnapshot()));
+      } catch {
+        // Best-effort — ignore errors during unload
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
-      unsubscribe();
+      unsubs.forEach((u) => u());
       clearTimeout(timeout);
+      clearInterval(timerInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 

@@ -1,4 +1,5 @@
 import { create, type StoreApi } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 // ---------------------------------------------------------------------------
 // Inline types
@@ -63,47 +64,64 @@ export interface StyleState {
 // Store
 // ---------------------------------------------------------------------------
 
-export const useStyleStore = create<StyleState>()((set) => ({
-  // -- initial state --------------------------------------------
-  activeStyleId: 'cleanMinimal',
-  activePaletteId: 'ocean',
-  darkMode: false,
-  userPresets: [],
-  autoColorMode: 'manual',
-  customFont: null,
-  canvasColorOverride: null,
+export const useStyleStore = create<StyleState>()(
+  persist(
+    (set) => ({
+      // -- initial state --------------------------------------------
+      activeStyleId: 'flatMaterial',
+      activePaletteId: 'ocean',
+      darkMode: false,
+      userPresets: [],
+      autoColorMode: 'manual',
+      customFont: null,
+      canvasColorOverride: null,
 
-  // -- actions --------------------------------------------------
-  setStyle: (styleId) => set({ activeStyleId: styleId, canvasColorOverride: null }),
+      // -- actions --------------------------------------------------
+      setStyle: (styleId) => set({ activeStyleId: styleId, canvasColorOverride: null }),
 
-  clearStyle: () => set({ activeStyleId: null, canvasColorOverride: null }),
+      clearStyle: () => set({ activeStyleId: null, canvasColorOverride: null }),
 
-  setPalette: (paletteId) => set({ activePaletteId: paletteId }),
+      setPalette: (paletteId) => set({ activePaletteId: paletteId }),
 
-  toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
-  setDarkMode: (dark) => set({ darkMode: dark }),
+      toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
+      setDarkMode: (dark) => set({ darkMode: dark }),
 
-  addPreset: (preset) =>
-    set((s) => ({ userPresets: [...s.userPresets, preset] })),
+      addPreset: (preset) =>
+        set((s) => ({ userPresets: [...s.userPresets, preset] })),
 
-  removePreset: (presetId) =>
-    set((s) => ({
-      userPresets: s.userPresets.filter((p) => p.id !== presetId),
-    })),
+      removePreset: (presetId) =>
+        set((s) => ({
+          userPresets: s.userPresets.filter((p) => p.id !== presetId),
+        })),
 
-  updatePreset: (presetId, patch) =>
-    set((s) => ({
-      userPresets: s.userPresets.map((p) =>
-        p.id === presetId ? { ...p, ...patch } : p,
-      ),
-    })),
+      updatePreset: (presetId, patch) =>
+        set((s) => ({
+          userPresets: s.userPresets.map((p) =>
+            p.id === presetId ? { ...p, ...patch } : p,
+          ),
+        })),
 
-  setAutoColorMode: (mode) => set({ autoColorMode: mode }),
+      setAutoColorMode: (mode) => set({ autoColorMode: mode }),
 
-  setCustomFont: (font) => set({ customFont: font }),
+      setCustomFont: (font) => set({ customFont: font }),
 
-  setCanvasColorOverride: (color) => set({ canvasColorOverride: color }),
-}));
+      setCanvasColorOverride: (color) => set({ canvasColorOverride: color }),
+    }),
+    {
+      name: 'charthero-styles',
+      // Only persist data fields, not actions
+      partialize: (state) => ({
+        activeStyleId: state.activeStyleId,
+        activePaletteId: state.activePaletteId,
+        darkMode: state.darkMode,
+        userPresets: state.userPresets,
+        autoColorMode: state.autoColorMode,
+        customFont: state.customFont,
+        canvasColorOverride: state.canvasColorOverride,
+      }),
+    },
+  ),
+);
 
 /** Direct access to the store (useful outside of React components) */
 export const styleStore: StoreApi<StyleState> = useStyleStore;

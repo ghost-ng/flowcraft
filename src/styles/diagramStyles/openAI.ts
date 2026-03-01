@@ -1,0 +1,47 @@
+import type { DiagramStyle } from '../types';
+
+export const openAI: DiagramStyle = {
+  id: 'openAI',
+  displayName: 'OpenAI',
+  dark: true,
+  canvas: {
+    background: '#171717',
+    gridColor: '#262626',
+    gridStyle: 'dots',
+  },
+  nodeDefaults: {
+    fill: '#212121',
+    stroke: '#3a3a3a',
+    strokeWidth: 1,
+    borderRadius: 8,
+    shadow: '0 1px 4px rgba(0, 0, 0, 0.25)',
+    fontFamily: "'Inter', 'Söhne', 'Helvetica Neue', sans-serif",
+    fontSize: 14,
+    fontColor: '#ececec',
+    fontWeight: 400,
+  },
+  edgeDefaults: {
+    stroke: '#10a37f',
+    strokeWidth: 1.5,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#10a37f', '#1a7f64', '#5cead4', '#ffffff', '#6e6e6e'],
+  shapeColors: {
+    rectangle: '#212121',
+    roundedRectangle: '#212121',
+    diamond: '#1a3a30',
+    circle: '#10a37f',
+    parallelogram: '#2a2a2a',
+    hexagon: '#1a7f64',
+    document: '#1e3a2f',
+    cloud: '#2a2a2a',
+    stickyNote: '#2a2a1a',
+    textbox: 'transparent',
+    blockArrow: '#1a3a30',
+    chevronArrow: '#10a37f',
+    doubleArrow: '#1a7f64',
+    circularArrow: '#2a2a2a',
+  },
+};

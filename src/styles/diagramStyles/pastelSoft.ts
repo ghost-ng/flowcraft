@@ -16,7 +16,7 @@ export const pastelSoft: DiagramStyle = {
     shadow: '0 2px 8px rgba(180, 160, 210, 0.2)',
     fontFamily: "'Nunito', 'Quicksand', 'Segoe UI', sans-serif",
     fontSize: 14,
-    fontColor: '#4a3f6b',
+    fontColor: '#2d2347',
     fontWeight: 600,
   },
   edgeDefaults: {

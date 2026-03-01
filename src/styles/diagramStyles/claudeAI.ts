@@ -1,0 +1,47 @@
+import type { DiagramStyle } from '../types';
+
+export const claudeAI: DiagramStyle = {
+  id: 'claudeAI',
+  displayName: 'Claude',
+  dark: false,
+  canvas: {
+    background: '#faf9f7',
+    gridColor: '#e8e4de',
+    gridStyle: 'dots',
+  },
+  nodeDefaults: {
+    fill: '#d97757',
+    stroke: '#c4623f',
+    strokeWidth: 1,
+    borderRadius: 12,
+    shadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+    fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+    fontSize: 14,
+    fontColor: '#ffffff',
+    fontWeight: 500,
+  },
+  edgeDefaults: {
+    stroke: '#d97757',
+    strokeWidth: 1.5,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#d97757', '#c4623f', '#a3503a', '#e8a88a', '#8b4332'],
+  shapeColors: {
+    rectangle: '#d97757',
+    roundedRectangle: '#d97757',
+    diamond: '#c4623f',
+    circle: '#e8a88a',
+    parallelogram: '#a3503a',
+    hexagon: '#8b4332',
+    document: '#d97757',
+    cloud: '#e8a88a',
+    stickyNote: '#f5e6d0',
+    textbox: 'transparent',
+    blockArrow: '#c4623f',
+    chevronArrow: '#d97757',
+    doubleArrow: '#a3503a',
+    circularArrow: '#e8a88a',
+  },
+};

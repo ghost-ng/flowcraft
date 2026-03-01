@@ -105,7 +105,7 @@ const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = ({ open,
       {/* Dialog */}
       <div
         className={`
-          relative w-[560px] max-h-[80vh] rounded-xl shadow-2xl border overflow-hidden
+          relative w-[720px] max-h-[80vh] rounded-xl shadow-2xl border overflow-hidden
           ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
         `}
       >

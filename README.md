@@ -113,7 +113,7 @@ Chart Hero provides capabilities that traditional presentation tools like PowerP
 | **Format Painter** | Copy styles between elements with Ctrl+Alt+C / Ctrl+Shift+V | Similar |
 | **Legend Auto-Gen** | One-click legend generation by scanning your diagram | Manual only |
 | **JSON Round-Trip** | Full-fidelity programmatic access to every property in your diagram | Not available |
-| **19 Diagram Themes** | One-click complete visual makeovers (Blueprint, Neon, Watercolor, Sketch, etc.) | Limited themes |
+| **24 Diagram Themes** | One-click complete visual makeovers (Blueprint, Neon, Watercolor, Sketch, etc.) | Limited themes |
 | **Presentation Mode** | Full-screen with pen, highlighter, and eraser annotations | Separate app |
 | **Offline PWA** | Install as a desktop app, works without internet | Requires install |
 
@@ -123,9 +123,11 @@ Chart Hero provides capabilities that traditional presentation tools like PowerP
 
 <img src="assets/guide-style-picker.png" alt="Style picker" width="600" />
 
-### 19 Diagram Themes
+### 24 Diagram Themes
 
 Apply a complete visual transformation with one click. Each theme reskins all nodes, edges, and the canvas:
+
+<img src="assets/themes/theme-gallery.png" alt="All 24 diagram themes" width="900" />
 
 | Theme | Description |
 |---|---|
@@ -148,10 +150,15 @@ Apply a complete visual transformation with one click. Each theme reskins all no
 | Notebook | Lined paper notebook feel |
 | Gradient Cards | Card-style with gradient backgrounds |
 | Cyber C2 | Cybersecurity operations center theme |
+| Zinc Modern | Ultra-clean SaaS aesthetic |
+| Soft Gradient | Modern editorial pastel feel |
+| Midnight Luxe | Luxury dark theme with gold accents |
+| Paper Print | Warm book typography, print-ready |
+| Aurora Borealis | Northern lights with neon accents |
 
-### 11 Color Palettes
+### 21 Color Palettes
 
-Quick-color selected nodes with number keys **1–9**: Ocean, Berry, Forest, Sunset, Grayscale, Cyber, Pastel Dream, Earth Tone, Military, Accessible, Cyber C2.
+Quick-color selected nodes with number keys **1–9**: Ocean, Berry, Forest, Sunset, Grayscale, Cyber, Pastel Dream, Earth Tone, Military, Accessible, Slate Command, Midnight Aurora, Rose Gold, Nordic Frost, Terracotta, Lavender Fields, Tropical, Candy Pop, Tokyo Night, Coral Reef, Vintage Sage.
 
 ### Per-Node Customization
 
@@ -384,7 +391,7 @@ src/
     PresentationMode/ # Full-screen presentation overlay
   store/            # 11 Zustand stores (flow, ui, style, swimlane, legend,
                     #   dependency, export, settings, layer, banner, ai)
-  styles/           # 19 diagram themes, 11 color palettes, app CSS
+  styles/           # 24 diagram themes, 21 color palettes, app CSS
   lib/ai/           # AI integration (client, streaming, tools, prompts, providers)
   hooks/            # Custom React hooks (keyboard shortcuts, menu positioning)
   utils/            # Utilities (export, layout, color, alignment, transforms)

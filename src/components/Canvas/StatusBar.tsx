@@ -5,6 +5,7 @@ import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useTimerStore } from '../../store/timerStore';
 
 const MinimapToggle: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const minimapVisible = useUIStore((s) => s.minimapVisible);
@@ -100,15 +101,17 @@ const StatusBar: React.FC = () => {
     return () => window.removeEventListener('mousemove', handler);
   }, [viewport.x, viewport.y, viewport.zoom]);
 
-  // Session timer — counts time since app loaded
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(Date.now());
+  // Session timer — reads cumulative time from timerStore (persisted via autosave)
+  const timerGetElapsed = useTimerStore((s) => s.getElapsed);
+  const timerTick = useTimerStore((s) => s.tick);
+  const [elapsed, setElapsed] = useState(() => timerGetElapsed());
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+      timerTick();
+      setElapsed(timerGetElapsed());
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timerGetElapsed, timerTick]);
 
   const formatTime = (secs: number) => {
     const h = Math.floor(secs / 3600);
@@ -150,7 +153,7 @@ const StatusBar: React.FC = () => {
       style={{ paddingLeft: rulerVisible ? 24 : 0 }}
     >
       {/* Time saved */}
-      <div className={itemClass} title="Time spent creating this diagram">
+      <div className={itemClass} data-tooltip-top="Time spent">
         <span className="opacity-60">&#9202;</span>
         {formatTime(elapsed)}
       </div>
@@ -158,14 +161,14 @@ const StatusBar: React.FC = () => {
       <div className={separatorClass} />
 
       {/* Total elements */}
-      <div className={itemClass} title="Total elements on canvas">
+      <div className={itemClass} data-tooltip-top="Total elements">
         {totalElements} element{totalElements !== 1 ? 's' : ''}
       </div>
 
       <div className={separatorClass} />
 
       {/* Selection */}
-      <div className={itemClass} title="Selected elements">
+      <div className={itemClass} data-tooltip-top="Selected elements">
         {selCount > 0 ? (
           <>
             {selCount} selected
@@ -181,7 +184,7 @@ const StatusBar: React.FC = () => {
       <div className={separatorClass} />
 
       {/* Mouse coordinates */}
-      <div className={itemClass} title="Cursor position (flow coordinates)">
+      <div className={itemClass} data-tooltip-top="Cursor position">
         {mousePos ? (
           <>X: {mousePos.x} &nbsp; Y: {mousePos.y}</>
         ) : (
@@ -258,7 +261,7 @@ const StatusBar: React.FC = () => {
       <div className={separatorClass} />
 
       {/* Zoom */}
-      <div className={itemClass} title="Zoom level">
+      <div className={itemClass} data-tooltip-top="Zoom level">
         {Math.round(viewport.zoom * 100)}%
       </div>
     </div>

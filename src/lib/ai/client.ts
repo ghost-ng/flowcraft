@@ -56,6 +56,11 @@ interface AnthropicToolUseContent {
   input: Record<string, unknown>;
 }
 
+interface AnthropicImageContent {
+  type: 'image';
+  source: { type: 'base64'; media_type: string; data: string };
+}
+
 interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
@@ -64,6 +69,7 @@ interface AnthropicToolResultContent {
 
 type AnthropicContent =
   | AnthropicTextContent
+  | AnthropicImageContent
   | AnthropicToolUseContent
   | AnthropicToolResultContent;
 
@@ -77,7 +83,22 @@ function formatMessagesForAnthropic(messages: AIMessage[]): AnthropicMessage[] {
 
   for (const msg of messages) {
     if (msg.role === 'user') {
-      result.push({ role: 'user', content: msg.content });
+      if (msg.images?.length) {
+        // Build multipart content with images + text
+        const blocks: AnthropicContent[] = [];
+        for (const img of msg.images) {
+          blocks.push({
+            type: 'image',
+            source: { type: 'base64', media_type: img.mimeType, data: img.base64 },
+          });
+        }
+        if (msg.content) {
+          blocks.push({ type: 'text', text: msg.content });
+        }
+        result.push({ role: 'user', content: blocks });
+      } else {
+        result.push({ role: 'user', content: msg.content });
+      }
     } else if (msg.role === 'assistant') {
       if (msg.toolCalls && msg.toolCalls.length > 0) {
         const contentBlocks: AnthropicContent[] = [];
@@ -119,9 +140,10 @@ function formatMessagesForAnthropic(messages: AIMessage[]): AnthropicMessage[] {
 // Message format translation — OpenAI
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface OpenAIMessageBase {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | null;
+  content: string | null | Array<Record<string, any>>;
 }
 
 interface OpenAIAssistantMessage extends OpenAIMessageBase {
@@ -145,7 +167,23 @@ function formatMessagesForOpenAI(messages: AIMessage[]): OpenAIMessage[] {
 
   for (const msg of messages) {
     if (msg.role === 'user') {
-      result.push({ role: 'user', content: msg.content });
+      if (msg.images?.length) {
+        // Build multipart content with image_url entries + text
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parts: Array<Record<string, any>> = [];
+        for (const img of msg.images) {
+          parts.push({
+            type: 'image_url',
+            image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
+          });
+        }
+        if (msg.content) {
+          parts.push({ type: 'text', text: msg.content });
+        }
+        result.push({ role: 'user', content: parts });
+      } else {
+        result.push({ role: 'user', content: msg.content });
+      }
     } else if (msg.role === 'assistant') {
       if (msg.toolCalls && msg.toolCalls.length > 0) {
         const assistantMsg: OpenAIAssistantMessage = {

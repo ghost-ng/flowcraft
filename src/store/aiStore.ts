@@ -1,4 +1,5 @@
 import { create, type StoreApi } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { type AIProvider, PROVIDERS } from '../lib/ai/providers';
 
 // ---------------------------------------------------------------------------
@@ -26,10 +27,17 @@ export interface AIToolResult {
   success: boolean;
 }
 
+export interface AIImageAttachment {
+  id: string;
+  base64: string;   // raw base64 data (no data: prefix)
+  mimeType: string;  // image/png, image/jpeg, image/webp, image/gif
+}
+
 export interface AIMessage {
   id: string;
   role: 'user' | 'assistant' | 'tool';
   content: string;
+  images?: AIImageAttachment[];
   toolCalls?: AIToolCall[];
   toolResults?: AIToolResult[];
   timestamp: number;
@@ -88,7 +96,9 @@ const DEFAULT_CONFIG = PROVIDERS[DEFAULT_PROVIDER];
 // Store
 // ---------------------------------------------------------------------------
 
-export const useAIStore = create<AIState>()((set, get) => ({
+export const useAIStore = create<AIState>()(
+  persist(
+    (set, get) => ({
   // -- initial state --------------------------------------------------------
   provider: DEFAULT_PROVIDER,
   apiKey: '',
@@ -192,7 +202,19 @@ export const useAIStore = create<AIState>()((set, get) => ({
       sessionStorage.removeItem(STORAGE_KEY);
     }
   },
-}));
+    }),
+    {
+      name: 'charthero-ai-settings',
+      partialize: (state) => ({
+        provider: state.provider,
+        endpoint: state.endpoint,
+        model: state.model,
+        models: state.models,
+        keyStorage: state.keyStorage,
+      }),
+    },
+  ),
+);
 
 /** Direct access to the store (useful outside of React components) */
 export const aiStore: StoreApi<AIState> = useAIStore;

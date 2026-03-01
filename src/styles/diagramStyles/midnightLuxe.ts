@@ -17,7 +17,7 @@ export const midnightLuxe: DiagramStyle = {
     shadow: '0 4px 24px rgba(0, 0, 0, 0.5), 0 0 1px rgba(212, 175, 55, 0.3)',
     fontFamily: "'Georgia', 'Playfair Display', serif",
     fontSize: 14,
-    fontColor: '#e8e0cc',
+    fontColor: '#f5f0e0',
     fontWeight: 400,
   },
   edgeDefaults: {

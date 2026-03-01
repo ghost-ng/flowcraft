@@ -39,25 +39,6 @@ Below the arrow shapes, the palette provides two additional items:
 - **Icon Library** -- Opens a searchable icon picker with 1000+ icons from the Lucide library. Selecting an icon creates an icon-only node on the canvas.
 - **Group** -- A dashed-border container that can hold child nodes. Drag child nodes into a group to logically associate them.
 
-### Additional Shapes (via Context Menu, AI, or JSON Import)
-
-The following shapes are defined in the data model and can be applied to any node through the AI assistant, JSON import, or programmatic means. They do not appear directly in the palette:
-
-| Shape ID | Description |
-|----------|-------------|
-| `ellipse` | Oval / ellipse |
-| `triangle` | Triangle |
-| `star` | Five-pointed star |
-| `arrow` | Simple arrow |
-| `callout` | Speech callout bubble |
-| `predefinedProcess` | Double-bordered rectangle (subroutine) |
-| `manualInput` | Slanted-top rectangle (manual input) |
-| `preparation` | Extended hexagon (preparation step) |
-| `data` | Parallelogram variant (data) |
-| `database` | Cylinder shape (database) |
-| `internalStorage` | Rectangle with internal corner lines |
-| `display` | Rounded-right rectangle (display) |
-
 ---
 
 ## Creating Nodes

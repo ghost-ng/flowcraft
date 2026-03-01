@@ -1,0 +1,47 @@
+import type { DiagramStyle } from '../types';
+
+export const osxAqua: DiagramStyle = {
+  id: 'osxAqua',
+  displayName: 'macOS Aqua',
+  dark: false,
+  canvas: {
+    background: '#f0f0f5',
+    gridColor: '#d8d8e0',
+    gridStyle: 'dots',
+  },
+  nodeDefaults: {
+    fill: '#ffffff',
+    stroke: '#c0c0cc',
+    strokeWidth: 1,
+    borderRadius: 10,
+    shadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08)',
+    fontFamily: "'-apple-system', 'SF Pro Display', 'Helvetica Neue', sans-serif",
+    fontSize: 13,
+    fontColor: '#1d1d1f',
+    fontWeight: 400,
+  },
+  edgeDefaults: {
+    stroke: '#007aff',
+    strokeWidth: 1.5,
+    type: 'smoothstep',
+    animated: false,
+    arrowType: 'arrowclosed',
+  },
+  accentColors: ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de'],
+  shapeColors: {
+    rectangle: '#ffffff',
+    roundedRectangle: '#ffffff',
+    diamond: '#fff3e0',
+    circle: '#e8f5e9',
+    parallelogram: '#f3e5f5',
+    hexagon: '#fce4ec',
+    document: '#e3f2fd',
+    cloud: '#ede7f6',
+    stickyNote: '#fffde7',
+    textbox: 'transparent',
+    blockArrow: '#e3f2fd',
+    chevronArrow: '#e8f5e9',
+    doubleArrow: '#f3e5f5',
+    circularArrow: '#fff3e0',
+  },
+};

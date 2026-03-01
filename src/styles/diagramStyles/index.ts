@@ -24,6 +24,11 @@ import { softGradient } from './softGradient';
 import { midnightLuxe } from './midnightLuxe';
 import { paperPrint } from './paperPrint';
 import { auroraBorealis } from './auroraBorealis';
+import { neonGlass } from './neonGlass';
+import { osxAqua } from './osxAqua';
+import { solarizedDark } from './solarizedDark';
+import { claudeAI } from './claudeAI';
+import { openAI } from './openAI';
 
 export const diagramStyles: Record<string, DiagramStyle> = {
   cleanMinimal,
@@ -50,9 +55,14 @@ export const diagramStyles: Record<string, DiagramStyle> = {
   midnightLuxe,
   paperPrint,
   auroraBorealis,
+  neonGlass,
+  osxAqua,
+  solarizedDark,
+  claudeAI,
+  openAI,
 };
 
-export const defaultStyleId = 'cleanMinimal';
+export const defaultStyleId = 'flatMaterial';
 
 export {
   cleanMinimal,
@@ -79,4 +89,9 @@ export {
   midnightLuxe,
   paperPrint,
   auroraBorealis,
+  neonGlass,
+  osxAqua,
+  solarizedDark,
+  claudeAI,
+  openAI,
 };

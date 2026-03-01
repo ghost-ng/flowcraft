@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useViewport } from '@xyflow/react';
 import { useLegendStore, type LegendKind, type LegendItemKind } from '../../store/legendStore';
 import { useStyleStore } from '../../store/styleStore';
+import { diagramStyles } from '../../styles/diagramStyles';
 import { generateId } from '../../utils/idGenerator';
 import { Trash2, Plus, GripVertical, Eye, EyeClosed, X } from 'lucide-react';
 
@@ -475,7 +476,11 @@ const LegendOverlay: React.FC<LegendOverlayProps> = ({ which }) => {
   const setTitle = useLegendStore((s) => s.setTitle);
   const updateItem = useLegendStore((s) => s.updateItem);
   const updateStyle = useLegendStore((s) => s.updateStyle);
-  const darkMode = useStyleStore((s) => s.darkMode);
+  const globalDarkMode = useStyleStore((s) => s.darkMode);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
+  // Theme is dark if user toggled dark mode OR the active diagram style is inherently dark
+  const darkMode = globalDarkMode || (activeStyle?.dark === true);
   const viewport = useViewport();
   const dragRef = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number; startFontSize: number } | null>(null);
@@ -600,11 +605,15 @@ const LegendOverlay: React.FC<LegendOverlayProps> = ({ which }) => {
   if (!config.visible || visibleItems.length === 0) return null;
 
   const { style } = config;
+  // Use theme-aware legend colors: if the user hasn't customised the default white/light style,
+  // replace with dark-appropriate colours when a dark theme or dark mode is active.
+  const isDefaultBg = style.bgColor === '#ffffff';
+  const isDefaultBorder = style.borderColor === '#e2e8f0';
   const bgColor = darkMode
-    ? (style.bgColor === '#ffffff' ? '#253345' : style.bgColor)
+    ? (isDefaultBg ? 'rgba(20,30,45,0.92)' : style.bgColor)
     : style.bgColor;
   const borderColor = darkMode
-    ? (style.borderColor === '#e2e8f0' ? '#3a4a5c' : style.borderColor)
+    ? (isDefaultBorder ? 'rgba(255,255,255,0.12)' : style.borderColor)
     : style.borderColor;
   const textColor = darkMode ? '#c8d1dc' : '#0f172a';
   const titleColor = darkMode ? '#8494a7' : '#64748b';

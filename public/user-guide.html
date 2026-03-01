@@ -67,6 +67,52 @@
     .content-area hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
     .content-area kbd { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1em 0.4em; font-size: 0.85em; font-family: inherit; }
     .loading { text-align: center; padding: 4rem; color: var(--muted); }
+
+    /* Theme card slider */
+    .theme-carousel-section { margin: 1.5rem 0; }
+    .theme-carousel-section h4 { margin: 0 0 0.75rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+    .theme-slider-wrapper { position: relative; padding: 0 36px; }
+    .theme-slider { overflow: hidden; border-radius: 10px; }
+    .theme-slider-track { display: flex; gap: 14px; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+    .theme-card { flex: 0 0 calc(33.333% - 10px); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--code-bg); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+    .theme-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-color: var(--accent); }
+    .theme-card img { width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block; margin: 0; border-radius: 0; box-shadow: none; }
+    .theme-card .theme-label { padding: 8px 12px 2px; font-size: 0.82rem; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .theme-card .theme-meta { padding: 0 12px 8px; font-size: 0.7rem; color: var(--muted); }
+    .theme-nav { position: absolute; top: 50%; transform: translateY(-60%); width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); color: var(--fg); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; z-index: 2; transition: all 0.15s; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .theme-nav:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .theme-nav:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+    .theme-nav.prev { left: 0; }
+    .theme-nav.next { right: 0; }
+    .theme-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+    .theme-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); border: none; cursor: pointer; transition: all 0.2s; padding: 0; }
+    .theme-dot.active { background: var(--accent); transform: scale(1.3); }
+    @media (max-width: 700px) {
+      .theme-card { flex: 0 0 calc(100% - 0px); }
+      .theme-slider-wrapper { padding: 0 32px; }
+    }
+    @media (min-width: 701px) and (max-width: 900px) {
+      .theme-card { flex: 0 0 calc(50% - 7px); }
+    }
+
+    /* Theme lightbox */
+    .theme-lightbox { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .theme-lightbox.open { opacity: 1; pointer-events: auto; }
+    .theme-lightbox-inner { position: relative; max-width: 90vw; max-height: 85vh; border-radius: 12px; overflow: hidden; background: var(--code-bg); box-shadow: 0 20px 60px rgba(0,0,0,0.4); transform: scale(0.92); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+    .theme-lightbox.open .theme-lightbox-inner { transform: scale(1); }
+    .theme-lightbox-inner img { display: block; max-width: 90vw; max-height: calc(85vh - 52px); object-fit: contain; margin: 0; border-radius: 0; box-shadow: none; }
+    .theme-lightbox-caption { padding: 10px 16px; text-align: center; font-weight: 600; font-size: 0.95rem; color: var(--fg); background: var(--code-bg); border-top: 1px solid var(--border); }
+    .theme-lightbox-caption span { display: block; font-weight: 400; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .theme-lightbox-close { position: absolute; top: 8px; right: 10px; width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; transition: background 0.15s; }
+    .theme-lightbox-close:hover { background: rgba(0,0,0,0.8); }
+    .theme-lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .theme-lightbox-nav:hover { background: rgba(0,0,0,0.8); }
+    .theme-lightbox-nav.lb-prev { left: -48px; }
+    .theme-lightbox-nav.lb-next { right: -48px; }
+    @media (max-width: 700px) {
+      .theme-lightbox-nav.lb-prev { left: 6px; }
+      .theme-lightbox-nav.lb-next { right: 6px; }
+    }
   </style>
 </head>
 <body>
@@ -215,6 +261,7 @@
         content.scrollTop = 0;
         window.scrollTo(0, 0);
         document.title = 'Chart Hero - ' + (page === 'home' ? 'User Guide' : page.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }));
+        initThemeSliders();
         return;
       }
 
@@ -232,6 +279,7 @@
             content.scrollTop = 0;
             window.scrollTo(0, 0);
             document.title = 'Chart Hero - ' + (page === 'home' ? 'User Guide' : page.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }));
+            initThemeSliders();
           }
         })
         .catch(function() {
@@ -264,6 +312,142 @@
       var page = window.location.hash ? window.location.hash.slice(1) : 'home';
       if (page !== currentPage) loadPage(page);
     });
+
+    // --- Theme card slider + lightbox ---
+    // Collects all theme cards across all sections for lightbox navigation
+    var allThemeCards = [];
+    var lightboxIndex = 0;
+
+    function initThemeSliders() {
+      var wrappers = document.querySelectorAll('.theme-slider-wrapper');
+      allThemeCards = [];
+      wrappers.forEach(function(wrapper) {
+        var track = wrapper.querySelector('.theme-slider-track');
+        var cards = track ? Array.from(track.querySelectorAll('.theme-card')) : [];
+        if (!cards.length) return;
+
+        // Collect cards globally for lightbox
+        cards.forEach(function(card) {
+          var img = card.querySelector('img');
+          var label = card.querySelector('.theme-label');
+          var meta = card.querySelector('.theme-meta');
+          allThemeCards.push({
+            src: img ? img.src : '',
+            alt: img ? img.alt : '',
+            label: label ? label.textContent : '',
+            meta: meta ? meta.textContent : ''
+          });
+          // Click to open lightbox
+          card.addEventListener('click', function() {
+            var idx = allThemeCards.findIndex(function(c) { return c.src === (img ? img.src : ''); });
+            openLightbox(idx >= 0 ? idx : 0);
+          });
+        });
+
+        // Determine visible count based on viewport
+        function getVisible() {
+          var w = wrapper.offsetWidth;
+          if (w < 400) return 1;
+          if (w < 600) return 2;
+          return 3;
+        }
+
+        var page = 0;
+        var prevBtn = wrapper.querySelector('.theme-nav.prev');
+        var nextBtn = wrapper.querySelector('.theme-nav.next');
+        var dotsContainer = wrapper.querySelector('.theme-dots');
+
+        function totalPages() {
+          var vis = getVisible();
+          return Math.max(1, Math.ceil(cards.length / vis));
+        }
+
+        function renderDots() {
+          if (!dotsContainer) return;
+          var tp = totalPages();
+          dotsContainer.innerHTML = '';
+          for (var i = 0; i < tp; i++) {
+            var dot = document.createElement('button');
+            dot.className = 'theme-dot' + (i === page ? ' active' : '');
+            dot.setAttribute('aria-label', 'Page ' + (i + 1));
+            (function(idx) { dot.addEventListener('click', function() { page = idx; update(); }); })(i);
+            dotsContainer.appendChild(dot);
+          }
+        }
+
+        function update() {
+          var vis = getVisible();
+          var cardW = cards[0].offsetWidth + 14; // card width + gap
+          var maxPage = totalPages() - 1;
+          if (page > maxPage) page = maxPage;
+          if (page < 0) page = 0;
+          var offset = page * vis * cardW;
+          // Don't scroll past the last card
+          var maxOffset = Math.max(0, track.scrollWidth - wrapper.querySelector('.theme-slider').offsetWidth);
+          if (offset > maxOffset) offset = maxOffset;
+          track.style.transform = 'translateX(-' + offset + 'px)';
+          if (prevBtn) prevBtn.disabled = page === 0;
+          if (nextBtn) nextBtn.disabled = page >= maxPage;
+          renderDots();
+        }
+
+        if (prevBtn) prevBtn.addEventListener('click', function() { page--; update(); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { page++; update(); });
+        window.addEventListener('resize', function() { update(); });
+        update();
+      });
+    }
+
+    // Lightbox
+    function createLightbox() {
+      if (document.getElementById('themeLightbox')) return;
+      var lb = document.createElement('div');
+      lb.id = 'themeLightbox';
+      lb.className = 'theme-lightbox';
+      lb.innerHTML = '<div class="theme-lightbox-inner">' +
+        '<button class="theme-lightbox-close" aria-label="Close">&times;</button>' +
+        '<img id="lbImg" src="" alt="" />' +
+        '<div class="theme-lightbox-caption"><span id="lbLabel"></span><span id="lbMeta"></span></div>' +
+        '</div>' +
+        '<button class="theme-lightbox-nav lb-prev" aria-label="Previous">&#8249;</button>' +
+        '<button class="theme-lightbox-nav lb-next" aria-label="Next">&#8250;</button>';
+      document.body.appendChild(lb);
+      // Events
+      lb.querySelector('.theme-lightbox-close').addEventListener('click', closeLightbox);
+      lb.addEventListener('click', function(e) { if (e.target === lb) closeLightbox(); });
+      lb.querySelector('.lb-prev').addEventListener('click', function(e) { e.stopPropagation(); lightboxIndex--; if (lightboxIndex < 0) lightboxIndex = allThemeCards.length - 1; showLightboxCard(); });
+      lb.querySelector('.lb-next').addEventListener('click', function(e) { e.stopPropagation(); lightboxIndex++; if (lightboxIndex >= allThemeCards.length) lightboxIndex = 0; showLightboxCard(); });
+      document.addEventListener('keydown', function(e) {
+        if (!lb.classList.contains('open')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') { lightboxIndex--; if (lightboxIndex < 0) lightboxIndex = allThemeCards.length - 1; showLightboxCard(); }
+        if (e.key === 'ArrowRight') { lightboxIndex++; if (lightboxIndex >= allThemeCards.length) lightboxIndex = 0; showLightboxCard(); }
+      });
+    }
+
+    function showLightboxCard() {
+      var card = allThemeCards[lightboxIndex];
+      if (!card) return;
+      document.getElementById('lbImg').src = card.src;
+      document.getElementById('lbImg').alt = card.alt;
+      document.getElementById('lbLabel').textContent = card.label;
+      document.getElementById('lbMeta').textContent = card.meta;
+    }
+
+    function openLightbox(idx) {
+      createLightbox();
+      lightboxIndex = idx;
+      showLightboxCard();
+      document.getElementById('themeLightbox').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      var lb = document.getElementById('themeLightbox');
+      if (lb) lb.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
   </script>
 </body>
 </html>

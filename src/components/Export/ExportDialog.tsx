@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Maximize2,
   MousePointerSquareDashed,
+  ClipboardCopy,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
@@ -30,6 +31,7 @@ import {
   runExport,
   getReactFlowElement,
   estimateFileSize,
+  copyJsonToClipboard,
 } from '../../utils/exportUtils';
 import { log } from '../../utils/logger';
 
@@ -524,13 +526,20 @@ const ExportDialog: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [clipboardCopied, setClipboardCopied] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
-
-
+  // Track whether we've already done fitView for this dialog session + scope
+  // so we don't flash the canvas on every format/option change.
+  const lastFitKeyRef = useRef<string>('');
 
   // Serialize current format options for dependency tracking
   const currentOpts = options[lastFormat];
   const optsKey = JSON.stringify(currentOpts);
+
+  // Reset the fit key when the dialog closes so next open re-fits
+  useEffect(() => {
+    if (!dialogOpen) lastFitKeyRef.current = '';
+  }, [dialogOpen]);
 
   // Generate preview thumbnail (debounced on option changes)
   useEffect(() => {
@@ -547,12 +556,16 @@ const ExportDialog: React.FC = () => {
       if (!includeGrid && gridEl) gridEl.style.display = 'none';
       if (!includeMinimap && minimapEl) minimapEl.style.display = 'none';
 
-      // For scope='all', fitView so preview matches the exported output
+      // Only fitView when the dialog first opens or scope changes — never on
+      // format/option tab switches, which would cause a visible canvas flash.
       const rf = getReactFlowInstance();
       let savedVP: { x: number; y: number; zoom: number } | null = null;
-      if (scope === 'all' && rf) {
+      const fitKey = `${scope}`;
+      const needsFit = scope === 'all' && fitKey !== lastFitKeyRef.current;
+      if (needsFit && rf) {
         savedVP = rf.getViewport();
         rf.fitView({ padding: 0.05 });
+        lastFitKeyRef.current = fitKey;
         await new Promise((r) => setTimeout(r, 100));
       }
 
@@ -660,6 +673,17 @@ const ExportDialog: React.FC = () => {
       setExportInProgress(false);
     }
   }, [lastFormat, options, scope, includeGrid, includeMinimap, setExportInProgress, setDialogOpen]);
+
+  // Copy JSON to clipboard
+  const handleCopyToClipboard = useCallback(async () => {
+    try {
+      await copyJsonToClipboard(options.json);
+      setClipboardCopied(true);
+      setTimeout(() => setClipboardCopied(false), 2000);
+    } catch (err) {
+      log.error('Copy to clipboard failed', err);
+    }
+  }, [options.json]);
 
   // Estimated file size
   const scale =
@@ -906,6 +930,33 @@ const ExportDialog: React.FC = () => {
             >
               Cancel
             </button>
+            {lastFormat === 'json' && (
+              <button
+                type="button"
+                onClick={handleCopyToClipboard}
+                disabled={nodeCount === 0}
+                className={`
+                  flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium
+                  transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                  ${darkMode
+                    ? 'bg-dk-hover text-dk-text hover:bg-dk-border'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }
+                `}
+              >
+                {clipboardCopied ? (
+                  <>
+                    <Check size={14} className="text-green-500" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCopy size={14} />
+                    Copy to Clipboard
+                  </>
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleExport}

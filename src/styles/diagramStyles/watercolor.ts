@@ -16,7 +16,7 @@ export const watercolor: DiagramStyle = {
     shadow: '0 3px 10px rgba(140, 120, 100, 0.15)',
     fontFamily: "'Lora', 'Playfair Display', Georgia, serif",
     fontSize: 14,
-    fontColor: '#4a3f35',
+    fontColor: '#2a1f15',
     fontWeight: 400,
   },
   edgeDefaults: {

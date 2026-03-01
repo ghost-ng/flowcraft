@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Sparkles, ChevronsLeft, ChevronsRight, Rows3 } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Rows3, Shapes } from 'lucide-react';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSwimlaneStore } from '../../store/swimlaneStore';
@@ -275,7 +275,7 @@ const ShapePalette: React.FC = () => {
                            transition-all duration-100
                            hover:bg-primary/10 text-text-muted hover:text-primary cursor-pointer"
               >
-                <Sparkles size={16} />
+                <Shapes size={22} />
               </button>
 
               {/* Containers section separator */}

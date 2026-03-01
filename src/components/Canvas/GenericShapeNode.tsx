@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { icons } from 'lucide-react';
@@ -558,9 +558,15 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const fillColor = isIconOnly ? 'transparent' : resolved.fill;
   const borderColor = isIconOnly ? 'transparent' : resolved.borderColor;
   const isTransparentFill = !fillColor || fillColor === 'transparent' || fillColor === 'none';
+  // For transparent fills (textbox, free-floating labels), check text readability
+  // against the canvas background instead of the (non-existent) fill colour.
+  let canvasBg = activeStyle?.canvas.background || '#ffffff';
+  if (canvasBg.includes('gradient') || canvasBg.includes('url(')) {
+    canvasBg = activeStyle?.dark ? '#1a1a1a' : '#ffffff';
+  }
   const textColor = isIconOnly
     ? (nodeData.textColor || '#475569')
-    : (!isTransparentFill ? ensureReadableText(fillColor, resolved.textColor) : resolved.textColor);
+    : (!isTransparentFill ? ensureReadableText(fillColor, resolved.textColor) : ensureReadableText(canvasBg, resolved.textColor));
   const fontSize = resolved.fontSize;
 
   // Focus the input when editing starts
@@ -716,6 +722,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     fontWeight: nodeData.fontWeight || 500,
     fontFamily: nodeData.fontFamily || defaultFontFamily || "'Inter', sans-serif",
     boxShadow: combinedShadow,
+    backdropFilter: (!noBox && activeStyle?.nodeDefaults.backdropFilter) || undefined,
+    WebkitBackdropFilter: (!noBox && activeStyle?.nodeDefaults.backdropFilter) || undefined,
     transition: 'box-shadow 0.15s, transform 0.2s',
     overflow: noBox ? 'visible' : 'hidden',
     position: 'relative',
@@ -739,6 +747,41 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const ArrowSvg = isArrowShape ? ArrowSvgs[shape] : null;
   const arrowViewBox = isCircularArrow ? '0 0 100 80' : '0 0 160 80';
   const ShapeSvg = isSvgShape ? ShapeSvgs[shape] : null;
+
+  // Handle position overrides for SVG shapes whose edges don't align with the bounding box.
+  // Each override fully specifies left/top/transform so the handle sits on the shape boundary.
+  const handleStyles = useMemo(() => {
+    const none = { top: undefined as React.CSSProperties | undefined, bottom: undefined as React.CSSProperties | undefined, left: undefined as React.CSSProperties | undefined, right: undefined as React.CSSProperties | undefined };
+
+    if (shape === 'parallelogram') {
+      // Parallelogram polygon: 25,0 160,0 135,80 0,80 (viewBox 0 0 160 80)
+      // Left edge at y=50%: x = lerp(25,0, 0.5) = 12.5 → 12.5/160 ≈ 7.8%
+      // Right edge at y=50%: x = lerp(160,135, 0.5) = 147.5 → 147.5/160 ≈ 92.2%
+      return {
+        ...none,
+        left: { left: '7.8%', top: '50%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+        right: { left: '92.2%', top: '50%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+      };
+    }
+    if (shape === 'document') {
+      // Document path bottom curve at x=50%: y = 65 in viewBox 80 → 65/80 = 81.25%
+      return {
+        ...none,
+        bottom: { left: '50%', top: '81.25%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+      };
+    }
+    if (shape === 'cloud') {
+      // Cloud is organic — approximate boundary positions along cardinal axes
+      return {
+        top: { left: '50%', top: '12%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+        bottom: { left: '50%', top: '78%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+        left: { left: '6%', top: '50%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+        right: { left: '91%', top: '50%', transform: 'translate(-50%, -50%)' } as React.CSSProperties,
+      };
+    }
+    // Diamond and hexagon vertices align with bounding box midpoints — no override needed
+    return none;
+  }, [shape]);
 
   return (
     <div style={wrapperStyle} onDoubleClick={handleDoubleClick}>
@@ -791,15 +834,16 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         });
       })()}
 
-      {/* Connection handles — each position has both source + target for bidirectional edges */}
-      <Handle type="target" position={Position.Top} id="top" className="charthero-handle" />
-      <Handle type="source" position={Position.Top} id="top" className="charthero-handle" style={{ left: '50%' }} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="charthero-handle" />
-      <Handle type="target" position={Position.Bottom} id="bottom" className="charthero-handle" style={{ left: '50%' }} />
-      <Handle type="target" position={Position.Left} id="left" className="charthero-handle" />
-      <Handle type="source" position={Position.Left} id="left" className="charthero-handle" style={{ top: '50%' }} />
-      <Handle type="source" position={Position.Right} id="right" className="charthero-handle" />
-      <Handle type="target" position={Position.Right} id="right" className="charthero-handle" style={{ top: '50%' }} />
+      {/* Connection handles — each position has both source + target for bidirectional edges.
+          SVG shapes get custom offsets so handles sit on the actual shape boundary. */}
+      <Handle type="target" position={Position.Top} id="top" className="charthero-handle" style={handleStyles.top} />
+      <Handle type="source" position={Position.Top} id="top" className="charthero-handle" style={handleStyles.top || { left: '50%' }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="charthero-handle" style={handleStyles.bottom} />
+      <Handle type="target" position={Position.Bottom} id="bottom" className="charthero-handle" style={handleStyles.bottom || { left: '50%' }} />
+      <Handle type="target" position={Position.Left} id="left" className="charthero-handle" style={handleStyles.left} />
+      <Handle type="source" position={Position.Left} id="left" className="charthero-handle" style={handleStyles.left || { top: '50%' }} />
+      <Handle type="source" position={Position.Right} id="right" className="charthero-handle" style={handleStyles.right} />
+      <Handle type="target" position={Position.Right} id="right" className="charthero-handle" style={handleStyles.right || { top: '50%' }} />
 
       {/* Inner shape div */}
       <div style={nodeStyle}>
@@ -827,7 +871,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           width="100%"
           height="100%"
           viewBox="0 0 160 80"
-          preserveAspectRatio="xMidYMid meet"
+          preserveAspectRatio="none"
           className="absolute inset-0 pointer-events-none"
         >
           <ShapeSvg

@@ -16,6 +16,8 @@ export interface DiagramStyle {
     fontSize: number;
     fontColor: string;
     fontWeight: number;
+    /** CSS backdrop-filter for frosted glass effects (e.g. 'blur(12px) saturate(180%)') */
+    backdropFilter?: string;
   };
   edgeDefaults: {
     stroke: string;

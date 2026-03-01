@@ -37,7 +37,10 @@ const TOOL_FRIENDLY_NAMES: Record<string, string> = {
   distribute_nodes: 'Distributed nodes',
   set_status_puck: 'Set status indicator',
   add_dependency: 'Added dependency',
+  generate_legend: 'Generated legend',
+  configure_legend: 'Configured legend',
   export_diagram: 'Exported diagram',
+  web_search: 'Searched the web',
 };
 
 function getToolFriendlyName(toolName: string): string {
@@ -151,7 +154,27 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, darkMode }) => {
     return (
       <div className="flex justify-end px-3 py-1">
         <div className="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-br-sm bg-blue-500 text-white text-sm leading-relaxed">
-          {renderInlineMarkdown(message.content)}
+          {message.images && message.images.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-1.5">
+              {message.images.map((img) => (
+                <img
+                  key={img.id}
+                  src={`data:${img.mimeType};base64,${img.base64}`}
+                  alt="Attached"
+                  className="max-h-40 rounded-md object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    // Open image in a new tab for full view
+                    const w = window.open('');
+                    if (w) {
+                      w.document.write(`<img src="data:${img.mimeType};base64,${img.base64}" style="max-width:100%;height:auto" />`);
+                      w.document.close();
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          {message.content ? renderInlineMarkdown(message.content) : null}
         </div>
       </div>
     );

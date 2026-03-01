@@ -17,7 +17,7 @@ export const militaryC2: DiagramStyle = {
     shadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
     fontFamily: "'Share Tech Mono', 'Consolas', 'Courier New', monospace",
     fontSize: 12,
-    fontColor: '#c8d4a8',
+    fontColor: '#d8e4b8',
     fontWeight: 700,
   },
   edgeDefaults: {
