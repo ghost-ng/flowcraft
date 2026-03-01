@@ -680,8 +680,9 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     }
   }, [nodeData.label, width, height, proportionalFontSize, isEditing]);
 
-  // For arrow / SVG / diamond / icon-only shapes, we use transparent background
-  const noBox = isArrowShape || isSvgShape || isDiamond || isIconOnly;
+  // For arrow / SVG / diamond / icon-only / freehand shapes, we use transparent background
+  const isFreehand = shape === 'freehand';
+  const noBox = isArrowShape || isSvgShape || isDiamond || isIconOnly || isFreehand;
   const opacity = nodeData.opacity ?? 1;
   const borderStyleProp = nodeData.borderStyle || 'solid';
   const borderW = nodeData.borderWidth ?? 2;
@@ -817,6 +818,13 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               }
             }
           }
+          // Notify FlowCanvas for alignment/distance guide computation
+          window.dispatchEvent(new CustomEvent('charthero:node-resize', {
+            detail: { nodeId: id, x: params.x, y: params.y, width: params.width, height: params.height },
+          }));
+        }}
+        onResizeEnd={() => {
+          window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
         }}
       />
 
@@ -913,6 +921,26 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             fill={fillColor}
             stroke={isSelected ? selectionColor : borderColor}
             strokeWidth={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+
+      {/* Freehand drawing SVG layer */}
+      {shape === 'freehand' && nodeData.svgPath && (
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={nodeData.svgViewBox || '0 0 100 100'}
+          preserveAspectRatio="xMidYMid meet"
+          className="absolute inset-0 pointer-events-none"
+        >
+          <path
+            d={nodeData.svgPath}
+            fill="none"
+            stroke={isSelected ? selectionColor : (nodeData.svgStrokeColor || borderColor || '#000000')}
+            strokeWidth={nodeData.svgStrokeWidth || 3}
+            strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>

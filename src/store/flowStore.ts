@@ -47,7 +47,8 @@ export type NodeShape =
   | 'circularArrow'
   | 'group'
   | 'stickyNote'
-  | 'textbox';
+  | 'textbox'
+  | 'freehand';
 
 /** Status indicator for tracking node progress */
 export interface StatusIndicator {
@@ -126,6 +127,14 @@ export interface FlowNodeData {
   completedBy?: string;
   /** Start date for this node (ISO string or free text) */
   startOn?: string;
+  /** Freehand drawing SVG path data (shape: 'freehand') */
+  svgPath?: string;
+  /** Freehand drawing viewBox (e.g. "0 0 200 150") */
+  svgViewBox?: string;
+  /** Freehand stroke color */
+  svgStrokeColor?: string;
+  /** Freehand stroke width */
+  svgStrokeWidth?: number;
   [key: string]: unknown;
 }
 

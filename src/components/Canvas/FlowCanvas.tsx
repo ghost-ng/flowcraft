@@ -38,6 +38,7 @@ import { BannerBar } from './CanvasBanner';
 import { WalkModeBreadcrumb, ChainHighlight } from '../Dependencies';
 import { CanvasContextMenu, NodeContextMenu, EdgeContextMenu, SelectionContextMenu } from '../ContextMenu';
 import PresentationOverlay from '../PresentationMode/PresentationOverlay';
+import FreehandDrawingOverlay from './FreehandDrawingOverlay';
 import { LinkGroupEditorDialog } from '../LinkGroup';
 import { log } from '../../utils/logger';
 import { resolveCanvasBackground } from '../../utils/themeResolver';
@@ -211,6 +212,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   // Presentation mode
   const presentationMode = useUIStore((s) => s.presentationMode);
+
+  // Freehand drawing mode
+  const drawingMode = useUIStore((s) => s.drawingMode);
 
   // Style store
   const darkMode = useStyleStore((s) => s.darkMode);
@@ -409,6 +413,31 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const [alignmentGuides, setAlignmentGuides] = useState<{ vertical: number[]; horizontal: number[] }>({ vertical: [], horizontal: [] });
   // Distance guide measurements (computed during drag)
   const [distanceGuides, setDistanceGuides] = useState<DistanceGuides>({ gaps: [] });
+
+  // ---- Resize guide computation (custom events from NodeResizer) -----------
+
+  useEffect(() => {
+    const handleResize = (e: Event) => {
+      if (!showAlignmentGuides) return;
+      const { nodeId, x, y, width, height } = (e as CustomEvent).detail;
+      const virtualNode: SnapNode = { id: nodeId, position: { x, y }, width, height };
+      const allNodes = useFlowStore.getState().nodes as unknown as SnapNode[];
+      const guides = findAlignmentGuides(virtualNode, allNodes, snapDistance);
+      setAlignmentGuides(guides);
+      const dGuides = findDistanceGuides(virtualNode, allNodes);
+      setDistanceGuides(dGuides);
+    };
+    const handleResizeEnd = () => {
+      setAlignmentGuides({ vertical: [], horizontal: [] });
+      setDistanceGuides({ gaps: [] });
+    };
+    window.addEventListener('charthero:node-resize', handleResize);
+    window.addEventListener('charthero:node-resize-end', handleResizeEnd);
+    return () => {
+      window.removeEventListener('charthero:node-resize', handleResize);
+      window.removeEventListener('charthero:node-resize-end', handleResizeEnd);
+    };
+  }, [showAlignmentGuides, snapDistance]);
 
   // ---- Helpers ------------------------------------------------------------
 
@@ -1290,17 +1319,17 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         onSelectionChange={presentationMode ? undefined : onSelectionChange}
         onInit={handleReactFlowInit}
         isValidConnection={isValidConnection}
-        nodesDraggable={!presentationMode}
-        nodesConnectable={!presentationMode}
-        elementsSelectable={!presentationMode}
-        snapToGrid={presentationMode ? false : snapEnabled}
+        nodesDraggable={!presentationMode && !drawingMode}
+        nodesConnectable={!presentationMode && !drawingMode}
+        elementsSelectable={!presentationMode && !drawingMode}
+        snapToGrid={(presentationMode || drawingMode) ? false : snapEnabled}
         snapGrid={[snapDistance, snapDistance]}
-        selectionOnDrag={!presentationMode && !ctrlPressed}
+        selectionOnDrag={!presentationMode && !drawingMode && !ctrlPressed}
         selectionMode={SelectionMode.Partial}
         selectionKeyCode={null}
-        panOnDrag={presentationMode ? true : [1]}
-        deleteKeyCode={presentationMode ? null : "Delete"}
-        multiSelectionKeyCode={presentationMode ? null : "Shift"}
+        panOnDrag={presentationMode ? true : drawingMode ? false : [1]}
+        deleteKeyCode={(presentationMode || drawingMode) ? null : "Delete"}
+        multiSelectionKeyCode={(presentationMode || drawingMode) ? null : "Shift"}
         elevateNodesOnSelect={false}
         minZoom={0.3}
         fitView
@@ -1334,6 +1363,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         {showAlignmentGuides && distanceGuides.gaps.length > 0 && (
           <DistanceGuideOverlay guides={distanceGuides} />
         )}
+
+        {/* Freehand drawing overlay */}
+        {drawingMode && <FreehandDrawingOverlay />}
 
         {minimapVisible && (
           <MiniMap

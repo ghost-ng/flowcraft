@@ -85,7 +85,7 @@ input[type="button"] {
 
 /* Override Tailwind cursor utilities to use custom cursors app-wide */
 .cursor-pointer { cursor: var(--cursor-select) !important; }
-.cursor-grab    { cursor: var(--cursor-drag) !important; }
+.cursor-grab    { cursor: var(--cursor-open-hand) !important; }
 .cursor-grabbing { cursor: var(--cursor-drag-active) !important; }
 .cursor-default { cursor: var(--cursor-default) !important; }
 .cursor-crosshair { cursor: var(--cursor-crosshair) !important; }
@@ -120,6 +120,7 @@ input[type="button"] {
   --cursor-drag: url('../assets/cursors/cursor_drag.png') 14 14, grab;
   --cursor-drag-active: url('../assets/cursors/cursor_drag.png') 14 14, grabbing;
   --cursor-crosshair: url('../assets/cursors/cursor_crosshair.png') 14 14, crosshair;
+  --cursor-open-hand: url('../assets/cursors/open_hand.png') 14 14, grab;
   --cursor-elbow-move: url('../assets/cursors/cursor_elbow_move.png') 16 16, grab;
 }
 
@@ -142,9 +143,9 @@ input[type="button"] {
   cursor: var(--cursor-drag-active) !important;
 }
 
-/* Selectable items: blue pointing hand cursor */
+/* Draggable nodes: open hand on hover, drag-active when dragging */
 .react-flow__node {
-  cursor: var(--cursor-select) !important;
+  cursor: var(--cursor-open-hand) !important;
 }
 
 .react-flow__node:active {
@@ -172,9 +173,9 @@ input[type="button"] {
   cursor: var(--cursor-elbow-move) !important;
 }
 
-/* Multi-node selection box: drag cursor when moving the selection group */
+/* Multi-node selection box: open hand on hover, drag-active when moving */
 .react-flow__nodesselection-rect {
-  cursor: var(--cursor-drag) !important;
+  cursor: var(--cursor-open-hand) !important;
 }
 
 .react-flow__handle {

@@ -11,6 +11,7 @@ import imgSelect from './cursor_select.png';
 import imgDrag from './cursor_drag.png';
 import imgCrosshair from './cursor_crosshair.png';
 import imgElbowMove from './cursor_elbow_move.png';
+import imgOpenHand from './open_hand.png';
 
 // -- Ready-to-use CSS cursor value strings --------------------------------
 
@@ -28,6 +29,9 @@ export const CURSOR_DRAG_ACTIVE = `url(${imgDrag}) 14 14, grabbing`;
 
 /** Crosshair — creating connections from node handles. */
 export const CURSOR_CROSSHAIR = `url(${imgCrosshair}) 14 14, crosshair`;
+
+/** Open hand — hover over draggable elements (nodes, palette items). */
+export const CURSOR_OPEN_HAND = `url(${imgOpenHand}) 14 14, grab`;
 
 /** Elbow-move — drag-to-cycle connector type on edge midpoint (32×32). */
 export const CURSOR_ELBOW_MOVE = `url(${imgElbowMove}) 16 16, grab`;

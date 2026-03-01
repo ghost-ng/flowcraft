@@ -1,9 +1,10 @@
-import React, { useCallback, useState } from 'react';
-import { ChevronsLeft, ChevronsRight, Rows3, Shapes } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronsLeft, ChevronsRight, Pen, Rows3, Shapes } from 'lucide-react';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSwimlaneStore } from '../../store/swimlaneStore';
 import FloatingIconPicker from './FloatingIconPicker';
+import { CURSOR_OPEN_HAND, CURSOR_DRAG_ACTIVE } from '../../assets/cursors/cursors';
 
 // ---------------------------------------------------------------------------
 // Shape definitions
@@ -192,6 +193,8 @@ interface ShapeItemProps {
 }
 
 const ShapeItem: React.FC<ShapeItemProps> = React.memo(({ shape, isSelected, onSelect }) => {
+  const [pressing, setPressing] = useState(false);
+
   const onDragStart = useCallback(
     (event: React.DragEvent) => {
       event.dataTransfer.setData('application/charthero-shape', shape.type);
@@ -209,11 +212,15 @@ const ShapeItem: React.FC<ShapeItemProps> = React.memo(({ shape, isSelected, onS
       draggable
       onDragStart={onDragStart}
       onClick={handleClick}
+      onPointerDown={() => setPressing(true)}
+      onPointerUp={() => setPressing(false)}
+      onPointerLeave={() => setPressing(false)}
       data-tooltip-right={shape.label}
+      style={{ cursor: pressing ? CURSOR_DRAG_ACTIVE : CURSOR_OPEN_HAND }}
       className={`
-        relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg cursor-grab
+        relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
         transition-all duration-100 group
-        hover:bg-primary/10 hover:scale-105 active:scale-95 active:cursor-grabbing
+        hover:bg-primary/10 hover:scale-105 active:scale-95
         ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15' : ''}
       `}
     >
@@ -230,18 +237,113 @@ ShapeItem.displayName = 'ShapeItem';
 // Main ShapePalette
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Marker color picker popover
+// ---------------------------------------------------------------------------
+
+const MARKER_PRESETS = ['#000000', '#ffffff', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f97316'];
+
+interface MarkerColorPickerProps {
+  anchorRect: DOMRect;
+  onClose: () => void;
+}
+
+const MarkerColorPicker: React.FC<MarkerColorPickerProps> = ({ anchorRect, onClose }) => {
+  const darkMode = useStyleStore((s) => s.darkMode);
+  const markerColor = useUIStore((s) => s.markerColor);
+  const markerThickness = useUIStore((s) => s.markerThickness);
+  const setMarkerColor = useUIStore((s) => s.setMarkerColor);
+  const setMarkerThickness = useUIStore((s) => s.setMarkerThickness);
+
+  return (
+    <>
+      {/* Fixed backdrop */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        className={`fixed z-50 rounded-lg shadow-lg border p-2 w-44 ${
+          darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-border'
+        }`}
+        style={{ top: anchorRect.top, left: anchorRect.right + 8 }}
+      >
+        <div className="text-xs font-semibold mb-1.5 text-text-muted dark:text-dk-muted">Marker Color</div>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {MARKER_PRESETS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setMarkerColor(c)}
+              className="w-6 h-6 rounded-full border-2 cursor-pointer transition-transform hover:scale-110"
+              style={{
+                backgroundColor: c,
+                borderColor: markerColor === c ? '#3b82f6' : (c === '#ffffff' ? '#d1d5db' : 'transparent'),
+              }}
+            />
+          ))}
+        </div>
+        <div className="text-xs font-semibold mb-1 text-text-muted dark:text-dk-muted">Thickness</div>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={1}
+            max={12}
+            step={1}
+            value={markerThickness}
+            onChange={(e) => setMarkerThickness(Number(e.target.value))}
+            className="flex-1 accent-primary"
+          />
+          <span className="text-xs w-5 text-center text-text-muted dark:text-dk-muted">{markerThickness}</span>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Main ShapePalette
+// ---------------------------------------------------------------------------
+
 const ShapePalette: React.FC = () => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const shapePaletteOpen = useUIStore((s) => s.shapePaletteOpen);
   const toggleShapePalette = useUIStore((s) => s.toggleShapePalette);
   const selectedPaletteShape = useUIStore((s) => s.selectedPaletteShape);
   const setSelectedPaletteShape = useUIStore((s) => s.setSelectedPaletteShape);
+  const drawingMode = useUIStore((s) => s.drawingMode);
+  const setDrawingMode = useUIStore((s) => s.setDrawingMode);
+  const markerColor = useUIStore((s) => s.markerColor);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [markerPickerOpen, setMarkerPickerOpen] = useState(false);
+  const markerBtnRef = useRef<HTMLButtonElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleShapeSelect = useCallback((type: string) => {
     // Toggle: click same shape to deselect
     setSelectedPaletteShape(selectedPaletteShape === type ? null : type);
   }, [selectedPaletteShape, setSelectedPaletteShape]);
+
+  const handleMarkerClick = useCallback(() => {
+    setDrawingMode(!drawingMode);
+  }, [drawingMode, setDrawingMode]);
+
+  const handleMarkerPointerDown = useCallback(() => {
+    longPressTimer.current = setTimeout(() => {
+      setMarkerPickerOpen(true);
+      longPressTimer.current = null;
+    }, 500);
+  }, []);
+
+  const handleMarkerPointerUp = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    };
+  }, []);
 
   return (
     <div className="relative flex shrink-0">
@@ -266,6 +368,34 @@ const ShapePalette: React.FC = () => {
                 <ShapeItem key={shape.type} shape={shape} isSelected={selectedPaletteShape === shape.type} onSelect={handleShapeSelect} />
               ))}
 
+              {/* Marker (freehand drawing) button */}
+              <div className="w-full border-t border-border dark:border-dk-border my-1" />
+              <button
+                ref={markerBtnRef}
+                onClick={handleMarkerClick}
+                onPointerDown={handleMarkerPointerDown}
+                onPointerUp={handleMarkerPointerUp}
+                onPointerLeave={handleMarkerPointerUp}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setMarkerPickerOpen(true);
+                }}
+                data-tooltip-right="Marker (hold for options)"
+                className={`relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                           transition-all duration-100 cursor-pointer
+                           hover:bg-primary/10 hover:scale-105
+                           ${drawingMode ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15 text-blue-600 dark:text-blue-400' : 'text-text-muted hover:text-primary'}`}
+              >
+                <div className="relative">
+                  <Pen size={20} />
+                  {/* Small color dot indicator */}
+                  <div
+                    className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white dark:border-dk-panel"
+                    style={{ backgroundColor: markerColor }}
+                  />
+                </div>
+              </button>
+
               {/* Icons button */}
               <div className="w-full border-t border-border dark:border-dk-border my-1" />
               <button
@@ -288,9 +418,10 @@ const ShapePalette: React.FC = () => {
                   e.dataTransfer.effectAllowed = 'move';
                 }}
                 data-tooltip-right="Group"
-                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg cursor-grab
+                style={{ cursor: CURSOR_OPEN_HAND }}
+                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
                            transition-all duration-100 group
-                           hover:bg-primary/10 hover:scale-105 active:scale-95 active:cursor-grabbing"
+                           hover:bg-primary/10 hover:scale-105 active:scale-95"
               >
                 <div className="text-text-muted group-hover:text-primary transition-colors">
                   <svg width="28" height="28" viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
@@ -350,6 +481,14 @@ const ShapePalette: React.FC = () => {
       {/* Floating icon picker */}
       {iconPickerOpen && (
         <FloatingIconPicker onClose={() => setIconPickerOpen(false)} />
+      )}
+
+      {/* Marker color/thickness picker */}
+      {markerPickerOpen && markerBtnRef.current && (
+        <MarkerColorPicker
+          anchorRect={markerBtnRef.current.getBoundingClientRect()}
+          onClose={() => setMarkerPickerOpen(false)}
+        />
       )}
     </div>
   );

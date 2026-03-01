@@ -91,6 +91,11 @@ export interface UIState {
   // ---- screenshot mode ----------------------------------------
   screenshotMode: boolean;
 
+  // ---- freehand drawing mode ------------------------------------
+  drawingMode: boolean;
+  markerColor: string;
+  markerThickness: number;
+
   // ---- shortcuts dialog ----------------------------------------
   shortcutsDialogOpen: boolean;
 
@@ -170,6 +175,11 @@ export interface UIState {
   showConfirm: (message: string, options?: { title?: string; confirmLabel?: string; cancelLabel?: string }) => Promise<boolean>;
   resolveConfirm: (result: boolean) => void;
 
+  // ---- freehand drawing mode actions -----------------------------
+  setDrawingMode: (active: boolean) => void;
+  setMarkerColor: (color: string) => void;
+  setMarkerThickness: (thickness: number) => void;
+
   // ---- screenshot mode actions ----------------------------------
   setScreenshotMode: (active: boolean) => void;
 
@@ -226,6 +236,10 @@ export const useUIStore = create<UIState>()((set) => ({
 
   toast: null,
   confirmDialog: null,
+
+  drawingMode: false,
+  markerColor: '#000000',
+  markerThickness: 3,
 
   screenshotMode: false,
 
@@ -340,6 +354,11 @@ export const useUIStore = create<UIState>()((set) => ({
       set({ confirmDialog: null });
     }
   },
+
+  // -- freehand drawing mode ----------------------------------------
+  setDrawingMode: (active) => set({ drawingMode: active }),
+  setMarkerColor: (color) => set({ markerColor: color }),
+  setMarkerThickness: (thickness) => set({ markerThickness: thickness }),
 
   // -- screenshot mode ---------------------------------------------
   setScreenshotMode: (active) => set({ screenshotMode: active }),
