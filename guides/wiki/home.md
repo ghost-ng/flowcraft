@@ -28,6 +28,7 @@ Most teams reach for PowerPoint, Visio, or Draw.io when they need a diagram. Cha
 | **11 color palettes** (number keys 1-9 to color nodes) | Yes | No | No | No |
 | **Presentation mode** with pen, highlighter, eraser | Yes | Separate app | No | No |
 | **PWA / offline** (installable desktop app) | Yes | Requires install | Requires install | Requires internet |
+| **Real-time collaboration** (P2P, no server) | Yes | Cloud only | Cloud only | Cloud only |
 | **Completely free** (no account, no limits) | Yes | Paid | Paid | Free with limits |
 
 ---
@@ -48,6 +49,7 @@ Most teams reach for PowerPoint, Visio, or Draw.io when they need a diagram. Cha
 12. [Export and Import](export-import.md) -- All 6 formats, JSON import, templates
 13. [Keyboard Shortcuts](keyboard-shortcuts.md) -- Complete shortcut and mouse reference
 14. [Settings and Preferences](settings-preferences.md) -- All configurable options
+15. [Live Collaboration](collaboration.md) -- Real-time peer-to-peer editing, room sharing, presence
 
 ---
 

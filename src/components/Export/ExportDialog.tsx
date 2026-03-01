@@ -952,7 +952,7 @@ const ExportDialog: React.FC = () => {
                 ) : (
                   <>
                     <ClipboardCopy size={14} />
-                    Copy to Clipboard
+                    To clipboard
                   </>
                 )}
               </button>
@@ -975,7 +975,7 @@ const ExportDialog: React.FC = () => {
               ) : (
                 <>
                   <Download size={14} />
-                  Export {lastFormat.toUpperCase()}
+                  To {lastFormat.toUpperCase()}
                 </>
               )}
             </button>

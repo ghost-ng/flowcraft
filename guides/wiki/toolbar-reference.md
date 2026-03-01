@@ -189,8 +189,21 @@ These buttons are always visible at the far right (or bottom in vertical mode) a
 | Style and Palette | Paintbrush | -- | Open the style picker overlay (19 diagram styles + 11 color palettes) |
 | Shortcuts | Keyboard | `Ctrl+/` | Open the keyboard shortcuts reference dialog |
 | Selection Color | MousePointer2 + color swatch | -- | Choose the selection highlight color (10 colors) and border thickness (1--4px) |
+| Live Collaboration | Users | -- | Open the collaboration panel to create or join a room |
 | AI Assistant | Sparkles | `Ctrl+Shift+A` | Toggle the AI chat panel |
 | Screenshot | Camera | -- | Enter screenshot region selection mode |
+
+**Live Collaboration**
+
+Click the Users icon to open the collaboration panel. From here you can:
+
+- **Start New Session** -- create a room with a unique link to share
+- **Join Session** -- paste a room link or ID to join an existing room
+- **View connected users** -- see who's in the room with colored avatars
+- **Edit your name** -- hover your name and click the pencil icon
+- **Leave Session** -- disconnect and return to solo editing
+
+When collaborating, a green dot appears on the icon and colored user avatars display next to the button. Join/leave notifications briefly appear below the icon. See [Live Collaboration](collaboration.md) for full details.
 | Presentation | Monitor | -- | Enter fullscreen presentation mode (hides all UI) |
 | Debug | Bug | -- | Toggle debug logging to the browser console |
 | Lock Toolbar | Lock / Unlock | -- | Lock or unlock toolbar group reordering |

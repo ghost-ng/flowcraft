@@ -5,8 +5,8 @@
 // for reliable dismiss (per CLAUDE.md instructions).
 // ---------------------------------------------------------------------------
 
-import React, { useState, useCallback } from 'react';
-import { Copy, LogOut, Users, Wifi, WifiOff, Check } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Copy, LogOut, Users, Wifi, WifiOff, Check, Pencil } from 'lucide-react';
 import { useCollabStore } from '../../store/collabStore';
 import { useStyleStore } from '../../store/styleStore';
 
@@ -30,6 +30,39 @@ const CollabPanel: React.FC<CollabPanelProps> = ({ onClose }) => {
   const [joinRoomId, setJoinRoomId] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const editNameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingName && editNameRef.current) {
+      editNameRef.current.focus();
+      editNameRef.current.select();
+    }
+  }, [editingName]);
+
+  const handleStartEditName = useCallback(() => {
+    setEditName(localUser?.name || '');
+    setEditingName(true);
+  }, [localUser]);
+
+  const handleSaveName = useCallback(async () => {
+    const newName = editName.trim();
+    if (!newName || newName === localUser?.name) {
+      setEditingName(false);
+      return;
+    }
+    try {
+      const { updateUserName, getProvider } = await import('../../collab');
+      const provider = getProvider();
+      if (provider) {
+        updateUserName(provider.awareness, newName);
+      }
+    } catch (err) {
+      console.error('Failed to update name:', err);
+    }
+    setEditingName(false);
+  }, [editName, localUser]);
 
   const handleStartSession = useCallback(async () => {
     const name = userName.trim() || 'Anonymous';
@@ -234,15 +267,46 @@ const CollabPanel: React.FC<CollabPanelProps> = ({ onClose }) => {
                 </label>
                 <div className="space-y-1">
                   {localUser && (
-                    <div className="flex items-center gap-2 px-2 py-1 rounded text-xs">
+                    <div className="flex items-center gap-2 px-2 py-1 rounded text-xs group">
                       <span
                         className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: localUser.color }}
                       />
-                      <span className={darkMode ? 'text-dk-text' : 'text-slate-700'}>
-                        {localUser.name}
-                      </span>
-                      <span className={`text-[10px] ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>(you)</span>
+                      {editingName ? (
+                        <input
+                          ref={editNameRef}
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={handleSaveName}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveName();
+                            if (e.key === 'Escape') setEditingName(false);
+                          }}
+                          maxLength={30}
+                          className={`flex-1 px-1.5 py-0.5 rounded text-xs border outline-none ${
+                            darkMode
+                              ? 'bg-dk-surface-alt border-dk-border text-dk-text focus:border-blue-500'
+                              : 'bg-white border-slate-300 text-slate-800 focus:border-blue-500'
+                          }`}
+                        />
+                      ) : (
+                        <>
+                          <span className={darkMode ? 'text-dk-text' : 'text-slate-700'}>
+                            {localUser.name}
+                          </span>
+                          <span className={`text-[10px] ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>(you)</span>
+                          <button
+                            onClick={handleStartEditName}
+                            className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded ${
+                              darkMode ? 'hover:bg-dk-hover text-dk-muted' : 'hover:bg-slate-100 text-slate-400'
+                            }`}
+                            data-tooltip="Edit name"
+                          >
+                            <Pencil size={10} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                   {remoteUsers.map((user) => (

@@ -11,7 +11,7 @@
 import { getOrCreateDoc, destroyDoc, getNodesMap } from './yjsDoc';
 import { createProvider, destroyProvider, getProvider } from './yjsProvider';
 import { bindStores, seedDocFromStores, isRemoteUpdate } from './yjsBindings';
-import { setupAwareness, broadcastCursorPosition, broadcastSelection, clearCursorPosition } from './awareness';
+import { setupAwareness, broadcastCursorPosition, broadcastSelection, clearCursorPosition, updateUserName } from './awareness';
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, clearRoomFromUrl, buildShareUrl } from './roomManager';
 import { useCollabStore } from '../store/collabStore';
 import { registerRemoteUpdateCheck, unregisterRemoteUpdateCheck } from '../store/historyStore';
@@ -102,6 +102,7 @@ export {
   broadcastCursorPosition,
   broadcastSelection,
   clearCursorPosition,
+  updateUserName,
   isRemoteUpdate,
   getProvider,
 };

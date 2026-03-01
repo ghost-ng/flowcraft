@@ -121,6 +121,26 @@ export function broadcastSelection(
 }
 
 // ---------------------------------------------------------------------------
+// Update user name (live rename while connected)
+// ---------------------------------------------------------------------------
+
+export function updateUserName(awareness: Awareness, newName: string): void {
+  const current = awareness.getLocalState()?.user;
+  if (current) {
+    awareness.setLocalStateField('user', {
+      ...current,
+      name: newName,
+    });
+    // Update local store too
+    const localUser = useCollabStore.getState().localUser;
+    if (localUser) {
+      useCollabStore.getState().setLocalUser({ ...localUser, name: newName });
+    }
+  }
+  localStorage.setItem('charthero-collab-name', newName);
+}
+
+// ---------------------------------------------------------------------------
 // Clear cursor (e.g., when mouse leaves canvas)
 // ---------------------------------------------------------------------------
 

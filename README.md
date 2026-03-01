@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.9.2-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.10.0-blue" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
   <img src="https://img.shields.io/badge/react-19-61dafb?logo=react" alt="React 19" />
   <img src="https://img.shields.io/badge/typescript-strict-3178c6?logo=typescript" alt="TypeScript" />
@@ -85,6 +85,12 @@ Everything auto-saves to your browser. Install as a desktop app via your browser
 **Legends** &mdash; Auto-generated from your diagram's colors, edges, and status pucks.
 
 **Presentation mode** &mdash; Full-screen with pen, highlighter, and eraser annotations.
+
+**Live collaboration** &mdash; Real-time peer-to-peer editing via WebRTC. Share a room link and edit the same diagram simultaneously. See remote cursors, selections, and join/leave notifications. No server required.
+
+<p align="center">
+  <img src="assets/readme/collab-panel.png" alt="Live Collaboration panel" width="320" />
+</p>
 
 <br>
 
@@ -218,6 +224,9 @@ Or ask the AI: *"Create a microservices architecture diagram"* and it builds it 
 - Minimap with swimlane and legend overlays
 - Status bar &mdash; session timer, element count, cursor position, zoom
 - Custom cursors for selection, panning, connecting, and edge editing
+- **Live Collaboration** &mdash; peer-to-peer real-time editing via WebRTC (Yjs + y-webrtc)
+- Remote cursors, selection highlighting, and join/leave notifications
+- Room sharing via URL hash with MD5-style room IDs
 - PWA &mdash; install as a desktop app, works offline
 - Offline fonts &mdash; all bundled locally
 - Auto-save to browser localStorage
@@ -298,6 +307,7 @@ See the [JSON Import Rulebook](guides/FLOWCRAFT_JSON_IMPORT_RULEBOOK.md) for the
 | Colors | chroma-js |
 | Layout | dagre |
 | Export | jspdf, pptxgenjs, html-to-image, jszip, file-saver |
+| Collaboration | Yjs + y-webrtc (P2P, no server) |
 | Sketch | roughjs |
 | PWA | vite-plugin-pwa |
 | Deploy | GitHub Pages (GitHub Actions) |
@@ -332,8 +342,9 @@ src/
     Edges/          #   Custom edge components + ArrowheadMarkers
     Legend/          #   LegendOverlay, LegendButton
     Swimlanes/      #   SwimlaneLayer, SwimlaneResizeOverlay
-  store/            # 11 Zustand stores (flow, ui, style, swimlane, legend,
-                    #   dependency, export, settings, layer, banner, ai)
+  collab/           # Real-time collaboration (Yjs, WebRTC, awareness)
+  store/            # 12 Zustand stores (flow, ui, style, swimlane, legend,
+                    #   dependency, export, settings, layer, banner, ai, collab)
   styles/           # 29 diagram themes, 21 color palettes, app CSS
   lib/ai/           # AI integration (client, streaming, tools, prompts)
   hooks/            # Custom React hooks
@@ -345,7 +356,7 @@ src/
 
 - **Single node renderer** &mdash; `GenericShapeNode` renders all 28 shapes via CSS clip-paths and inline SVGs
 - **Immer middleware** &mdash; all stores mutate state directly inside `set()` callbacks
-- **Code splitting** &mdash; Vite chunks: `react-vendor`, `flow-vendor`, `export-vendor`, `icons-vendor`, `diagram-styles`, `ai-lib`
+- **Code splitting** &mdash; Vite chunks: `react-vendor`, `flow-vendor`, `export-vendor`, `icons-vendor`, `diagram-styles`, `ai-lib`, `collab-vendor`
 - **Path alias** &mdash; `@/*` maps to `src/*`
 
 </details>
