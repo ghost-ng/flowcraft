@@ -13,6 +13,7 @@ Chart Hero uses **Yjs** (a CRDT library) and **y-webrtc** to synchronize diagram
 - **No server stores your data** -- diagrams never leave participants' browsers
 - **No account required** -- just share a room link
 - **Lazy-loaded** -- collaboration code only loads when you use it; solo mode is unaffected
+- **Zero memory footprint** -- rooms are fully ephemeral with no server-side state
 
 ---
 
@@ -61,9 +62,9 @@ Other users' mouse positions appear on the canvas as colored arrows with name la
 
 When another user selects a node, you'll see a colored ring around that node with their name badge. This lets you know what others are working on.
 
-### Join / Leave Notifications
+### Join / Leave / Rename Notifications
 
-A small notification briefly appears below the collaboration icon when a user joins or leaves the session. Notifications auto-dismiss after a few seconds.
+A small notification briefly appears below the collaboration icon when a user joins, leaves, or changes their display name. Notifications auto-dismiss after a few seconds. Name changes show the old and new name side by side.
 
 ### User Avatars
 
@@ -80,7 +81,19 @@ You can change your display name during a session:
 3. Click the pencil icon that appears
 4. Type your new name and press **Enter** (or click away to save)
 
-Your name updates instantly for all connected users.
+Your name updates instantly for all connected users. Other participants see a notification showing the old and new name.
+
+---
+
+## Refreshing the Room URL
+
+You can generate a new room link at any time during a session:
+
+1. Open the collaboration panel
+2. Click the **refresh** button (circular arrows icon) next to the share link
+3. A new 32-character room ID is generated, the old room is left, and you rejoin a fresh room automatically
+
+Your diagram state carries over -- only the room ID changes. Share the new link with collaborators. Participants still in the old room will need the new link to reconnect.
 
 ---
 
@@ -115,6 +128,21 @@ When all users leave, the room is destroyed. Your local diagram remains saved in
 - **Bundle impact**: ~58 KB gzip, loaded only when collaboration is activated
 - **Max peers**: 20 simultaneous connections per room
 - **Optional room password**: Supported via y-webrtc encryption
+
+---
+
+## Room Lifecycle & Memory
+
+Rooms are **fully ephemeral** -- there is no server-side storage or allocation:
+
+- **One room per browser** -- the Y.Doc and WebRTC provider are singletons. Each user can only be in one room at a time. Starting or joining a new room automatically cleans up the previous one.
+- **No server persistence** -- the Yjs signaling servers (`wss://signaling.yjs.dev`) only relay WebRTC handshake messages. They do not store room state, track room existence, or allocate resources per room. A "room" is just a string ID that peers agree on.
+- **Rooms vanish when empty** -- when all participants leave (or close their browser tabs), the room ceases to exist. There is nothing to clean up because nothing was stored.
+- **Refresh is free** -- the refresh-room-URL button leaves the old room (destroying the local Y.Doc and WebRTC connections) and creates a new one. The old room ID becomes immediately orphaned and unreachable.
+- **Memory is bounded by diagram size** -- the only in-browser memory footprint is the single Y.Doc for the current session. CRDT operation history grows with the number of edits, but this is inherently bounded by what fits on a diagram canvas.
+- **Zero overhead when not collaborating** -- all collaboration code is lazy-loaded. Solo-mode users never download or execute any Yjs/WebRTC code.
+
+In short, rooms cannot proliferate or leak memory. Each browser holds at most one room, and that room disappears entirely when left.
 
 ---
 

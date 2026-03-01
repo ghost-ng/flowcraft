@@ -86,7 +86,7 @@ Everything auto-saves to your browser. Install as a desktop app via your browser
 
 **Presentation mode** &mdash; Full-screen with pen, highlighter, and eraser annotations.
 
-**Live collaboration** &mdash; Real-time peer-to-peer editing via WebRTC. Share a room link and edit the same diagram simultaneously. See remote cursors, selections, and join/leave notifications. No server required.
+**Live collaboration** &mdash; Real-time peer-to-peer editing via WebRTC. Share a room link and edit the same diagram simultaneously. See remote cursors, selections, and join/leave notifications. No server required. Rooms are fully ephemeral &mdash; each browser holds exactly one room at a time, nothing is stored on any server, and when all participants leave the room simply ceases to exist. Zero memory footprint when not in use.
 
 <p align="center">
   <img src="assets/readme/collab-panel.png" alt="Live Collaboration panel" width="320" />
