@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, RotateCcw, X } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
@@ -310,10 +310,23 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
         >
           Diagram Style
         </h3>
-        {activeStyleId && (
+        <div className="flex items-center gap-0.5">
+          {activeStyleId && (
+            <button
+              onClick={handleResetStyle}
+              title="Reset to no theme"
+              className={`p-1 rounded-md transition-colors cursor-pointer ${
+                darkMode
+                  ? 'hover:bg-dk-hover text-dk-muted hover:text-dk-text'
+                  : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <RotateCcw size={13} />
+            </button>
+          )}
           <button
-            onClick={handleResetStyle}
-            title="Reset to no theme"
+            onClick={onClose}
+            title="Close"
             className={`p-1 rounded-md transition-colors cursor-pointer ${
               darkMode
                 ? 'hover:bg-dk-hover text-dk-muted hover:text-dk-text'
@@ -322,7 +335,7 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
           >
             <X size={14} />
           </button>
-        )}
+        </div>
       </div>
       <div className="overflow-y-auto max-h-[35vh] px-4 pb-2">
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))' }}>

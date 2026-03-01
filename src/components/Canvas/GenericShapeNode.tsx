@@ -65,7 +65,7 @@ const ArrowSvgs: Record<string, React.FC<ArrowSvgProps>> = {
 // Inline SVG renderers for non-rectangular shapes (viewBox 0 0 160 80)
 // ---------------------------------------------------------------------------
 
-const SVG_SHAPES = new Set(['parallelogram', 'cloud', 'hexagon', 'document']);
+const SVG_SHAPES = new Set(['parallelogram', 'cloud', 'hexagon', 'document', 'stickyNote']);
 
 interface ShapeSvgProps {
   fill: string;
@@ -92,6 +92,21 @@ const ShapeSvgs: Record<string, React.FC<ShapeSvgProps>> = {
       d="M 0 0 L 160 0 L 160 65 Q 120 55 80 65 Q 40 75 0 65 Z"
       fill={fill} stroke={stroke} strokeWidth={strokeW} strokeLinejoin="round"
     />
+  ),
+  stickyNote: ({ fill, stroke, strokeW }) => (
+    <>
+      {/* Main body with clipped top-right corner */}
+      <path
+        d="M 0,0 L 145,0 L 160,15 L 160,80 L 0,80 Z"
+        fill={fill} stroke={stroke} strokeWidth={strokeW} strokeLinejoin="round"
+      />
+      {/* Folded corner triangle (slightly darker) */}
+      <path
+        d="M 145,0 L 145,15 L 160,15 Z"
+        fill={stroke} opacity={0.25}
+        stroke={stroke} strokeWidth={strokeW} strokeLinejoin="round"
+      />
+    </>
   ),
 };
 
