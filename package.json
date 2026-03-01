@@ -26,6 +26,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "roughjs": "^4.6.6",
+    "y-webrtc": "^10.3.0",
+    "yjs": "^13.6.29",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

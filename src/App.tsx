@@ -683,15 +683,28 @@ const App: React.FC = () => {
       }
     }, 30_000);
 
-    // Save on page unload so timer is never lost
+    // Save on page unload so timer is never lost; also leave collab room
     const handleBeforeUnload = () => {
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(buildSnapshot()));
       } catch {
         // Best-effort — ignore errors during unload
       }
+      // Cleanly disconnect from collaboration room if active
+      import('./collab').then(({ leaveRoom }) => leaveRoom()).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Auto-join collaboration room if URL contains #room=<md5hash>
+    import('./collab').then(({ getRoomIdFromUrl, joinRoom }) => {
+      const roomId = getRoomIdFromUrl();
+      if (roomId) {
+        const name = localStorage.getItem('charthero-collab-name') || 'Guest';
+        joinRoom({ roomId, userName: name }).catch((err) => {
+          console.error('Auto-join failed:', err);
+        });
+      }
+    }).catch(() => {});
 
     return () => {
       unsubs.forEach((u) => u());

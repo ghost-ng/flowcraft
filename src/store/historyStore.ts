@@ -46,6 +46,23 @@ const redoStack: HistoryEntry[] = [];
 /** When true the subscription skips recording (we're applying undo/redo). */
 let isPaused = false;
 
+/**
+ * Optional callback to check if a store update came from a remote peer.
+ * Registered by the collab module when collaboration is active.
+ * Remote changes should NOT create undo entries.
+ */
+let _isRemoteUpdateCheck: (() => boolean) | null = null;
+
+/** Register a remote-update check (called by collab module on init). */
+export function registerRemoteUpdateCheck(fn: () => boolean): void {
+  _isRemoteUpdateCheck = fn;
+}
+
+/** Unregister the remote-update check (called when leaving collaboration). */
+export function unregisterRemoteUpdateCheck(): void {
+  _isRemoteUpdateCheck = null;
+}
+
 /** The "before" state captured at the start of a debounce window. */
 let pendingBefore: HistoryEntry | null = null;
 
@@ -152,6 +169,7 @@ export const useHistoryStore = create<HistoryState>()(() => ({
 
 useFlowStore.subscribe((state) => {
   if (isPaused) return;
+  if (_isRemoteUpdateCheck?.()) return; // Skip remote changes from collaboration peers
 
   const { nodes, edges } = state;
 

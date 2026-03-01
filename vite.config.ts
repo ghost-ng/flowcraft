@@ -115,6 +115,7 @@ export default defineConfig({
             './src/lib/ai/prompts.ts',
             './src/lib/ai/providers.ts',
           ],
+          'collab-vendor': ['yjs', 'y-webrtc'],
         },
       },
     },

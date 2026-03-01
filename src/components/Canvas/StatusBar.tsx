@@ -6,6 +6,7 @@ import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useTimerStore } from '../../store/timerStore';
+import ConnectionBadge from '../Collaboration/ConnectionBadge';
 
 const MinimapToggle: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const minimapVisible = useUIStore((s) => s.minimapVisible);
@@ -253,6 +254,11 @@ const StatusBar: React.FC = () => {
         active={debugMode}
         darkMode={darkMode}
       />
+
+      <div className={separatorClass} />
+
+      {/* Collaboration status */}
+      <ConnectionBadge />
 
       <div className={separatorClass} />
 

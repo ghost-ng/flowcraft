@@ -40,6 +40,9 @@ import PresentationOverlay from '../PresentationMode/PresentationOverlay';
 import { LinkGroupEditorDialog } from '../LinkGroup';
 import { log } from '../../utils/logger';
 import { resolveCanvasBackground } from '../../utils/themeResolver';
+import { useCollabStore } from '../../store/collabStore';
+import RemoteCursors from '../Collaboration/RemoteCursors';
+import RemoteSelectionHighlight from '../Collaboration/RemoteSelectionHighlight';
 import {
   computeLaneBoundaries,
   getNodeLaneAssignment,
@@ -345,6 +348,41 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   // Banner store
   const topBanner = useBannerStore((s) => s.topBanner);
   const bottomBanner = useBannerStore((s) => s.bottomBanner);
+
+  // Collaboration store
+  const isCollaborating = useCollabStore((s) => s.isCollaborating);
+
+  // Broadcast cursor position to remote peers on mouse move
+  const collabMouseMoveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isCollaborating) return;
+    const handler = (e: MouseEvent) => {
+      // Throttle to ~20fps via the awareness module's internal throttle
+      const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      // Lazy-import to avoid loading collab code in solo mode
+      import('../../collab').then(({ broadcastCursorPosition, getProvider }) => {
+        const provider = getProvider();
+        if (provider) broadcastCursorPosition(provider.awareness, pos);
+      });
+    };
+    const wrapper = reactFlowWrapper.current;
+    wrapper?.addEventListener('mousemove', handler);
+    return () => {
+      wrapper?.removeEventListener('mousemove', handler);
+      if (collabMouseMoveRef.current) clearTimeout(collabMouseMoveRef.current);
+    };
+  }, [isCollaborating, screenToFlowPosition]);
+
+  // Broadcast selection changes to remote peers
+  const selectedNodes = useFlowStore((s) => s.selectedNodes);
+  const selectedEdges = useFlowStore((s) => s.selectedEdges);
+  useEffect(() => {
+    if (!isCollaborating) return;
+    import('../../collab').then(({ broadcastSelection, getProvider }) => {
+      const provider = getProvider();
+      if (provider) broadcastSelection(provider.awareness, selectedNodes, selectedEdges);
+    });
+  }, [isCollaborating, selectedNodes, selectedEdges]);
 
   // Hovered node tracking (for Ctrl+Wheel border-width adjustment)
   const hoveredNodeRef = useRef<string | null>(null);
@@ -1258,6 +1296,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
             color={darkMode ? '#334155' : activeStyle.canvas.gridColor}
           />
         )}
+
+        {/* Remote user cursors and selection highlights (collaboration) */}
+        {isCollaborating && <RemoteCursors />}
+        {isCollaborating && <RemoteSelectionHighlight />}
 
         {/* Alignment guide lines during drag */}
         {showAlignmentGuides && (alignmentGuides.vertical.length > 0 || alignmentGuides.horizontal.length > 0) && (

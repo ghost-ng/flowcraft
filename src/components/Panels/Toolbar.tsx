@@ -74,6 +74,7 @@ import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils
 import DiagramStylePicker from '../StylePicker/DiagramStylePicker';
 import ImportJsonDialog from '../Import/ImportJsonDialog';
 import AIButton from '../AI/AIButton';
+import { CollabToolbarButton } from '../Collaboration';
 import { log } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -1405,6 +1406,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </div>
 
         <AIButton />
+
+        <Sep />
+
+        <CollabToolbarButton />
 
         <Sep />
 
