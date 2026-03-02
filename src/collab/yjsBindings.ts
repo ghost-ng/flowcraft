@@ -480,7 +480,7 @@ export function bindStores(doc: Y.Doc): () => void {
 
   // --- Direction 2: Yjs → Local Zustand ---
 
-  const nodesObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const nodesObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
@@ -493,7 +493,7 @@ export function bindStores(doc: Y.Doc): () => void {
   nodesMap.observeDeep(nodesObserver);
   disposers.push(() => nodesMap.unobserveDeep(nodesObserver));
 
-  const edgesObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const edgesObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
@@ -506,7 +506,7 @@ export function bindStores(doc: Y.Doc): () => void {
   edgesMap.observeDeep(edgesObserver);
   disposers.push(() => edgesMap.unobserveDeep(edgesObserver));
 
-  const swimlaneObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const swimlaneObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
@@ -525,7 +525,7 @@ export function bindStores(doc: Y.Doc): () => void {
   swimlanesMap.observeDeep(swimlaneObserver);
   disposers.push(() => swimlanesMap.unobserveDeep(swimlaneObserver));
 
-  const legendObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const legendObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
@@ -544,7 +544,7 @@ export function bindStores(doc: Y.Doc): () => void {
   legendsMap.observeDeep(legendObserver);
   disposers.push(() => legendsMap.unobserveDeep(legendObserver));
 
-  const bannerObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const bannerObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
@@ -559,7 +559,7 @@ export function bindStores(doc: Y.Doc): () => void {
   bannersMap.observeDeep(bannerObserver);
   disposers.push(() => bannersMap.unobserveDeep(bannerObserver));
 
-  const layerObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const layerObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
@@ -574,7 +574,7 @@ export function bindStores(doc: Y.Doc): () => void {
   layersMap.observeDeep(layerObserver);
   disposers.push(() => layersMap.unobserveDeep(layerObserver));
 
-  const styleObserver = (_events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+  const styleObserver = (_events: Y.YEvent<unknown>[], transaction: Y.Transaction) => {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
