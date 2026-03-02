@@ -23,6 +23,7 @@ lerna-debug.log*
 
 # Claude Code
 CLAUDE.md
+.claude/
 
 # Editor directories and files
 .vscode/*
