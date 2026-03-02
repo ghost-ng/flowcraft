@@ -92,7 +92,7 @@ const ResetIcon: React.FC<{ visible: boolean; onReset: () => void }> = ({ visibl
   return (
     <button
       onClick={onReset}
-      title="Reset to theme default"
+      data-tooltip-left="Reset to default"
       className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-400 hover:text-slate-600 dark:text-dk-faint dark:hover:text-dk-text transition-colors cursor-pointer"
     >
       <RotateCcw size={12} />
@@ -576,6 +576,24 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
 
   const fillColor = data.color || resolved.fill;
   const borderColor = data.borderColor || resolved.borderColor;
+
+  // Check if ANY selected node has an explicit override (for showing reset buttons during multi-select)
+  const selectedNodes = useFlowStore((s) => s.selectedNodes);
+  const allNodes = useFlowStore((s) => s.nodes);
+  const anyHasColorOverride = useMemo(() => {
+    if (selectedNodes.length <= 1) return !!data.color;
+    return selectedNodes.some((nid) => {
+      const n = allNodes.find((nd) => nd.id === nid);
+      return n && !!(n.data as FlowNodeData).color;
+    });
+  }, [selectedNodes, allNodes, data.color]);
+  const anyHasBorderColorOverride = useMemo(() => {
+    if (selectedNodes.length <= 1) return !!data.borderColor;
+    return selectedNodes.some((nid) => {
+      const n = allNodes.find((nd) => nd.id === nid);
+      return n && !!(n.data as FlowNodeData).borderColor;
+    });
+  }, [selectedNodes, allNodes, data.borderColor]);
   const textColor = data.textColor || resolved.textColor;
   const fontSize = data.fontSize || resolved.fontSize;
   const fontWeight = data.fontWeight || resolved.fontWeight;
@@ -618,7 +636,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <ResetIcon
-                visible={!!activeStyleId && !!data.color}
+                visible={anyHasColorOverride}
                 onReset={() => update({ color: undefined })}
               />
             </div>
@@ -646,7 +664,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <ResetIcon
-                visible={!!activeStyleId && !!data.borderColor}
+                visible={anyHasBorderColorOverride}
                 onReset={() => update({ borderColor: undefined })}
               />
             </div>
@@ -2328,12 +2346,13 @@ const PropertiesPanel: React.FC = () => {
 
   return (
     <div className="flex shrink-0">
-      {/* Zero-width wrapper keeps toggle out of flex layout */}
+      {/* Toggle — sits in a zero-width gutter before the panel; button extends left over canvas */}
       <div className="relative w-0 self-stretch shrink-0">
         <button
           onClick={togglePropertiesPanel}
+          style={{ left: '-20px', top: '50%', transform: 'translateY(-50%)' }}
           className={`
-            absolute top-1/2 -translate-y-1/2 right-0 z-20
+            absolute z-20
             flex items-center justify-center w-5 h-8
             rounded-l cursor-pointer
             transition-colors duration-150 opacity-40 hover:opacity-100
@@ -2351,7 +2370,7 @@ const PropertiesPanel: React.FC = () => {
         </button>
       </div>
 
-      {!propertiesPanelOpen ? null : (
+      {propertiesPanelOpen && (
     <div
       className={`
         flex flex-col w-[280px] shrink-0 border-l overflow-hidden
@@ -2499,6 +2518,7 @@ const PropertiesPanel: React.FC = () => {
       </div>
     </div>
       )}
+
     </div>
   );
 };

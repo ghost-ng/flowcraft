@@ -647,8 +647,15 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     ? (isCircularArrow ? 100 : 80)
     : isCircle ? 100 : isDiamond ? 100 : 60;
 
-  const width = nodeData.width || defaultWidth;
-  const height = nodeData.height || defaultHeight;
+  let width = nodeData.width || defaultWidth;
+  let height = nodeData.height || defaultHeight;
+
+  // Circles must stay square — use the larger dimension for both axes
+  if (isCircle) {
+    const side = Math.max(width, height);
+    width = side;
+    height = side;
+  }
 
   // Scale font size proportionally with node dimensions
   const widthRatio = width / defaultWidth;
@@ -805,6 +812,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         isVisible={!!isSelected}
         minWidth={40}
         minHeight={30}
+        keepAspectRatio={isCircle}
         lineStyle={{ borderColor: selectionColor, borderWidth: selectionThickness * 0.5 }}
         handleStyle={{ width: 8, height: 8, borderRadius: 4, backgroundColor: 'white', border: `${Math.max(1, selectionThickness * 0.75)}px solid ${selectionColor}` }}
         onResize={(_event, params) => {
@@ -992,7 +1000,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         return (
           <div
             ref={labelRef}
-            className={`flex items-center gap-1.5 w-full h-full relative z-10 overflow-hidden px-2 ${iconPosition === 'right' ? 'flex-row-reverse' : ''} ${
+            className={`flex items-center gap-1.5 w-full h-full relative z-10 overflow-hidden px-1 ${iconPosition === 'right' ? 'flex-row-reverse' : ''} ${
               (nodeData as Record<string, unknown>).textAlign === 'left' ? 'justify-start' :
               (nodeData as Record<string, unknown>).textAlign === 'right' ? 'justify-end' :
               'justify-center'

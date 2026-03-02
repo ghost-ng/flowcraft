@@ -1423,7 +1423,7 @@ const VALID_SHAPES = new Set([
   'callout', 'document', 'predefinedProcess', 'manualInput', 'preparation',
   'data', 'database', 'internalStorage', 'display',
   'blockArrow', 'chevronArrow', 'doubleArrow', 'circularArrow',
-  'group', 'stickyNote', 'textbox',
+  'group', 'stickyNote', 'textbox', 'freehand',
 ]);
 
 /** Valid edge type values */
@@ -1559,7 +1559,8 @@ export function importFromJson(
     for (const key of ['description', 'color', 'borderColor', 'textColor', 'fontFamily',
       'textAlign', 'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
       'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId', 'notes',
-      'completedBy', 'startOn'] as const) {
+      'completedBy', 'startOn',
+      'svgPath', 'svgViewBox', 'svgStrokeColor'] as const) {
       if (typeof rawData[key] === 'string') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
       }
@@ -1567,7 +1568,8 @@ export function importFromJson(
 
     // Optional number fields
     for (const key of ['fontSize', 'fontWeight', 'iconBorderWidth', 'iconSize',
-      'width', 'height', 'opacity', 'borderWidth', 'borderRadius', 'rotation'] as const) {
+      'width', 'height', 'opacity', 'borderWidth', 'borderRadius', 'rotation',
+      'svgStrokeWidth'] as const) {
       if (typeof rawData[key] === 'number') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
       }

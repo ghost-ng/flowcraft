@@ -186,6 +186,9 @@ const DiagramStylePicker: React.FC<DiagramStylePickerProps> = ({ open, onClose }
   const handleResetStyle = useCallback(() => {
     clearStyle();
 
+    // Reset dark mode and canvas background to defaults
+    useStyleStore.getState().setDarkMode(false);
+
     const { nodes, updateNodeData } = useFlowStore.getState();
     for (const node of nodes) {
       const isTextbox = (node.data as FlowNodeData).shape === 'textbox';

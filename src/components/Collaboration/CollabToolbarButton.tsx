@@ -103,7 +103,7 @@ const CollabToolbarButton: React.FC = () => {
               : 'bg-green-50 text-green-600 hover:bg-green-100'
             : darkMode
               ? 'text-dk-muted hover:bg-dk-hover'
-              : 'text-toolbar-fg hover:bg-toolbar-hover'
+              : 'text-text-muted hover:bg-slate-100 hover:text-text'
           }
         `}
       >
