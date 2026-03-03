@@ -10,7 +10,7 @@ build:
   image: node:${NODE_VERSION}
   script:
     - tar xzf node_modules.tar.gz
-    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node 2>/dev/null || true
+    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node node_modules/lightningcss-linux-x64-gnu/*.node node_modules/@tailwindcss/oxide-linux-x64-gnu/*.node 2>/dev/null || true
     - npx tsc -b && npx vite build --base=/
   artifacts:
     paths:
@@ -22,7 +22,7 @@ pages:
   image: node:${NODE_VERSION}
   script:
     - tar xzf node_modules.tar.gz
-    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node 2>/dev/null || true
+    - chmod +x node_modules/@esbuild/*/bin/* node_modules/@rollup/*/*.node node_modules/lightningcss-linux-x64-gnu/*.node node_modules/@tailwindcss/oxide-linux-x64-gnu/*.node 2>/dev/null || true
     - npx tsc -b && npx vite build --base=/
     # GitLab Pages requires output in 'public/' directory
     - rm -rf public
@@ -45,7 +45,7 @@ pages:
 #
 # PERMISSIONS:
 # Windows tarballs don't preserve Unix executable bits. The chmod line above
-# restores +x on native binaries (esbuild, rollup) after extraction.
+# restores +x on native binaries (esbuild, rollup, lightningcss, tailwindcss/oxide) after extraction.
 #
 # BASE PATH:
 # vite.config.ts has base: '/Chart-Hero/' for GitHub Pages.
