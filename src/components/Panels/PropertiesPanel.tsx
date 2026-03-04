@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlignLeft,
   AlignCenter,
@@ -43,6 +43,7 @@ import { generateId } from '../../utils/idGenerator';
 import { log } from '../../utils/logger';
 import { resolveNodeStyle } from '../../utils/themeResolver';
 import { diagramStyles } from '../../styles/diagramStyles';
+import Tip from '../UI/Tip';
 
 // ---------------------------------------------------------------------------
 // Helper: sanitize color for <input type="color"> which requires #rrggbb
@@ -618,179 +619,6 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
               {data.shape || 'rectangle'}
             </div>
           </Field>
-
-          {/* Fill color */}
-          <Field label="Fill Color">
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={toHexColor(fillColor, '#3b82f6')}
-                onChange={(e) => update({ color: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
-              />
-              <input
-                type="text"
-                value={fillColor}
-                onChange={(e) => update({ color: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
-                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              />
-              <ResetIcon
-                visible={anyHasColorOverride}
-                onReset={() => update({ color: undefined })}
-              />
-            </div>
-            {!data.color && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
-              </span>
-            )}
-          </Field>
-
-          {/* Border color */}
-          <Field label="Border Color">
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={toHexColor(borderColor, '#334155')}
-                onChange={(e) => update({ borderColor: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
-              />
-              <input
-                type="text"
-                value={borderColor}
-                onChange={(e) => update({ borderColor: e.target.value })}
-                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
-                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              />
-              <ResetIcon
-                visible={anyHasBorderColorOverride}
-                onReset={() => update({ borderColor: undefined })}
-              />
-            </div>
-            {!data.borderColor && activeStyleId && (
-              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
-                Theme
-              </span>
-            )}
-          </Field>
-
-          {/* Border Width */}
-          <Field label="Border Width">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={0}
-                max={8}
-                step={0.5}
-                value={data.borderWidth ?? 2}
-                onChange={(e) => update({ borderWidth: Number(e.target.value) })}
-                className="flex-1 accent-primary"
-              />
-              <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {data.borderWidth ?? 2}px
-              </span>
-            </div>
-          </Field>
-
-          {/* Border Style */}
-          <Field label="Border Style">
-            <div className="flex items-center gap-1">
-              {(['solid', 'dashed', 'dotted'] as const).map((style) => (
-                <button
-                  key={style}
-                  onClick={() => update({ borderStyle: style })}
-                  className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
-                    ${(data.borderStyle || 'solid') === style
-                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
-                    }`}
-                >
-                  {style.charAt(0).toUpperCase() + style.slice(1)}
-                </button>
-              ))}
-            </div>
-          </Field>
-
-          {/* Corner Radius */}
-          <Field label="Corner Radius">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={0}
-                max={50}
-                step={1}
-                value={data.borderRadius ?? 4}
-                onChange={(e) => update({ borderRadius: Number(e.target.value) })}
-                className="flex-1 accent-primary"
-              />
-              <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {data.borderRadius ?? 4}px
-              </span>
-            </div>
-          </Field>
-
-          {/* Opacity */}
-          <Field label="Opacity">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={data.opacity ?? 1}
-                onChange={(e) => update({ opacity: Number(e.target.value) })}
-                className="flex-1 h-1.5 accent-primary"
-              />
-              <span className="text-xs text-text-muted w-8 text-right font-mono">
-                {Math.round((data.opacity ?? 1) * 100)}%
-              </span>
-            </div>
-          </Field>
-
-          {/* Block Size */}
-          <Field label="Block Size">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
-                  for (const nid of selectedNodes) {
-                    const node = allNodes.find(n => n.id === nid);
-                    if (node) {
-                      const nd = node.data as FlowNodeData;
-                      const curW = (nd as Record<string, unknown>).width as number || 160;
-                      const curH = (nd as Record<string, unknown>).height as number || 60;
-                      bulkUpdate(nid, { width: Math.max(40, curW - 20), height: Math.max(20, curH - 15) } as Partial<FlowNodeData>);
-                    }
-                  }
-                }}
-                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
-                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                data-tooltip-left="Decrease block size"
-              >
-                <Minus size={12} /> Smaller
-              </button>
-              <button
-                onClick={() => {
-                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
-                  for (const nid of selectedNodes) {
-                    const node = allNodes.find(n => n.id === nid);
-                    if (node) {
-                      const nd = node.data as FlowNodeData;
-                      const curW = (nd as Record<string, unknown>).width as number || 160;
-                      const curH = (nd as Record<string, unknown>).height as number || 60;
-                      bulkUpdate(nid, { width: curW + 20, height: curH + 15 } as Partial<FlowNodeData>);
-                    }
-                  }
-                }}
-                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
-                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                data-tooltip-left="Increase block size"
-              >
-                <Plus size={12} /> Larger
-              </button>
-            </div>
-          </Field>
         </>
       )}
 
@@ -1038,6 +866,183 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
         </>
       )}
 
+      {!isSectionCollapsed('block') && (
+        <>
+          {/* Fill color */}
+          <Field label="Fill Color">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={toHexColor(fillColor, '#3b82f6')}
+                onChange={(e) => update({ color: e.target.value })}
+                className="w-8 h-8 rounded border border-border cursor-pointer"
+              />
+              <input
+                type="text"
+                value={fillColor}
+                onChange={(e) => update({ color: e.target.value })}
+                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+              <ResetIcon
+                visible={anyHasColorOverride}
+                onReset={() => update({ color: undefined })}
+              />
+            </div>
+            {!data.color && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
+          </Field>
+
+          {/* Border color */}
+          <Field label="Border Color">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={toHexColor(borderColor, '#334155')}
+                onChange={(e) => update({ borderColor: e.target.value })}
+                className="w-8 h-8 rounded border border-border cursor-pointer"
+              />
+              <input
+                type="text"
+                value={borderColor}
+                onChange={(e) => update({ borderColor: e.target.value })}
+                className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+              <ResetIcon
+                visible={anyHasBorderColorOverride}
+                onReset={() => update({ borderColor: undefined })}
+              />
+            </div>
+            {!data.borderColor && activeStyleId && (
+              <span className="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 mt-1 inline-block">
+                Theme
+              </span>
+            )}
+          </Field>
+
+          {/* Border Width */}
+          <Field label="Border Width">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={8}
+                step={0.5}
+                value={data.borderWidth ?? 2}
+                onChange={(e) => update({ borderWidth: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-xs text-text-muted w-8 text-right font-mono">
+                {data.borderWidth ?? 2}px
+              </span>
+            </div>
+          </Field>
+
+          {/* Border Style */}
+          <Field label="Border Style">
+            <div className="flex items-center gap-1">
+              {(['solid', 'dashed', 'dotted'] as const).map((style) => (
+                <button
+                  key={style}
+                  onClick={() => update({ borderStyle: style })}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
+                    ${(data.borderStyle || 'solid') === style
+                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
+                    }`}
+                >
+                  {style.charAt(0).toUpperCase() + style.slice(1)}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {/* Corner Radius */}
+          <Field label="Corner Radius">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={50}
+                step={1}
+                value={data.borderRadius ?? 4}
+                onChange={(e) => update({ borderRadius: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-xs text-text-muted w-8 text-right font-mono">
+                {data.borderRadius ?? 4}px
+              </span>
+            </div>
+          </Field>
+
+          {/* Opacity */}
+          <Field label="Opacity">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={data.opacity ?? 1}
+                onChange={(e) => update({ opacity: Number(e.target.value) })}
+                className="flex-1 h-1.5 accent-primary"
+              />
+              <span className="text-xs text-text-muted w-8 text-right font-mono">
+                {Math.round((data.opacity ?? 1) * 100)}%
+              </span>
+            </div>
+          </Field>
+
+          {/* Block Size */}
+          <Field label="Block Size">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const nd = node.data as FlowNodeData;
+                      const curW = (nd as Record<string, unknown>).width as number || 160;
+                      const curH = (nd as Record<string, unknown>).height as number || 60;
+                      bulkUpdate(nid, { width: Math.max(40, curW - 20), height: Math.max(20, curH - 15) } as Partial<FlowNodeData>);
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
+                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Decrease block size"
+              >
+                <Minus size={12} /> Smaller
+              </button>
+              <button
+                onClick={() => {
+                  const { selectedNodes, nodes: allNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    const node = allNodes.find(n => n.id === nid);
+                    if (node) {
+                      const nd = node.data as FlowNodeData;
+                      const curW = (nd as Record<string, unknown>).width as number || 160;
+                      const curH = (nd as Record<string, unknown>).height as number || 60;
+                      bulkUpdate(nid, { width: curW + 20, height: curH + 15 } as Partial<FlowNodeData>);
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded border border-border
+                           text-text-muted hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                data-tooltip-left="Increase block size"
+              >
+                <Plus size={12} /> Larger
+              </button>
+            </div>
+          </Field>
+        </>
+      )}
+
       {/* ============ ICON STYLING ============ */}
       {currentIcon && (
         <>
@@ -1241,12 +1246,22 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
   const edges = useFlowStore((s) => s.edges);
   const nodes = useFlowStore((s) => s.nodes);
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const setSelectedNodes = useFlowStore((s) => s.setSelectedNodes);
+  const setNodes = useFlowStore((s) => s.setNodes);
   const [localNotes, setLocalNotes] = useState(data.notes || '');
 
   // Sync local notes when the selected node changes or external updates arrive
   useEffect(() => {
     setLocalNotes(data.notes || '');
   }, [nodeId, data.notes]);
+
+  // Detect if this is a group node and find its members
+  const thisNode = useMemo(() => nodes.find((n) => n.id === nodeId), [nodes, nodeId]);
+  const isGroupNode = thisNode?.type === 'groupNode';
+  const groupMembers = useMemo(() => {
+    if (!isGroupNode) return [];
+    return nodes.filter((n) => (n.data as FlowNodeData).groupId === nodeId);
+  }, [isGroupNode, nodes, nodeId]);
 
   // Compute connected nodes from edges
   const connectedTo = useMemo(() => {
@@ -1298,6 +1313,63 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
       <ReadOnlyField label="Position" value={posStr} />
       <ReadOnlyField label="Dimensions" value={dimStr} />
       <ReadOnlyField label="Swimlane" value={swimlaneLabel} />
+
+      {/* Group Members — only shown for group nodes */}
+      {isGroupNode && (
+        <Field label={`Group Members (${groupMembers.length})`}>
+          {groupMembers.length === 0 ? (
+            <span className="text-xs text-text-muted italic px-2 py-1.5">No members in this group</span>
+          ) : (
+            <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto">
+              {groupMembers.map((member) => {
+                const memberData = member.data as FlowNodeData;
+                const isHidden = !!member.hidden;
+                return (
+                  <div
+                    key={member.id}
+                    className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded border border-border dark:border-dk-border ${
+                      isHidden ? 'opacity-50 bg-slate-50 dark:bg-dk-hover' : 'bg-white dark:bg-dk-surface'
+                    }`}
+                  >
+                    {/* Color dot */}
+                    <span
+                      className="w-2.5 h-2.5 rounded-sm shrink-0"
+                      style={{ backgroundColor: memberData.color || '#3b82f6' }}
+                    />
+                    {/* Label */}
+                    <span className="flex-1 truncate text-text dark:text-dk-text">
+                      {memberData.label || member.id}
+                    </span>
+                    {/* Select on canvas */}
+                    <button
+                      onClick={() => setSelectedNodes([member.id])}
+                      className="p-0.5 rounded text-text-muted hover:text-primary transition-colors cursor-pointer shrink-0"
+                      data-tooltip-left="Select"
+                    >
+                      <ChevronRight size={12} />
+                    </button>
+                    {/* Toggle visibility */}
+                    <button
+                      onClick={() => {
+                        const updated = nodes.map((n) =>
+                          n.id === member.id ? { ...n, hidden: !isHidden } : n
+                        );
+                        setNodes(updated);
+                      }}
+                      className={`p-0.5 rounded transition-colors cursor-pointer shrink-0 ${
+                        isHidden ? 'text-slate-300 dark:text-dk-faint hover:text-text-muted' : 'text-text-muted hover:text-primary'
+                      }`}
+                      data-tooltip-left={isHidden ? 'Show' : 'Hide'}
+                    >
+                      {isHidden ? <EyeClosed size={12} /> : <Eye size={12} />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Field>
+      )}
 
       {/* Connected To */}
       <Field label={`Connected To (${connectedTo.length})`}>
@@ -1482,6 +1554,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
   const updateDividerStyle = useSwimlaneStore((s) => s.updateDividerStyle);
   const updateLabelConfig = useSwimlaneStore((s) => s.updateLabelConfig);
   const updateTitleConfig = useSwimlaneStore((s) => s.updateTitleConfig);
+  const darkMode = useStyleStore((s) => s.darkMode);
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;
@@ -1551,69 +1624,89 @@ const SwimlanePanel: React.FC = React.memo(() => {
       {[...lanes].sort((a, b) => a.order - b.order).map((lane) => (
         <div
           key={lane.id}
-          className={`flex items-center gap-2 px-2 py-1.5 rounded-md border border-border dark:border-dk-border bg-white/50 dark:bg-dk-surface/50 ${lane.hidden ? 'opacity-50' : ''}`}
+          className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border border-border dark:border-dk-border bg-white/50 dark:bg-dk-surface/50 ${lane.hidden ? 'opacity-50' : ''}`}
         >
-          {/* Hide lane + all contents toggle */}
-          <button
-            onClick={() => updateLane(orientation, lane.id, { hidden: !lane.hidden })}
-            className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
-              ${lane.hidden
-                ? 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
-                : 'text-text-muted hover:text-primary'
-              }`}
-            title={lane.hidden ? 'Show lane & contents' : 'Hide lane & contents'}
-          >
-            {lane.hidden ? <EyeClosed size={12} /> : <Eye size={12} />}
-          </button>
-          {/* Color picker */}
-          <input
-            type="color"
-            value={lane.color}
-            onChange={(e) => updateLane(orientation, lane.id, { color: e.target.value })}
-            className="w-4 h-4 rounded border border-border cursor-pointer shrink-0"
-          />
-          {/* Label input */}
+          {/* Row 1: Label */}
           <input
             type="text"
             value={lane.label}
             onChange={(e) => updateLane(orientation, lane.id, { label: e.target.value })}
-            className="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded border border-transparent
+            className="w-full px-1.5 py-0.5 text-xs font-medium rounded border border-transparent
                        hover:border-border focus:border-primary focus:outline-none
                        bg-transparent"
           />
-          {/* Toggle label visibility */}
-          <button
-            onClick={() => updateLane(orientation, lane.id, { showLabel: !(lane.showLabel ?? true) })}
-            className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
-              ${(lane.showLabel ?? true)
-                ? 'text-text-muted hover:text-primary'
-                : 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
-              }`}
-            data-tooltip-left={(lane.showLabel ?? true) ? 'Hide label' : 'Show label'}
-          >
-            <Type size={12} />
-          </button>
-          {/* Toggle color indicator visibility */}
-          <button
-            onClick={() => updateLane(orientation, lane.id, { showColor: !(lane.showColor ?? true) })}
-            className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
-              ${(lane.showColor ?? true)
-                ? 'text-text-muted hover:text-primary'
-                : 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
-              }`}
-            data-tooltip-left={(lane.showColor ?? true) ? 'Hide color indicator' : 'Show color indicator'}
-          >
-            <Palette size={12} />
-          </button>
-          {/* Remove button */}
-          <button
-            onClick={() => removeLane(orientation, lane.id)}
-            className="p-0.5 rounded text-text-muted hover:text-danger hover:bg-danger/10
-                       transition-colors cursor-pointer shrink-0"
-            data-tooltip-left="Remove lane"
-          >
-            <Trash2 size={12} />
-          </button>
+          {/* Row 2: Attribute controls */}
+          <div className="flex items-center gap-1.5">
+            {/* Hide lane + all contents toggle */}
+            <Tip label={lane.hidden ? 'Show lane & contents' : 'Hide lane & contents'}>
+              <button
+                onClick={() => updateLane(orientation, lane.id, { hidden: !lane.hidden })}
+                className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
+                  ${lane.hidden
+                    ? 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
+                    : 'text-text-muted hover:text-primary'
+                  }`}
+              >
+                {lane.hidden ? <EyeClosed size={12} /> : <Eye size={12} />}
+              </button>
+            </Tip>
+            {/* Color picker */}
+            <Tip label="Lane color">
+              <input
+                type="color"
+                value={lane.color}
+                onChange={(e) => updateLane(orientation, lane.id, { color: e.target.value })}
+                className="w-4 h-4 rounded border border-border cursor-pointer shrink-0"
+              />
+            </Tip>
+            {/* Opacity slider */}
+            <Tip label={`Opacity: ${lane.colorOpacity ?? (darkMode ? 12 : 15)}%`}>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={lane.colorOpacity ?? (darkMode ? 12 : 15)}
+                onChange={(e) => updateLane(orientation, lane.id, { colorOpacity: Number(e.target.value) })}
+                className="flex-1 min-w-0 h-3 cursor-pointer accent-primary"
+              />
+            </Tip>
+            {/* Toggle label visibility */}
+            <Tip label={(lane.showLabel ?? true) ? 'Hide label' : 'Show label'}>
+              <button
+                onClick={() => updateLane(orientation, lane.id, { showLabel: !(lane.showLabel ?? true) })}
+                className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
+                  ${(lane.showLabel ?? true)
+                    ? 'text-text-muted hover:text-primary'
+                    : 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
+                  }`}
+              >
+                <Type size={12} />
+              </button>
+            </Tip>
+            {/* Toggle color indicator visibility */}
+            <Tip label={(lane.showColor ?? true) ? 'Hide color indicator' : 'Show color indicator'}>
+              <button
+                onClick={() => updateLane(orientation, lane.id, { showColor: !(lane.showColor ?? true) })}
+                className={`p-0.5 rounded transition-colors cursor-pointer shrink-0
+                  ${(lane.showColor ?? true)
+                    ? 'text-text-muted hover:text-primary'
+                    : 'text-slate-300 dark:text-dk-faint hover:text-text-muted'
+                  }`}
+              >
+                <Palette size={12} />
+              </button>
+            </Tip>
+            {/* Remove button */}
+            <Tip label="Remove lane">
+              <button
+                onClick={() => removeLane(orientation, lane.id)}
+                className="p-0.5 rounded text-text-muted hover:text-danger hover:bg-danger/10
+                           transition-colors cursor-pointer shrink-0"
+              >
+                <Trash2 size={12} />
+              </button>
+            </Tip>
+          </div>
         </div>
       ))}
       {/* Add lane button */}
@@ -2335,11 +2428,16 @@ const PropertiesPanel: React.FC = () => {
   const [nodeToggleSignal, setNodeToggleSignal] = useState(0);
   const [edgeToggleSignal, setEdgeToggleSignal] = useState(0);
 
-  // Auto-switch to the Connector tab when an edge is selected
+  // Auto-switch panel tab when selection changes (not on manual tab switch)
+  const prevSelRef = useRef({ nodes: selectedNodes.length, edges: selectedEdges.length });
   useEffect(() => {
-    if (selectedEdges.length > 0 && activePanelTab !== 'edge') {
+    const prev = prevSelRef.current;
+    const changed = selectedNodes.length !== prev.nodes || selectedEdges.length !== prev.edges;
+    prevSelRef.current = { nodes: selectedNodes.length, edges: selectedEdges.length };
+    if (!changed) return;
+    if (selectedEdges.length > 0) {
       setActivePanelTab('edge');
-    } else if (selectedNodes.length > 0 && selectedEdges.length === 0 && activePanelTab === 'edge') {
+    } else if (selectedNodes.length > 0) {
       setActivePanelTab('node');
     }
   }, [selectedEdges.length, selectedNodes.length, activePanelTab, setActivePanelTab]);

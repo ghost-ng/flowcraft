@@ -56,6 +56,7 @@ const EDGE_TYPES = [
 const ARROWHEAD_TYPES = [
   { value: 'none', label: 'None' },
   { value: 'arrow', label: 'Arrow' },
+  { value: 'rounded', label: 'Rounded' },
   { value: 'diamond', label: 'Diamond' },
   { value: 'circle', label: 'Circle' },
   { value: 'open', label: 'Open Arrow' },
@@ -80,21 +81,18 @@ const EDGE_STYLES = [
 
 const arrowheadToMarker = (type: string): string => {
   switch (type) {
-    case 'arrow':
-      return 'url(#charthero-filledTriangle)';
-    case 'diamond':
-      return 'url(#charthero-filledDiamond)';
-    case 'circle':
-      return 'url(#charthero-filledCircle)';
-    case 'open':
-      return 'url(#charthero-openTriangle)';
-    default:
-      return '';
+    case 'arrow': return 'url(#charthero-filledTriangle)';
+    case 'rounded': return 'url(#charthero-thinArrow)';
+    case 'diamond': return 'url(#charthero-filledDiamond)';
+    case 'circle': return 'url(#charthero-filledCircle)';
+    case 'open': return 'url(#charthero-openTriangle)';
+    default: return '';
   }
 };
 
 const markerToArrowhead = (marker?: string): string => {
   if (!marker) return 'none';
+  if (marker.includes('thinArrow')) return 'rounded';
   if (marker.includes('filledTriangle')) return 'arrow';
   if (marker.includes('filledDiamond')) return 'diamond';
   if (marker.includes('filledCircle')) return 'circle';

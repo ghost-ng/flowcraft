@@ -584,11 +584,15 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     : (!isTransparentFill ? ensureReadableText(fillColor, resolved.textColor) : ensureReadableText(canvasBg, resolved.textColor));
   const fontSize = resolved.fontSize;
 
-  // Focus the input when editing starts
+  // Focus the input when editing starts and auto-size
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+      const ta = inputRef.current;
+      ta.focus();
+      ta.select();
+      // Auto-size to fit existing content
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight}px`;
     }
   }, [isEditing]);
 
@@ -1011,16 +1015,31 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             {isEditing ? (
               <textarea
                 ref={inputRef}
-                className="bg-transparent text-center outline-none border-none w-full px-1 resize-none overflow-hidden"
-                style={{ color: textColor, fontSize: scaledFontSize, lineHeight: 1.3 }}
+                className="bg-transparent text-center outline-none border-none w-full px-1 resize-none"
+                style={{
+                  color: textColor,
+                  fontSize: scaledFontSize,
+                  lineHeight: 1.3,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                  overflow: 'hidden',
+                  minHeight: '1.3em',
+                }}
                 value={editValue}
                 rows={Math.max(1, (editValue || '').split('\n').length)}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e) => {
+                  setEditValue(e.target.value);
+                  // Auto-resize textarea to fit content
+                  const ta = e.target;
+                  ta.style.height = 'auto';
+                  ta.style.height = `${ta.scrollHeight}px`;
+                }}
                 onBlur={commitEdit}
                 onKeyDown={handleKeyDown}
               />
             ) : (
-              <span className="text-center select-none break-words leading-tight whitespace-pre-wrap" style={{ wordBreak: 'break-word' }}>
+              <span className="text-center select-none break-words leading-tight whitespace-pre-wrap" style={{ wordBreak: 'break-word', cursor: 'var(--cursor-select)' }}>
                 {nodeData.label}
               </span>
             )}

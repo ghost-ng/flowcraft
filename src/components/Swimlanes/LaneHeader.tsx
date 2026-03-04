@@ -21,6 +21,8 @@ interface LaneHeaderProps {
   laneId: string;
   label: string;
   color: string;
+  /** Lane background opacity (0-100, undefined = theme default) */
+  colorOpacity?: number;
   orientation: SwimlaneOrientation;
   /** Position offset in pixels (x for vertical, y for horizontal) */
   offset: number;
@@ -157,27 +159,39 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
         Change Color
       </button>
       {showColors && (
-        <div className="px-3 py-1.5 flex flex-wrap gap-1">
-          {LANE_COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => {
-                updateLane(orientation, laneId, { color: c });
-                onClose();
+        <div className="px-3 py-1.5">
+          <div className="flex flex-wrap gap-1">
+            {LANE_COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  updateLane(orientation, laneId, { color: c });
+                  onClose();
+                }}
+                className="w-5 h-5 rounded border border-slate-200 cursor-pointer transition-transform hover:scale-110"
+                style={{ backgroundColor: c, outline: c === lane.color ? '2px solid #3b82f6' : 'none', outlineOffset: 1 }}
+              />
+            ))}
+          </div>
+          {/* Opacity slider */}
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className={`text-[10px] shrink-0 ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>
+              Opacity
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={lane.colorOpacity ?? (darkMode ? 12 : 15)}
+              onChange={(e) => {
+                updateLane(orientation, laneId, { colorOpacity: Number(e.target.value) });
               }}
-              className="w-5 h-5 rounded border border-slate-200 cursor-pointer transition-transform hover:scale-110"
-              style={{ backgroundColor: c, outline: c === lane.color ? '2px solid #3b82f6' : 'none', outlineOffset: 1 }}
+              className="flex-1 min-w-0 h-3 cursor-pointer accent-primary"
             />
-          ))}
-          <input
-            type="color"
-            value={lane.color}
-            onChange={(e) => {
-              updateLane(orientation, laneId, { color: e.target.value });
-            }}
-            className="w-5 h-5 rounded border border-slate-200 cursor-pointer"
-            title="Custom color"
-          />
+            <span className={`text-[10px] w-7 shrink-0 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>
+              {lane.colorOpacity ?? (darkMode ? 12 : 15)}%
+            </span>
+          </div>
         </div>
       )}
 
@@ -204,6 +218,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   laneId,
   label,
   color,
+  colorOpacity,
   orientation,
   offset,
   size,
@@ -231,6 +246,9 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
+  const colorSwatchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const updateLane = useSwimlaneStore((s) => s.updateLane);
 
@@ -247,6 +265,33 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
       setEditValue(label);
     }
   }, [label, isEditing]);
+
+  // Close color picker on outside click or Escape
+  useEffect(() => {
+    if (!showColorPicker) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node) &&
+        colorSwatchRef.current && !colorSwatchRef.current.contains(e.target as Node)
+      ) {
+        setShowColorPicker(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowColorPicker(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [showColorPicker]);
+
+  const handleColorSwatchDblClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger label edit
+    setShowColorPicker((v) => !v);
+  }, []);
 
   const handleDoubleClick = useCallback(() => {
     setEditValue(label);
@@ -420,12 +465,15 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         style={style}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
-        title="Double-click to edit · Right-click for options"
         data-lane-header={laneId}
       >
-        {/* Color indicator */}
+        {/* Color indicator — double-click to change color */}
         {colorVisible && (
           <div
+            ref={colorSwatchRef}
+            onDoubleClick={handleColorSwatchDblClick}
+            data-tooltip={isHorizontal ? undefined : 'Double-click to change color'}
+            data-tooltip-left={isHorizontal ? 'Double-click to change color' : undefined}
             style={{
               width: isHorizontal ? 24 : 8,
               height: isHorizontal ? 8 : 20,
@@ -434,25 +482,29 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
               flexShrink: 0,
               marginBottom: isHorizontal ? 4 : 0,
               marginRight: isHorizontal ? 0 : 6,
+              cursor: 'var(--cursor-select)',
+              position: 'relative',
             }}
           />
         )}
 
-        {/* Drag handle */}
-        <GripVertical
-          size={12}
-          onMouseDown={handleDragStart}
-          onContextMenu={handleContextMenu}
-          style={{
-            color: darkMode ? '#7e8d9f' : '#94a3b8',
-            flexShrink: 0,
-            marginBottom: isHorizontal ? 2 : 0,
-            marginRight: isHorizontal ? 0 : 4,
-            transform: isHorizontal ? 'rotate(90deg)' : undefined,
-            pointerEvents: 'auto',
-            cursor: 'var(--cursor-select)',
-          }}
-        />
+        {/* Drag handle — hidden when either label or color is off */}
+        {(labelVisible && colorVisible) && (
+          <GripVertical
+            size={12}
+            onMouseDown={handleDragStart}
+            onContextMenu={handleContextMenu}
+            style={{
+              color: darkMode ? '#7e8d9f' : '#94a3b8',
+              flexShrink: 0,
+              marginBottom: isHorizontal ? 2 : 0,
+              marginRight: isHorizontal ? 0 : 4,
+              transform: isHorizontal ? 'rotate(90deg)' : undefined,
+              pointerEvents: 'auto',
+              cursor: 'var(--cursor-open-hand)',
+            }}
+          />
+        )}
 
         {/* Label or edit input */}
         {isEditing ? (
@@ -466,7 +518,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             style={editStyle}
           />
         ) : labelVisible ? (
-          <span style={textStyle}>
+          <span style={{ ...textStyle, cursor: 'var(--cursor-select)' }}>
             {label}
           </span>
         ) : null}
@@ -486,6 +538,65 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             setIsEditing(true);
           }}
         />,
+        document.body,
+      )}
+
+      {/* Color picker popover — portaled to document.body */}
+      {showColorPicker && colorSwatchRef.current && createPortal(
+        (() => {
+          const rect = colorSwatchRef.current!.getBoundingClientRect();
+          const popX = rect.right + 6;
+          const popY = rect.top - 4;
+          return (
+            <>
+              <div className="fixed inset-0" style={{ zIndex: 9999 }} onMouseDown={() => setShowColorPicker(false)} />
+              <div
+                ref={colorPickerRef}
+                className={`fixed rounded-lg shadow-xl border p-2 ${
+                  darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'
+                }`}
+                style={{ left: popX, top: popY, zIndex: 10000, width: 184 }}
+              >
+                <div className="flex flex-wrap gap-1">
+                  {LANE_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => {
+                        updateLane(orientation, laneId, { color: c });
+                        setShowColorPicker(false);
+                      }}
+                      className="w-5 h-5 rounded border border-slate-200 cursor-pointer transition-transform hover:scale-110"
+                      style={{
+                        backgroundColor: c,
+                        outline: c === color ? '2px solid #3b82f6' : 'none',
+                        outlineOffset: 1,
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Opacity slider */}
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className={`text-[10px] shrink-0 ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>
+                    Opacity
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={colorOpacity ?? (darkMode ? 12 : 15)}
+                    onChange={(e) => {
+                      updateLane(orientation, laneId, { colorOpacity: Number(e.target.value) });
+                    }}
+                    className="flex-1 min-w-0 h-3 cursor-pointer accent-primary"
+                  />
+                  <span className={`text-[10px] w-7 shrink-0 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-400'}`}>
+                    {colorOpacity ?? (darkMode ? 12 : 15)}%
+                  </span>
+                </div>
+              </div>
+            </>
+          );
+        })(),
         document.body,
       )}
     </>

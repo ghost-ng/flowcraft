@@ -593,14 +593,14 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                 icon={<ChevronUp size={14} />}
                 label="Forward"
                 shortcut="Ctrl+]"
-                onClick={() => { onBringForward(); }}
+                onClick={() => { onBringForward(); onClose(); }}
                 darkMode={darkMode}
               />
               <MenuItem
                 icon={<ChevronDown size={14} />}
                 label="Backward"
                 shortcut="Ctrl+["
-                onClick={() => { onSendBackward(); }}
+                onClick={() => { onSendBackward(); onClose(); }}
                 darkMode={darkMode}
               />
               <MenuDivider darkMode={darkMode} />
@@ -608,14 +608,14 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                 icon={<ArrowUpToLine size={14} />}
                 label="Front"
                 shortcut="Ctrl+Shift+]"
-                onClick={() => { onBringToFront(); }}
+                onClick={() => { onBringToFront(); onClose(); }}
                 darkMode={darkMode}
               />
               <MenuItem
                 icon={<ArrowDownToLine size={14} />}
                 label="Back"
                 shortcut="Ctrl+Shift+["
-                onClick={() => { onSendToBack(); }}
+                onClick={() => { onSendToBack(); onClose(); }}
                 darkMode={darkMode}
               />
             </SubMenu>

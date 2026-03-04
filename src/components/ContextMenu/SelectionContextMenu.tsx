@@ -448,7 +448,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
         <div className="relative" onMouseLeave={() => setSubmenu(null)}>
           <MenuItem
             icon={<FlipHorizontal2 size={14} />}
-            label="Mirror / Flip"
+            label="Mirror"
             onClick={() => setSubmenu(submenu === 'mirror' ? null : 'mirror')}
             darkMode={darkMode}
             hasSubmenu
@@ -457,8 +457,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           />
           {submenu === 'mirror' && (
             <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
-              <MenuItem icon={<FlipHorizontal2 size={14} />} label="Flip Horizontal" onClick={() => handleMirror(mirrorHorizontal)} darkMode={darkMode} shortcut="Ctrl+Shift+H" />
-              <MenuItem icon={<FlipVertical2 size={14} />} label="Flip Vertical" onClick={() => handleMirror(mirrorVertical)} darkMode={darkMode} shortcut="Ctrl+Alt+V" />
+              <MenuItem icon={<FlipHorizontal2 size={14} />} label="Horizontal" onClick={() => handleMirror(mirrorHorizontal)} darkMode={darkMode} shortcut="Ctrl+Shift+H" />
+              <MenuItem icon={<FlipVertical2 size={14} />} label="Vertical" onClick={() => handleMirror(mirrorVertical)} darkMode={darkMode} shortcut="Ctrl+Alt+V" />
             </SubMenu>
           )}
         </div>

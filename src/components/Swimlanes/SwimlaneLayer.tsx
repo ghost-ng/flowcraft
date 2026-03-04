@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useViewport } from '@xyflow/react';
 
 import {
@@ -341,7 +341,6 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
         borderBottom: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
       }}
       onMouseDown={handleMouseDown}
-      title="Drag to move swimlane container"
     >
       {/* Grip dots pattern */}
       <svg
@@ -532,7 +531,6 @@ const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
         transition: 'opacity 150ms ease',
       }}
       onMouseDown={handleMouseDown}
-      title={`Drag to resize from ${corner}`}
     />
   );
 };
@@ -585,7 +583,7 @@ const SwimlaneLayer: React.FC = () => {
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 0 }}
+      style={{ zIndex: 0, isolation: 'isolate' }}
     >
       {/* This inner div transforms with the ReactFlow viewport */}
       <div
@@ -645,7 +643,7 @@ const SwimlaneLayer: React.FC = () => {
                     width: totalWidth - (hasVLanes ? H_HEADER_WIDTH : H_HEADER_WIDTH),
                     height: size,
                     backgroundColor: lane.color,
-                    opacity: darkMode ? 0.12 : 0.15,
+                    opacity: lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.12 : 0.15),
                     pointerEvents: 'none',
                   }}
                 />
@@ -689,7 +687,7 @@ const SwimlaneLayer: React.FC = () => {
                     width: size,
                     height: totalHeight - (hasHLanes ? V_HEADER_HEIGHT : V_HEADER_HEIGHT),
                     backgroundColor: lane.color,
-                    opacity: darkMode ? 0.1 : 0.12,
+                    opacity: lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.1 : 0.12),
                     pointerEvents: 'none',
                   }}
                 />
@@ -773,14 +771,135 @@ const SwimlaneLayer: React.FC = () => {
 export default React.memo(SwimlaneLayer);
 
 // ---------------------------------------------------------------------------
-// SwimlaneResizeOverlay — rendered ABOVE ReactFlow so handles receive events
+// SwimlaneHeaderLayer — rendered BETWEEN SwimlaneLayer and ReactFlow
+// Headers sit below nodes (z-index: 2) but above backgrounds (z-index: 0).
 // ---------------------------------------------------------------------------
 
-const SwimlaneResizeOverlayInner: React.FC = () => {
+const SwimlaneHeaderLayerInner: React.FC = () => {
   const config = useSwimlaneStore((s) => s.config);
   const containerOffset = useSwimlaneStore((s) => s.containerOffset);
   const darkMode = useStyleStore((s) => s.darkMode);
   const viewport = useViewport();
+
+  const hLanes = config.horizontal;
+  const vLanes = config.vertical;
+  const hasHLanes = hLanes.length > 0;
+  const hasVLanes = vLanes.length > 0;
+
+  const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
+  const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
+
+  const hBounds = useMemo(() => {
+    if (!hasHLanes) return [];
+    const headerOffset = hasVLanes ? V_HEADER_HEIGHT : 0;
+    return computeBounds(hLanes, 'horizontal', headerOffset);
+  }, [hLanes, hasVLanes, hasHLanes, V_HEADER_HEIGHT]);
+
+  const vBounds = useMemo(() => {
+    if (!hasVLanes) return [];
+    const headerOffset = hasHLanes ? H_HEADER_WIDTH : 0;
+    return computeBounds(vLanes, 'vertical', headerOffset);
+  }, [vLanes, hasHLanes, hasVLanes, H_HEADER_WIDTH]);
+
+  if (!hasHLanes && !hasVLanes) return null;
+
+  const totalWidth = hasVLanes
+    ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+    : 2000;
+  const totalHeight = hasHLanes
+    ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+    : 2000;
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden"
+      style={{ zIndex: 2 }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          transformOrigin: '0 0',
+          transform: `translate(${viewport.x + containerOffset.x * viewport.zoom}px, ${viewport.y + containerOffset.y * viewport.zoom}px) scale(${viewport.zoom})`,
+          width: totalWidth,
+          height: totalHeight,
+        }}
+      >
+        {hasHLanes &&
+          hBounds.map(({ lane, offset, size }) => {
+            if (lane.hidden) return null;
+            return (
+              <LaneHeader
+                key={`hdr-h-${lane.id}`}
+                laneId={lane.id}
+                label={lane.label}
+                color={lane.color}
+                colorOpacity={lane.colorOpacity}
+                orientation="horizontal"
+                offset={offset}
+                size={size}
+                darkMode={darkMode}
+                fontSize={config.labelFontSize}
+                rotation={config.labelRotation}
+                showLabel={lane.showLabel}
+                showColor={lane.showColor}
+                headerSize={H_HEADER_WIDTH}
+              />
+            );
+          })}
+        {hasVLanes &&
+          vBounds.map(({ lane, offset, size }) => {
+            if (lane.hidden) return null;
+            return (
+              <LaneHeader
+                key={`hdr-v-${lane.id}`}
+                laneId={lane.id}
+                label={lane.label}
+                color={lane.color}
+                colorOpacity={lane.colorOpacity}
+                orientation="vertical"
+                offset={offset}
+                size={size}
+                darkMode={darkMode}
+                fontSize={config.labelFontSize}
+                showLabel={lane.showLabel}
+                showColor={lane.showColor}
+                headerSize={V_HEADER_HEIGHT}
+              />
+            );
+          })}
+      </div>
+    </div>
+  );
+};
+
+export const SwimlaneHeaderLayer = React.memo(SwimlaneHeaderLayerInner);
+
+// ---------------------------------------------------------------------------
+// SwimlaneResizeOverlay — rendered ABOVE ReactFlow so handles receive events
+// ---------------------------------------------------------------------------
+
+const CORNER_SELECT_ZONE = 28; // px - clickable zone at each corner to select the swimlane
+
+const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly }) => {
+  const config = useSwimlaneStore((s) => s.config);
+  const containerOffset = useSwimlaneStore((s) => s.containerOffset);
+  const selected = useSwimlaneStore((s) => s.swimlaneSelected);
+  const setSwimlaneSelected = useSwimlaneStore((s) => s.setSwimlaneSelected);
+  const darkMode = useStyleStore((s) => s.darkMode);
+  const viewport = useViewport();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Deselect when clicking outside the swimlane container
+  useEffect(() => {
+    if (!selected) return;
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSwimlaneSelected(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [selected, setSwimlaneSelected]);
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;
@@ -825,16 +944,48 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
       style={{ zIndex: 5 }}
     >
       <div
+        ref={containerRef}
         style={{
           position: 'absolute',
           transformOrigin: '0 0',
           transform: `translate(${viewport.x + containerOffset.x * viewport.zoom}px, ${viewport.y + containerOffset.y * viewport.zoom}px) scale(${viewport.zoom})`,
           width: totalWidth,
           height: totalHeight,
+          outline: selected ? `2px dashed ${darkMode ? 'rgba(96,165,250,0.5)' : 'rgba(59,130,246,0.5)'}` : 'none',
+          outlineOffset: 2,
         }}
       >
-        {/* ---- Corner resize handles (always visible at low opacity, full on self-hover) ---- */}
-        {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
+        {/* ---- Corner click zones to select the swimlane (always present) ---- */}
+        {!readOnly && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
+          (corner) => {
+            const pos: React.CSSProperties = {};
+            if (corner.includes('top')) pos.top = -CORNER_SELECT_ZONE / 2;
+            if (corner.includes('bottom')) { pos.top = totalHeight - CORNER_SELECT_ZONE / 2; }
+            if (corner.includes('left')) pos.left = -CORNER_SELECT_ZONE / 2;
+            if (corner.includes('right')) { pos.left = totalWidth - CORNER_SELECT_ZONE / 2; }
+            return (
+              <div
+                key={`select-${corner}`}
+                style={{
+                  position: 'absolute',
+                  ...pos,
+                  width: CORNER_SELECT_ZONE,
+                  height: CORNER_SELECT_ZONE,
+                  pointerEvents: 'auto',
+                  cursor: 'var(--cursor-select)',
+                  zIndex: 14,
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setSwimlaneSelected(true);
+                }}
+              />
+            );
+          },
+        )}
+
+        {/* ---- Corner resize handles (only visible when swimlane is selected) ---- */}
+        {!readOnly && selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
           (corner) => (
             <CornerResizeHandle
               key={`corner-${corner}`}
@@ -850,49 +1001,9 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           ),
         )}
 
-        {/* ---- Lane headers (rendered here so they sit above ReactFlow pane) ---- */}
-        {hasHLanes &&
-          hBounds.map(({ lane, offset, size }) => {
-            if (lane.hidden) return null;
-            return (
-              <LaneHeader
-                key={`hdr-h-${lane.id}`}
-                laneId={lane.id}
-                label={lane.label}
-                color={lane.color}
-                orientation="horizontal"
-                offset={offset}
-                size={size}
-                darkMode={darkMode}
-                fontSize={config.labelFontSize}
-                rotation={config.labelRotation}
-                showLabel={lane.showLabel}
-                showColor={lane.showColor}
-                headerSize={H_HEADER_WIDTH}
-              />
-            );
-          })}
-        {hasVLanes &&
-          vBounds.map(({ lane, offset, size }) => {
-            if (lane.hidden) return null;
-            return (
-              <LaneHeader
-                key={`hdr-v-${lane.id}`}
-                laneId={lane.id}
-                label={lane.label}
-                color={lane.color}
-                orientation="vertical"
-                offset={offset}
-                size={size}
-                darkMode={darkMode}
-                fontSize={config.labelFontSize}
-                showLabel={lane.showLabel}
-                showColor={lane.showColor}
-                headerSize={V_HEADER_HEIGHT}
-              />
-            );
-          })}
+        {/* Lane headers are now rendered by SwimlaneHeaderLayer (below nodes, above backgrounds) */}
 
+        {!readOnly && (<>
         {/* Handle at the top edge of the first visible horizontal lane */}
         {hasHLanes && (() => {
           const first = hBounds.find((b) => !b.lane.hidden && !b.lane.collapsed);
@@ -1025,6 +1136,7 @@ const SwimlaneResizeOverlayInner: React.FC = () => {
           darkMode={darkMode}
           zoom={viewport.zoom}
         />
+        </>)}
       </div>
     </div>
   );

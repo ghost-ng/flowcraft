@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
@@ -12,6 +12,42 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const textColor = nodeData.textColor || '#475569';
   const width = nodeData.width || 300;
   const height = nodeData.height || 200;
+  const borderWidth = nodeData.borderWidth ?? 2;
+  const borderStyle = selected ? 'solid' : (nodeData.borderStyle || 'dashed');
+  const borderRadius = nodeData.borderRadius ?? 8;
+  const fontSize = nodeData.fontSize ?? 12;
+  const fontWeight = nodeData.fontWeight ?? 600;
+  const fontFamily = nodeData.fontFamily || "'Inter', sans-serif";
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(label);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const commitEdit = useCallback(() => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== label) {
+      useFlowStore.getState().updateNodeData(id, { label: trimmed });
+    }
+    setIsEditing(false);
+  }, [editValue, label, id]);
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditValue(label);
+    setIsEditing(true);
+  }, [label]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { commitEdit(); }
+    if (e.key === 'Escape') { setIsEditing(false); }
+  }, [commitEdit]);
 
   return (
     <div
@@ -19,8 +55,8 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         width,
         height,
         backgroundColor: fillColor,
-        border: `2px ${selected ? `solid ${selectionColor}` : `dashed ${borderColor}`}`,
-        borderRadius: 8,
+        border: `${borderWidth}px ${selected ? `solid ${selectionColor}` : `${borderStyle} ${borderColor}`}`,
+        borderRadius,
         opacity: nodeData.opacity ?? 0.6,
         position: 'relative',
       }}
@@ -44,21 +80,50 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         }}
       />
 
-      {/* Group label at top */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 4,
-          left: 8,
-          fontSize: 12,
-          fontWeight: 600,
-          color: textColor,
-          fontFamily: "'Inter', sans-serif",
-          userSelect: 'none',
-        }}
-      >
-        {label}
-      </div>
+      {/* Group label at top — double-click to edit */}
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={handleKeyDown}
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: 6,
+            fontSize,
+            fontWeight,
+            color: textColor,
+            fontFamily,
+            backgroundColor: 'transparent',
+            border: `1px solid ${selectionColor || '#3b82f6'}`,
+            borderRadius: 3,
+            outline: 'none',
+            padding: '1px 3px',
+            minWidth: 40,
+            maxWidth: width - 16,
+          }}
+        />
+      ) : (
+        <div
+          onDoubleClick={handleDoubleClick}
+          style={{
+            position: 'absolute',
+            top: 4,
+            left: 8,
+            fontSize,
+            fontWeight,
+            color: textColor,
+            fontFamily,
+            userSelect: 'none',
+            cursor: 'var(--cursor-select)',
+          }}
+        >
+          {label}
+        </div>
+      )}
 
       {/* Connection handles */}
       <Handle type="target" position={Position.Top} />

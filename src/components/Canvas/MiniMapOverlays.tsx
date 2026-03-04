@@ -93,7 +93,9 @@ export default function MiniMapOverlays() {
       rect.setAttribute('width', String(totalWidth - headerW));
       rect.setAttribute('height', String(size));
       rect.setAttribute('fill', lane.color);
-      rect.setAttribute('opacity', darkMode ? '0.25' : '0.3');
+      rect.setAttribute('opacity', String(
+        lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.25 : 0.3)
+      ));
       g.appendChild(rect);
     }
 
@@ -107,7 +109,9 @@ export default function MiniMapOverlays() {
       rect.setAttribute('width', String(size));
       rect.setAttribute('height', String(totalHeight - headerH));
       rect.setAttribute('fill', lane.color);
-      rect.setAttribute('opacity', darkMode ? '0.2' : '0.25');
+      rect.setAttribute('opacity', String(
+        lane.colorOpacity != null ? lane.colorOpacity / 100 : (darkMode ? 0.2 : 0.25)
+      ));
       g.appendChild(rect);
     }
 

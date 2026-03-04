@@ -160,6 +160,28 @@ const MarkerDefs: React.FC<MarkerDefsProps> = ({ color }) => {
         </marker>
 
         {/* ------------------------------------------------------------ */}
+        {/* Thin Arrow -- filled triangle with rounded corners           */}
+        {/* ------------------------------------------------------------ */}
+        <marker
+          id={`${PREFIX}-thinArrow`}
+          viewBox="0 0 10 10"
+          refX={8}
+          refY={5}
+          markerWidth={8}
+          markerHeight={8}
+          orient="auto-start-reverse"
+          markerUnits="strokeWidth"
+        >
+          <path
+            d="M 0 0 L 10 5 L 0 10 Z"
+            fill={fill}
+            stroke={fill}
+            strokeWidth={1.2}
+            strokeLinejoin="round"
+          />
+        </marker>
+
+        {/* ------------------------------------------------------------ */}
         {/* Tee -- perpendicular flat bar                                */}
         {/* ------------------------------------------------------------ */}
         <marker

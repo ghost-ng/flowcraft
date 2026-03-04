@@ -41,15 +41,10 @@ import {
 
 /**
  * Find the canvas element to capture.
- * Captures the full canvas wrapper (includes swimlanes, legend, and nodes/edges).
- * Falls back to the React Flow viewport or container if the wrapper isn't found.
+ * Captures `.react-flow` which contains the grid background, swimlane layer,
+ * viewport (nodes/edges), and minimap — but not surrounding UI controls.
  */
 export function getReactFlowElement(): HTMLElement {
-  // Full canvas wrapper includes swimlanes and legend overlay
-  const canvasWrapper = document.querySelector<HTMLElement>('[data-charthero-canvas]');
-  if (canvasWrapper) return canvasWrapper;
-  const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
-  if (viewport) return viewport;
   const container = document.querySelector<HTMLElement>('.react-flow');
   if (container) return container;
   throw new Error('Could not find React Flow element in the DOM');

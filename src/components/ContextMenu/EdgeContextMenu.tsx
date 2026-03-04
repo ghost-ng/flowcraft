@@ -7,6 +7,7 @@ import {
   MoveHorizontal,
   Type,
   RotateCcw,
+  ArrowRight,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -22,6 +23,8 @@ export interface EdgeContextMenuProps {
   x: number;
   y: number;
   edgeId: string;
+  /** Which end of the edge the right-click was closest to */
+  closestEnd: 'source' | 'target';
   onClose: () => void;
   onChangeType: (type: string) => void;
   onChangeColor: (color: string) => void;
@@ -40,6 +43,36 @@ const edgeTypeOptions = [
   { value: 'step', label: 'Step' },
   { value: 'straight', label: 'Straight' },
 ];
+
+const arrowheadOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'arrow', label: 'Arrow' },
+  { value: 'rounded', label: 'Rounded' },
+  { value: 'diamond', label: 'Diamond' },
+  { value: 'circle', label: 'Circle' },
+  { value: 'open', label: 'Open Arrow' },
+];
+
+const arrowheadToMarker = (type: string): string => {
+  switch (type) {
+    case 'arrow': return 'url(#charthero-filledTriangle)';
+    case 'rounded': return 'url(#charthero-thinArrow)';
+    case 'diamond': return 'url(#charthero-filledDiamond)';
+    case 'circle': return 'url(#charthero-filledCircle)';
+    case 'open': return 'url(#charthero-openTriangle)';
+    default: return '';
+  }
+};
+
+const markerToArrowhead = (marker?: string): string => {
+  if (!marker) return 'none';
+  if (marker.includes('thinArrow')) return 'rounded';
+  if (marker.includes('filledTriangle')) return 'arrow';
+  if (marker.includes('filledDiamond')) return 'diamond';
+  if (marker.includes('filledCircle')) return 'circle';
+  if (marker.includes('openTriangle')) return 'open';
+  return 'none';
+};
 
 // Fallback colors when no palette is selected
 const defaultQuickColors = [
@@ -94,20 +127,25 @@ const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
 // ---------------------------------------------------------------------------
 
 const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
-  x, y, edgeId, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
+  x, y, edgeId, closestEnd, onClose, onChangeType, onChangeColor, onEditLabel, onStraighten, onDelete,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const quickColors = (activePaletteId && colorPalettes[activePaletteId]?.colors) || colorPalettes[defaultPaletteId]?.colors || defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'type' | 'color' | 'fontSize' | null>(null);
+  const [submenu, setSubmenu] = useState<'type' | 'color' | 'fontSize' | 'arrowEnd' | null>(null);
   const menuStyle = useMenuPosition(x, y, menuRef);
   const updateEdgeData = useFlowStore((s) => s.updateEdgeData);
+  const updateEdge = useFlowStore((s) => s.updateEdge);
 
-  // Get current label font size
+  // Get current edge data
   const edge = useFlowStore.getState().edges.find(e => e.id === edgeId);
   const currentFontSize = (edge?.data as Record<string, unknown>)?.labelFontSize as number || 11;
+  const currentMarker = closestEnd === 'source'
+    ? (typeof edge?.markerStart === 'string' ? edge.markerStart : undefined)
+    : (typeof edge?.markerEnd === 'string' ? edge.markerEnd : undefined);
+  const currentArrowType = markerToArrowhead(currentMarker);
 
   // Close on click-outside or Escape
   useEffect(() => {
@@ -209,6 +247,47 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
           )}
         </div>
 
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<ArrowRight size={14} />}
+            label={closestEnd === 'source' ? 'Arrow Start' : 'Arrow End'}
+            onClick={() => setSubmenu(submenu === 'arrowEnd' ? null : 'arrowEnd')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('arrowEnd')}
+          />
+          {submenu === 'arrowEnd' && (
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[140px]">
+              {arrowheadOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const markerValue = arrowheadToMarker(opt.value) || undefined;
+                    if (closestEnd === 'source') {
+                      updateEdge(edgeId, { markerStart: markerValue });
+                    } else {
+                      updateEdge(edgeId, { markerEnd: markerValue });
+                    }
+                    onClose();
+                  }}
+                  className={`
+                    flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
+                    transition-colors duration-75 cursor-pointer
+                    ${opt.value === currentArrowType
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
+                    }
+                  `}
+                >
+                  <span>{opt.label}</span>
+                  {opt.value === currentArrowType && <span className="ml-auto text-primary text-[10px]">&#10003;</span>}
+                </button>
+              ))}
+            </SubMenu>
+          )}
+        </div>
+
         <MenuDivider darkMode={darkMode} />
 
         <MenuItem
@@ -229,28 +308,22 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('fontSize')}
           />
           {submenu === 'fontSize' && (
-            <SubMenu darkMode={darkMode} className="p-1 min-w-[120px] max-h-[300px] overflow-y-auto">
-              {[8, 9, 10, 11, 12, 14, 16, 18, 20, 24].map((size) => (
-                <button
-                  key={size}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateEdgeData(edgeId, { labelFontSize: size });
-                    onClose();
+            <SubMenu darkMode={darkMode} className="p-2 min-w-[160px]">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={6}
+                  max={32}
+                  value={currentFontSize}
+                  onChange={(e) => {
+                    updateEdgeData(edgeId, { labelFontSize: Number(e.target.value) });
                   }}
-                  className={`
-                    flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded
-                    transition-colors duration-75 cursor-pointer
-                    ${size === currentFontSize
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
-                    }
-                  `}
-                >
-                  <span>{size}px</span>
-                  {size === currentFontSize && <span className="ml-auto text-primary text-[10px]">&#10003;</span>}
-                </button>
-              ))}
+                  className="flex-1 h-3 cursor-pointer accent-primary"
+                />
+                <span className={`text-xs w-8 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+                  {currentFontSize}px
+                </span>
+              </div>
             </SubMenu>
           )}
         </div>

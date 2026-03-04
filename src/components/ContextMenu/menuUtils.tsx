@@ -88,6 +88,11 @@ export const SubMenu: React.FC<{
         ${className}
       `}
     >
+      {/* Invisible bridge covering the gap between parent menu and this submenu */}
+      <div
+        className={`absolute top-0 bottom-0 ${flipH ? 'left-full' : 'right-full'} w-3`}
+        style={{ pointerEvents: 'auto' }}
+      />
       {children}
     </div>
   );

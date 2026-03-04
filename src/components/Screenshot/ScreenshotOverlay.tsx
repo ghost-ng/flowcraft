@@ -86,14 +86,13 @@ const ScreenshotOverlay: React.FC = () => {
 
       const { toPng } = await import('html-to-image');
 
-      // Find the react-flow viewport
-      const viewport = document.querySelector<HTMLElement>('.react-flow__viewport');
+      // Capture the full .react-flow container (includes swimlane layer + viewport)
       const container = document.querySelector<HTMLElement>('.react-flow');
-      const element = viewport ?? container;
+      const element = container;
       if (!element) throw new Error('Could not find React Flow element');
 
       // Get the container's bounding rect to convert screen coords to element coords
-      const containerRect = (container ?? element).getBoundingClientRect();
+      const containerRect = element.getBoundingClientRect();
 
       // Pixel ratio for crisp capture
       const pixelRatio = 2;

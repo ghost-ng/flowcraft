@@ -22,6 +22,8 @@ export interface SwimlaneItem {
   showColor?: boolean;
   /** When true, the lane background, header, and all nodes/edges in this lane are hidden */
   hidden?: boolean;
+  /** Lane background opacity (0-100, default uses theme value: ~12 dark / ~15 light) */
+  colorOpacity?: number;
 }
 
 export interface BorderConfig {
@@ -64,6 +66,8 @@ export interface SwimlaneState {
   isCreating: boolean;
   editingLaneId: string | null;
   containerOffset: { x: number; y: number };
+  /** Whether the swimlane container is selected (for bulk move) */
+  swimlaneSelected: boolean;
 
   // ---- actions ------------------------------------------------
   addLane: (orientation: SwimlaneOrientation, lane: SwimlaneItem) => void;
@@ -78,6 +82,7 @@ export interface SwimlaneState {
   setContainerTitle: (title: string) => void;
   toggleCollapsed: (orientation: SwimlaneOrientation, laneId: string) => void;
   setContainerOffset: (offset: { x: number; y: number }) => void;
+  setSwimlaneSelected: (selected: boolean) => void;
 
   updateContainerBorder: (patch: Partial<BorderConfig>) => void;
   updateDividerStyle: (patch: Partial<DividerConfig>) => void;
@@ -133,6 +138,7 @@ export const useSwimlaneStore = create<SwimlaneState>()(
     isCreating: false,
     editingLaneId: null,
     containerOffset: { x: 0, y: 0 },
+    swimlaneSelected: false,
 
     // -- actions -------------------------------------------------
     addLane: (orientation, lane) => {
@@ -209,6 +215,12 @@ export const useSwimlaneStore = create<SwimlaneState>()(
     setContainerOffset: (offset) => {
       set((state) => {
         state.containerOffset = offset;
+      });
+    },
+
+    setSwimlaneSelected: (selected) => {
+      set((state) => {
+        state.swimlaneSelected = selected;
       });
     },
 

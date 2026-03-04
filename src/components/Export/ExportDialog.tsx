@@ -19,6 +19,7 @@ import {
   ClipboardCopy,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
+import { getNodesBounds, getViewportForBounds } from '@xyflow/react';
 
 import {
   useExportStore,
@@ -501,6 +502,134 @@ const PillButton: React.FC<{
 );
 
 // ---------------------------------------------------------------------------
+// Selection-export helper: hides non-selected elements + selection UI chrome
+// Returns a cleanup function that restores everything.
+// ---------------------------------------------------------------------------
+
+function hideForSelectionExport(
+  selectedNodeIds: string[],
+  opts: { includeGrid: boolean; includeMinimap: boolean; elementsOnly: boolean },
+): () => void {
+  const restorers: (() => void)[] = [];
+
+  // 1. Inject a temporary <style> to suppress selection visuals in the capture
+  const style = document.createElement('style');
+  style.textContent = `
+    .react-flow__node.selected { box-shadow: none !important; outline: none !important; }
+    .react-flow__handle { opacity: 0 !important; }
+    .react-flow__resize-control { opacity: 0 !important; display: none !important; }
+    .react-flow__nodesselection { display: none !important; }
+    .react-flow__edgeupdater { display: none !important; }
+  `;
+  document.head.appendChild(style);
+  restorers.push(() => document.head.removeChild(style));
+
+  // Helper: hide an element and remember how to restore it
+  const hide = (el: HTMLElement | null) => {
+    if (!el) return;
+    const prev = el.style.display;
+    el.style.display = 'none';
+    restorers.push(() => { el.style.display = prev; });
+  };
+
+  // Helper: set visibility hidden (works better for SVG <g> elements)
+  const hideVis = (el: HTMLElement | SVGElement | null) => {
+    if (!el) return;
+    const prev = (el as HTMLElement).style.visibility;
+    (el as HTMLElement).style.visibility = 'hidden';
+    restorers.push(() => { (el as HTMLElement).style.visibility = prev; });
+  };
+
+  // 2. Always hide panels (zoom controls, attribution)
+  document.querySelectorAll<HTMLElement>('.react-flow__panel').forEach(hide);
+
+  // 3. Grid / minimap
+  if (!opts.includeGrid) hide(document.querySelector<HTMLElement>('.react-flow__background'));
+  if (!opts.includeMinimap) hide(document.querySelector<HTMLElement>('.react-flow__minimap'));
+
+  // 4. Hide non-selected nodes
+  const selectedSet = new Set(selectedNodeIds);
+  document.querySelectorAll<HTMLElement>('.react-flow__node').forEach((el) => {
+    const nodeId = el.getAttribute('data-id');
+    if (nodeId && !selectedSet.has(nodeId)) hide(el);
+  });
+
+  // 5. Hide edges not connecting two selected nodes (use visibility for SVG)
+  const { edges } = useFlowStore.getState();
+  const connectedEdgeIds = new Set(
+    edges
+      .filter((e) => selectedSet.has(e.source) && selectedSet.has(e.target))
+      .map((e) => e.id),
+  );
+  document.querySelectorAll<SVGElement>('.react-flow__edge').forEach((el) => {
+    const testId = el.getAttribute('data-testid') ?? '';
+    const edgeId = testId.startsWith('rf__edge-') ? testId.slice(9) : el.getAttribute('data-id');
+    if (!edgeId || !connectedEdgeIds.has(edgeId)) hideVis(el);
+  });
+
+  // 6. Always hide the swimlane layer for selection scope
+  //    (it's a direct child of .react-flow, not one of the standard RF classes)
+  document.querySelectorAll<HTMLElement>('.react-flow > *').forEach((el) => {
+    const cl = el.classList;
+    if (
+      !cl.contains('react-flow__viewport') &&
+      !cl.contains('react-flow__background') &&
+      !cl.contains('react-flow__minimap') &&
+      !cl.contains('react-flow__panel') &&
+      !cl.contains('react-flow__renderer') &&
+      !cl.contains('react-flow__zoompane')
+    ) {
+      hide(el);
+    }
+  });
+
+  // 7. If elementsOnly, also hide background
+  if (opts.elementsOnly) {
+    hide(document.querySelector<HTMLElement>('.react-flow__background'));
+  }
+
+  return () => {
+    // Restore in reverse order
+    for (let i = restorers.length - 1; i >= 0; i--) restorers[i]();
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Viewport override: temporarily re-frame the viewport via direct DOM
+// manipulation so the canvas doesn't visibly zoom during capture.
+// ---------------------------------------------------------------------------
+
+function overrideViewportForCapture(
+  scope: 'all' | 'selected',
+  selectedNodeIds: string[],
+): (() => void) | null {
+  const rf = getReactFlowInstance();
+  if (!rf) return null;
+
+  const rfElement = document.querySelector<HTMLElement>('.react-flow');
+  const vpElement = document.querySelector<HTMLElement>('.react-flow__viewport');
+  if (!rfElement || !vpElement) return null;
+
+  const allNodes = rf.getNodes();
+  const targetNodes = scope === 'selected'
+    ? allNodes.filter((n) => selectedNodeIds.includes(n.id))
+    : allNodes;
+  if (targetNodes.length === 0) return null;
+
+  const bounds = getNodesBounds(targetNodes);
+  const { width, height } = rfElement.getBoundingClientRect();
+  const padding = scope === 'selected' ? 0.1 : 0.05;
+  const { x, y, zoom } = getViewportForBounds(bounds, width, height, 0.1, 2, padding);
+
+  const originalTransform = vpElement.style.transform;
+  vpElement.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
+
+  return () => {
+    vpElement.style.transform = originalTransform;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Main ExportDialog component
 // ---------------------------------------------------------------------------
 
@@ -516,8 +645,12 @@ const ExportDialog: React.FC = () => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const nodeCount = useFlowStore((s) => s.nodes.length);
   const edgeCount = useFlowStore((s) => s.edges.length);
-  // Scope: 'all' fits the entire diagram before capturing; 'selection' captures as-is
-  const [scope, setScope] = useState<'all' | 'selection'>('all');
+  const selectedNodeIds = useFlowStore((s) => s.selectedNodes);
+  const hasSelection = selectedNodeIds.length > 0;
+  // Scope: 'all' fits the entire diagram; 'selection' = current viewport; 'selected' = selected nodes only
+  const [scope, setScope] = useState<'all' | 'selection' | 'selected'>('all');
+  // Whether to export only the selected elements (no background/grid/minimap)
+  const [elementsOnly, setElementsOnly] = useState(false);
   // Whether to include grid lines in the exported image (off by default)
   const [includeGrid, setIncludeGrid] = useState(false);
   // Whether to include minimap in the exported image (off by default)
@@ -528,18 +661,22 @@ const ExportDialog: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [clipboardCopied, setClipboardCopied] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
-  // Track whether we've already done fitView for this dialog session + scope
-  // so we don't flash the canvas on every format/option change.
-  const lastFitKeyRef = useRef<string>('');
 
   // Serialize current format options for dependency tracking
   const currentOpts = options[lastFormat];
   const optsKey = JSON.stringify(currentOpts);
 
-  // Reset the fit key when the dialog closes so next open re-fits
+  // Auto-select 'selected' scope when nodes are selected on dialog open
   useEffect(() => {
-    if (!dialogOpen) lastFitKeyRef.current = '';
-  }, [dialogOpen]);
+    if (dialogOpen && hasSelection) {
+      setScope('selected');
+    }
+  }, [dialogOpen, hasSelection]);
+
+  // Fall back to 'all' if selection is cleared while 'selected' scope is active
+  useEffect(() => {
+    if (scope === 'selected' && !hasSelection) setScope('all');
+  }, [scope, hasSelection]);
 
   // Generate preview thumbnail (debounced on option changes)
   useEffect(() => {
@@ -548,25 +685,32 @@ const ExportDialog: React.FC = () => {
     let cancelled = false;
 
     const timer = setTimeout(async () => {
-      // Temporarily hide grid/minimap if user unchecked their toggles
-      const gridEl = document.querySelector<HTMLElement>('.react-flow__background');
-      const minimapEl = document.querySelector<HTMLElement>('.react-flow__minimap');
-      const gridWas = gridEl ? gridEl.style.display : '';
-      const minimapWas = minimapEl ? minimapEl.style.display : '';
-      if (!includeGrid && gridEl) gridEl.style.display = 'none';
-      if (!includeMinimap && minimapEl) minimapEl.style.display = 'none';
+      // Hide elements for preview capture
+      let restorePreview: (() => void) | null = null;
 
-      // Only fitView when the dialog first opens or scope changes — never on
-      // format/option tab switches, which would cause a visible canvas flash.
-      const rf = getReactFlowInstance();
-      let savedVP: { x: number; y: number; zoom: number } | null = null;
-      const fitKey = `${scope}`;
-      const needsFit = scope === 'all' && fitKey !== lastFitKeyRef.current;
-      if (needsFit && rf) {
-        savedVP = rf.getViewport();
-        rf.fitView({ padding: 0.05 });
-        lastFitKeyRef.current = fitKey;
-        await new Promise((r) => setTimeout(r, 100));
+      if (scope === 'selected') {
+        // Use the unified helper for selection exports
+        restorePreview = hideForSelectionExport(selectedNodeIds, { includeGrid, includeMinimap, elementsOnly });
+      } else {
+        // For non-selection scopes, just hide panels/grid/minimap
+        const previewHidden: { el: HTMLElement; prev: string }[] = [];
+        const hideEl = (el: HTMLElement | null) => {
+          if (!el) return;
+          previewHidden.push({ el, prev: el.style.display });
+          el.style.display = 'none';
+        };
+        document.querySelectorAll<HTMLElement>('.react-flow__panel').forEach(hideEl);
+        if (!includeGrid) hideEl(document.querySelector<HTMLElement>('.react-flow__background'));
+        if (!includeMinimap) hideEl(document.querySelector<HTMLElement>('.react-flow__minimap'));
+        restorePreview = () => { for (const { el, prev } of previewHidden) el.style.display = prev; };
+      }
+
+      // Override viewport transform directly on the DOM (no visible zoom flash)
+      let restoreViewport: (() => void) | null = null;
+      if (scope === 'all' || scope === 'selected') {
+        restoreViewport = overrideViewportForCapture(scope, selectedNodeIds);
+        // Wait one frame for the browser to apply the new transform
+        await new Promise((r) => requestAnimationFrame(r));
       }
 
       try {
@@ -588,9 +732,8 @@ const ExportDialog: React.FC = () => {
         log.warn('Export preview generation failed', e);
         if (!cancelled) setPreviewUrl(null);
       } finally {
-        if (gridEl) gridEl.style.display = gridWas;
-        if (minimapEl) minimapEl.style.display = minimapWas;
-        if (savedVP && rf) rf.setViewport(savedVP);
+        if (restoreViewport) restoreViewport();
+        if (restorePreview) restorePreview();
       }
     }, 200); // 200ms debounce
 
@@ -598,7 +741,7 @@ const ExportDialog: React.FC = () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [dialogOpen, darkMode, includeGrid, includeMinimap, scope, lastFormat, optsKey]);
+  }, [dialogOpen, darkMode, includeGrid, includeMinimap, elementsOnly, scope, lastFormat, optsKey, selectedNodeIds]);
 
   // Close on Escape
   useEffect(() => {
@@ -624,31 +767,38 @@ const ExportDialog: React.FC = () => {
     [setDialogOpen],
   );
 
-  // Handle export -- when scope is 'all', fitView before capturing so
-  // the entire diagram is visible, then restore the original viewport.
+  // Handle export -- override the viewport via DOM (no visible zoom flash),
+  // hide unwanted elements, capture, then restore everything.
   const handleExport = useCallback(async () => {
     setExportInProgress(true);
     setExportStatus('idle');
     setErrorMessage('');
 
-    const rf = getReactFlowInstance();
-    let savedViewport: { x: number; y: number; zoom: number } | null = null;
+    // Hide elements for export capture
+    let restoreExport: (() => void) | null = null;
 
-    // Temporarily hide grid/minimap if unchecked
-    const gridEl = document.querySelector<HTMLElement>('.react-flow__background');
-    const minimapEl = document.querySelector<HTMLElement>('.react-flow__minimap');
-    const gridWas = gridEl ? gridEl.style.display : '';
-    const minimapWas = minimapEl ? minimapEl.style.display : '';
-    if (!includeGrid && gridEl) gridEl.style.display = 'none';
-    if (!includeMinimap && minimapEl) minimapEl.style.display = 'none';
+    if (scope === 'selected') {
+      restoreExport = hideForSelectionExport(selectedNodeIds, { includeGrid, includeMinimap, elementsOnly });
+    } else {
+      const hiddenEls: { el: HTMLElement; prev: string }[] = [];
+      const hide = (el: HTMLElement | null) => {
+        if (!el) return;
+        hiddenEls.push({ el, prev: el.style.display });
+        el.style.display = 'none';
+      };
+      document.querySelectorAll<HTMLElement>('.react-flow__panel').forEach(hide);
+      if (!includeGrid) hide(document.querySelector<HTMLElement>('.react-flow__background'));
+      if (!includeMinimap) hide(document.querySelector<HTMLElement>('.react-flow__minimap'));
+      restoreExport = () => { for (const { el, prev } of hiddenEls) el.style.display = prev; };
+    }
+
+    // Override viewport transform directly (no visible zoom flash)
+    let restoreViewport: (() => void) | null = null;
 
     try {
-      // Fit the entire diagram into view before capture
-      if (scope === 'all' && rf) {
-        savedViewport = rf.getViewport();
-        rf.fitView({ padding: 0.05 });
-        // Wait for the DOM to re-render at the new viewport
-        await new Promise((r) => setTimeout(r, 200));
+      if (scope === 'all' || scope === 'selected') {
+        restoreViewport = overrideViewportForCapture(scope, selectedNodeIds);
+        await new Promise((r) => requestAnimationFrame(r));
       }
 
       await runExport(lastFormat, options[lastFormat] as unknown as Record<string, unknown>);
@@ -663,16 +813,11 @@ const ExportDialog: React.FC = () => {
         err instanceof Error ? err.message : 'Export failed. Please try again.',
       );
     } finally {
-      // Restore the grid/minimap visibility
-      if (gridEl) gridEl.style.display = gridWas;
-      if (minimapEl) minimapEl.style.display = minimapWas;
-      // Restore the original viewport so the user's view is unchanged
-      if (savedViewport && rf) {
-        rf.setViewport(savedViewport);
-      }
+      if (restoreViewport) restoreViewport();
+      if (restoreExport) restoreExport();
       setExportInProgress(false);
     }
-  }, [lastFormat, options, scope, includeGrid, includeMinimap, setExportInProgress, setDialogOpen]);
+  }, [lastFormat, options, scope, includeGrid, includeMinimap, elementsOnly, selectedNodeIds, setExportInProgress, setDialogOpen]);
 
   // Copy JSON to clipboard
   const handleCopyToClipboard = useCallback(async () => {
@@ -707,7 +852,7 @@ const ExportDialog: React.FC = () => {
     >
       <div
         className={`
-          relative w-full max-w-2xl mx-4 rounded-xl shadow-2xl border overflow-hidden
+          relative w-full max-w-3xl mx-4 rounded-xl shadow-2xl border overflow-hidden
           ${darkMode
             ? 'bg-dk-panel border-dk-border'
             : 'bg-white border-gray-200'
@@ -799,7 +944,7 @@ const ExportDialog: React.FC = () => {
             <button
               type="button"
               onClick={() => setScope('selection')}
-              title="Export the current viewport (what you see)"
+              data-tooltip="Export the current viewport (what you see)"
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
                 scope === 'selection'
                   ? 'bg-blue-500 text-white shadow-sm'
@@ -811,35 +956,25 @@ const ExportDialog: React.FC = () => {
               <MousePointerSquareDashed size={12} />
               Current View
             </button>
+            {hasSelection && (
+              <button
+                type="button"
+                onClick={() => setScope('selected')}
+                data-tooltip={`Export ${selectedNodeIds.length} selected node${selectedNodeIds.length > 1 ? 's' : ''}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                  scope === 'selected'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : darkMode
+                      ? 'bg-dk-hover text-dk-muted hover:bg-dk-border'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <MousePointerSquareDashed size={12} />
+                Selection ({selectedNodeIds.length})
+              </button>
+            )}
           </div>
 
-          {/* Grid & minimap toggles -- only for image formats */}
-          {lastFormat !== 'json' && lastFormat !== 'pptx' && (
-            <div className="flex items-center gap-4 ml-auto">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeGrid}
-                  onChange={(e) => setIncludeGrid(e.target.checked)}
-                  className="rounded accent-blue-500"
-                />
-                <span className={`text-xs ${darkMode ? 'text-dk-muted' : 'text-gray-500'}`}>
-                  Include grid
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeMinimap}
-                  onChange={(e) => setIncludeMinimap(e.target.checked)}
-                  className="rounded accent-blue-500"
-                />
-                <span className={`text-xs ${darkMode ? 'text-dk-muted' : 'text-gray-500'}`}>
-                  Include minimap
-                </span>
-              </label>
-            </div>
-          )}
         </div>
 
         {/* Body: Preview + Options */}
@@ -872,13 +1007,58 @@ const ExportDialog: React.FC = () => {
           </div>
 
           {/* Right: Options */}
-          <div className="w-56 shrink-0 overflow-y-auto max-h-[300px]">
+          <div className="w-56 shrink-0 overflow-y-auto max-h-[340px]">
             {currentTab === 'png' && <PngOptionsPanel darkMode={darkMode} />}
             {currentTab === 'jpg' && <JpgOptionsPanel darkMode={darkMode} />}
             {currentTab === 'svg' && <SvgOptionsPanel darkMode={darkMode} />}
             {currentTab === 'pdf' && <PdfOptionsPanel darkMode={darkMode} />}
             {currentTab === 'pptx' && <PptxOptionsPanel darkMode={darkMode} />}
             {currentTab === 'json' && <JsonOptionsPanel darkMode={darkMode} />}
+
+            {/* Include section — shared across image/pdf formats */}
+            {lastFormat !== 'json' && (
+              <div className="mt-4 pt-3 border-t border-gray-200 dark:border-dk-border">
+                <OptionGroup label="Include" darkMode={darkMode}>
+                  <div className="space-y-1.5">
+                    {scope === 'selected' && (
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!elementsOnly}
+                          onChange={(e) => setElementsOnly(!e.target.checked)}
+                          className="rounded accent-blue-500"
+                        />
+                        <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
+                          Background
+                        </span>
+                      </label>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeGrid}
+                        onChange={(e) => setIncludeGrid(e.target.checked)}
+                        className="rounded accent-blue-500"
+                      />
+                      <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
+                        Grid
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeMinimap}
+                        onChange={(e) => setIncludeMinimap(e.target.checked)}
+                        className="rounded accent-blue-500"
+                      />
+                      <span className={`text-sm ${darkMode ? 'text-dk-muted' : 'text-gray-600'}`}>
+                        Minimap
+                      </span>
+                    </label>
+                  </div>
+                </OptionGroup>
+              </div>
+            )}
           </div>
         </div>
 

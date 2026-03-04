@@ -23,6 +23,8 @@ export interface UIState {
   gridSpacing: number;
   snapDistance: number;
   gridStyle: GridStyle;
+  /** User-chosen grid color override. null = use theme/style default */
+  gridColor: string | null;
   rulerVisible: boolean;
 
   // ---- alignment / distribution guides ------------------------
@@ -136,6 +138,7 @@ export interface UIState {
   setSnapDistance: (distance: number) => void;
 
   setGridStyle: (style: GridStyle) => void;
+  setGridColor: (color: string | null) => void;
 
   toggleRuler: () => void;
   setRulerVisible: (visible: boolean) => void;
@@ -210,6 +213,7 @@ export const useUIStore = create<UIState>()((set) => ({
   gridSpacing: 16,
   snapDistance: 8,
   gridStyle: 'dots',
+  gridColor: null,
   rulerVisible: false,
 
   showAlignmentGuides: true,
@@ -279,6 +283,7 @@ export const useUIStore = create<UIState>()((set) => ({
   setSnapDistance: (distance) => set({ snapDistance: distance }),
 
   setGridStyle: (style) => set({ gridStyle: style }),
+  setGridColor: (color) => set({ gridColor: color }),
 
   toggleRuler: () => set((s) => ({ rulerVisible: !s.rulerVisible })),
   setRulerVisible: (visible) => set({ rulerVisible: visible }),

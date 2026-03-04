@@ -55,6 +55,7 @@ import {
   Flag,
   HelpCircle,
   Crosshair,
+  Layers,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -62,7 +63,7 @@ import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore } from '../../store/flowStore';
 import { useBannerStore } from '../../store/bannerStore';
 import { useExportStore } from '../../store/exportStore';
-import { copyImageToClipboard, copySvgToClipboard, copySvgForPaste, importFromJson, exportAsJson } from '../../utils/exportUtils';
+import { copySvgToClipboard, copySvgForPaste, importFromJson, exportAsJson } from '../../utils/exportUtils';
 import { useDependencyStore } from '../../store/dependencyStore';
 import { useSwimlaneStore } from '../../store/swimlaneStore';
 import { useLegendStore } from '../../store/legendStore';
@@ -73,8 +74,9 @@ import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
 import DiagramStylePicker from '../StylePicker/DiagramStylePicker';
 import ImportJsonDialog from '../Import/ImportJsonDialog';
+import OrderModal from './OrderModal';
 import AIButton from '../AI/AIButton';
-import { CollabToolbarButton } from '../Collaboration';
+// import { CollabToolbarButton } from '../Collaboration'; // WIP: needs self-hosted signaling server
 import { log } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -115,6 +117,105 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = React.memo(
 );
 
 ToolbarButton.displayName = 'ToolbarButton';
+
+// ---------------------------------------------------------------------------
+// Z-Order button — click = step one, long-press = show send-to-back/front
+// ---------------------------------------------------------------------------
+
+interface ZOrderButtonProps {
+  icon: React.ReactNode;
+  tooltip: string;
+  onClick: () => void;
+  onSendAll: () => void;
+  sendAllLabel: string;
+  disabled?: boolean;
+}
+
+const ZOrderButton: React.FC<ZOrderButtonProps> = React.memo(
+  ({ icon, tooltip, onClick, onSendAll, sendAllLabel, disabled }) => {
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const didLongPress = useRef(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const darkMode = useStyleStore((s) => s.darkMode);
+
+    const handleMouseDown = useCallback(() => {
+      if (disabled) return;
+      didLongPress.current = false;
+      timerRef.current = setTimeout(() => {
+        didLongPress.current = true;
+        setShowMenu(true);
+      }, 400);
+    }, [disabled]);
+
+    const handleMouseUp = useCallback(() => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (!didLongPress.current && !disabled) {
+        onClick();
+      }
+    }, [onClick, disabled]);
+
+    const handleMouseLeave = useCallback(() => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }, []);
+
+    useEffect(() => {
+      if (!showMenu) return;
+      const close = () => setShowMenu(false);
+      document.addEventListener('mousedown', close);
+      return () => document.removeEventListener('mousedown', close);
+    }, [showMenu]);
+
+    return (
+      <div className="relative">
+        <button
+          data-tooltip={tooltip}
+          disabled={disabled}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          className={`
+            relative flex items-center gap-1 px-1.5 py-1 rounded text-xs
+            transition-colors duration-100
+            ${disabled
+              ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
+              : 'cursor-pointer text-text-muted hover:bg-slate-100 dark:hover:bg-dk-hover hover:text-text dark:hover:text-dk-text'
+            }
+          `}
+        >
+          {icon}
+        </button>
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-40" onMouseDown={() => setShowMenu(false)} />
+            <div
+              className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 min-w-[140px] rounded-lg shadow-xl border p-1 ${
+                darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'
+              }`}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => { onSendAll(); setShowMenu(false); }}
+                className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded transition-colors cursor-pointer ${
+                  darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                {sendAllLabel}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  },
+);
+
+ZOrderButton.displayName = 'ZOrderButton';
 
 /** Small right-aligned keyboard shortcut hint for dropdown menu items */
 const Kbd: React.FC<{ shortcut: string }> = ({ shortcut }) => (
@@ -211,6 +312,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const setGridStyle = useUIStore((s) => s.setGridStyle);
   const gridSpacing = useUIStore((s) => s.gridSpacing);
   const setGridSpacing = useUIStore((s) => s.setGridSpacing);
+  const gridColor = useUIStore((s) => s.gridColor);
+  const setGridColor = useUIStore((s) => s.setGridColor);
   const snapDistance = useUIStore((s) => s.snapDistance);
   const setSnapDistance = useUIStore((s) => s.setSnapDistance);
   const showAlignmentGuides = useUIStore((s) => s.showAlignmentGuides);
@@ -266,6 +369,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
   // Style picker state
   const [stylePickerOpen, setStylePickerOpen] = useState(false);
+
+  // Order modal state
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
 
   // Grid options dropdown state
   const [gridOptionsOpen, setGridOptionsOpen] = useState(false);
@@ -402,14 +508,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
     useUIStore.getState().showToast('Font updated for all nodes', 'success');
   }, []);
 
-  const handleCopyImage = useCallback(async () => {
-    try {
-      await copyImageToClipboard();
-    } catch (e) {
-      log.error('Copy image to clipboard failed', e);
-    }
-  }, []);
-
   const handleCopySvgForPaste = useCallback(async () => {
     try {
       await copySvgForPaste();
@@ -481,8 +579,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const handleBringForward = useCallback(() => {
     if (selectedNodes.length === 0) return;
     const { nodes } = useFlowStore.getState();
-    const moved = [...nodes];
     const idSet = new Set(selectedNodes);
+    // Clear negative zIndex on selected nodes (they're being moved forward)
+    const moved = nodes.map((n) => {
+      if (idSet.has(n.id) && n.zIndex !== undefined && n.zIndex < 0) {
+        const { zIndex: _z, ...rest } = n;
+        return rest;
+      }
+      return n;
+    });
     // Move each selected node one position later (from back to front to preserve relative order)
     for (let i = moved.length - 2; i >= 0; i--) {
       if (idSet.has(moved[i].id) && !idSet.has(moved[i + 1].id)) {
@@ -490,6 +595,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
       }
     }
     setNodes(moved);
+  }, [selectedNodes, setNodes]);
+
+  const handleSendToBack = useCallback(() => {
+    if (selectedNodes.length === 0) return;
+    const { nodes } = useFlowStore.getState();
+    const idSet = new Set(selectedNodes);
+    // Move to beginning of array AND set negative zIndex so they render below edges
+    const selected = nodes.filter((n) => idSet.has(n.id)).map((n) => ({ ...n, zIndex: -1 }));
+    const rest = nodes.filter((n) => !idSet.has(n.id));
+    setNodes([...selected, ...rest]);
+  }, [selectedNodes, setNodes]);
+
+  const handleSendToFront = useCallback(() => {
+    if (selectedNodes.length === 0) return;
+    const { nodes } = useFlowStore.getState();
+    const idSet = new Set(selectedNodes);
+    // Move to end of array AND clear any negative zIndex
+    const selected = nodes.filter((n) => idSet.has(n.id)).map((n) => {
+      const { zIndex: _z, ...rest } = n;
+      return rest;
+    });
+    const rest = nodes.filter((n) => !idSet.has(n.id));
+    setNodes([...rest, ...selected]);
   }, [selectedNodes, setNodes]);
 
   const handleSave = useCallback(() => {
@@ -892,11 +1020,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
         )}
       </div>
 
-      {/* Mirror / Flip dropdown */}
+      {/* Mirror dropdown */}
       <div ref={mirrorMenuRef} className="relative">
         <ToolbarButton
           icon={<FlipHorizontal2 size={iconSize} />}
-          tooltip="Flip (Ctrl+Shift+H / Ctrl+Alt+V)"
+          tooltip="Mirror (Ctrl+Shift+H / Ctrl+Alt+V)"
           onClick={() => { setMirrorDropdownOpen(!mirrorDropdownOpen); setAlignDropdownOpen(false); setRotateCustomOpen(false); }}
           active={mirrorDropdownOpen}
           disabled={selectedNodes.length === 0}
@@ -992,8 +1120,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton icon={<Copy size={iconSize} />} tooltip="Copy (Ctrl+C)" disabled={!hasSelection} />
         <ToolbarButton icon={<Clipboard size={iconSize} />} tooltip="Paste (Ctrl+V)" disabled />
         <ToolbarButton icon={<Trash2 size={iconSize} />} tooltip="Delete Selected (Del)" onClick={handleDelete} disabled={!hasSelection} />
-        <ToolbarButton icon={<ChevronDown size={iconSize} />} tooltip="Send Backward (Ctrl+[)" onClick={handleSendBackward} disabled={selectedNodes.length === 0} />
-        <ToolbarButton icon={<ChevronUp size={iconSize} />} tooltip="Bring Forward (Ctrl+])" onClick={handleBringForward} disabled={selectedNodes.length === 0} />
+      </>
+    ),
+
+    order: (
+      <>
+        <ZOrderButton icon={<ChevronDown size={iconSize} />} tooltip={"Send Backward (Ctrl+[)\nHold for Send to Back"} onClick={handleSendBackward} onSendAll={handleSendToBack} sendAllLabel="Send to Back" disabled={selectedNodes.length === 0} />
+        <ZOrderButton icon={<ChevronUp size={iconSize} />} tooltip={"Bring Forward (Ctrl+])\nHold for Bring to Front"} onClick={handleBringForward} onSendAll={handleSendToFront} sendAllLabel="Bring to Front" disabled={selectedNodes.length === 0} />
+        <ToolbarButton icon={<Layers size={iconSize} />} tooltip="Element Order" onClick={() => setOrderModalOpen(true)} />
       </>
     ),
 
@@ -1045,7 +1179,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted mb-1.5 uppercase tracking-wider">
                 Grid Size
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 mb-3">
                 {[10, 20, 40, 80].map((size) => (
                   <button
                     key={size}
@@ -1059,6 +1193,29 @@ const Toolbar: React.FC<ToolbarProps> = ({
                     {size}px
                   </button>
                 ))}
+              </div>
+
+              <div className="text-[10px] font-semibold text-slate-500 dark:text-dk-muted mb-1.5 uppercase tracking-wider">
+                Grid Color
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={gridColor ?? (darkMode ? '#334155' : '#e5e7eb')}
+                  onChange={(e) => setGridColor(e.target.value)}
+                  className="w-6 h-6 rounded border border-slate-200 dark:border-dk-border cursor-pointer p-0"
+                />
+                <span className={`text-[11px] font-mono ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+                  {gridColor ?? 'Auto'}
+                </span>
+                {gridColor && (
+                  <button
+                    onClick={() => setGridColor(null)}
+                    className="text-[10px] text-primary hover:underline ml-auto"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1216,8 +1373,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     export: (
       <>
-        <ToolbarButton icon={<Image size={iconSize} />} tooltip="Copy as Image" onClick={handleCopyImage} />
-
         {/* SVG copy dropdown */}
         <div className="relative">
           <ToolbarButton
@@ -1407,9 +1562,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
         <AIButton />
 
-        <Sep />
-
-        <CollabToolbarButton />
+        {/* CollabToolbarButton — disabled (WIP: needs self-hosted signaling server) */}
 
         <Sep />
 
@@ -1459,6 +1612,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         open={stylePickerOpen}
         onClose={() => setStylePickerOpen(false)}
       />
+      {orderModalOpen && <OrderModal onClose={() => setOrderModalOpen(false)} />}
     </div>
   );
 };
