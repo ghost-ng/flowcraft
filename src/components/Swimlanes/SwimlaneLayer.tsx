@@ -737,8 +737,45 @@ const SwimlaneLayer: React.FC = () => {
             }),
           )}
 
-        {/* Lane headers are rendered in SwimlaneResizeOverlay (above ReactFlow)
-            so they receive mouse events for right-click context menus and drag. */}
+        {/* ---- Header background strips (visual only, rendered behind nodes at z:0) ---- */}
+        {hasHLanes && hBounds.map(({ lane, offset, size }) => {
+          if (lane.hidden) return null;
+          const rotBuffer = Math.abs(config.labelRotation ?? 0) > 0 ? Math.ceil(Math.abs(config.labelRotation ?? 0) * 0.3) : 0;
+          return (
+            <div
+              key={`hdr-bg-h-${lane.id}`}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: offset,
+                width: H_HEADER_WIDTH + rotBuffer,
+                height: size,
+                backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
+                borderRight: `2px solid ${lane.color}`,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })}
+        {hasVLanes && vBounds.map(({ lane, offset, size }) => {
+          if (lane.hidden) return null;
+          const rotBuffer = Math.abs(config.labelRotation ?? 0) > 0 ? Math.ceil(Math.abs(config.labelRotation ?? 0) * 0.3) : 0;
+          return (
+            <div
+              key={`hdr-bg-v-${lane.id}`}
+              style={{
+                position: 'absolute',
+                left: offset,
+                top: 0,
+                width: size,
+                height: (config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT) + rotBuffer,
+                backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
+                borderBottom: `2px solid ${lane.color}`,
+                pointerEvents: 'none',
+              }}
+            />
+          );
+        })}
 
         {/* ---- Outer border ---- */}
         {(() => {
@@ -813,7 +850,7 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 1 }}
+      style={{ zIndex: 3 }}
     >
       <div
         style={{

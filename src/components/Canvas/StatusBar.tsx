@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useViewport } from '@xyflow/react';
 import { Pipette, Map, Keyboard, Camera, Monitor, Bug, Sun, Moon } from 'lucide-react';
-import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
+import { useFlowStore } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -57,8 +57,9 @@ const StatusBar: React.FC = () => {
   const toggleDebugMode = useSettingsStore((s) => s.toggleDebugMode);
   const viewport = useViewport();
 
-  // Eyedropper state
+  // Eyedropper state — picks a color from screen and displays the hex (read-only)
   const [eyedropperActive, setEyedropperActive] = useState(false);
+  const [pickedHex, setPickedHex] = useState<string | null>(null);
 
   const openEyedropper = async () => {
     if (!('EyeDropper' in window)) return;
@@ -67,24 +68,13 @@ const StatusBar: React.FC = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dropper = new (window as any).EyeDropper();
       const result = await dropper.open();
-      const color = result.sRGBHex as string;
-      const { updateNodeData } = useFlowStore.getState();
-      for (const nid of selectedNodes) {
-        updateNodeData(nid, { color } as Partial<FlowNodeData>);
-      }
+      setPickedHex(result.sRGBHex as string);
     } catch {
       // User cancelled or API error — ignore
     } finally {
       setEyedropperActive(false);
     }
   };
-
-  // Get current fill color of first selected node
-  const currentColor = (() => {
-    if (selectedNodes.length === 0) return null;
-    const node = nodes.find((n) => n.id === selectedNodes[0]);
-    return (node?.data as FlowNodeData | undefined)?.color || '#3b82f6';
-  })();
 
   // Mouse coordinates in flow space
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -195,8 +185,8 @@ const StatusBar: React.FC = () => {
 
       <div className="flex-1" />
 
-      {/* Eyedropper color picker */}
-      {selectedNodes.length > 0 && 'EyeDropper' in window && (
+      {/* Eyedropper color reader — shows picked hex (read-only, no color changes) */}
+      {'EyeDropper' in window && (
         <>
           <button
             onClick={openEyedropper}
@@ -208,12 +198,24 @@ const StatusBar: React.FC = () => {
             }`}
             data-tooltip-top="Pick color from screen"
           >
-            <span
-              className="w-3 h-3 rounded-sm border border-white/30"
-              style={{ backgroundColor: currentColor || '#3b82f6' }}
-            />
+            {pickedHex && (
+              <span
+                className="w-3 h-3 rounded-sm border border-white/30"
+                style={{ backgroundColor: pickedHex }}
+              />
+            )}
             <Pipette size={10} />
           </button>
+          {pickedHex && (
+            <span
+              className={`px-1 select-all cursor-text text-[10px] font-mono ${
+                darkMode ? 'text-dk-muted' : 'text-slate-500'
+              }`}
+              data-tooltip-top="Click to select hex"
+            >
+              {pickedHex}
+            </span>
+          )}
           <div className={separatorClass} />
         </>
       )}

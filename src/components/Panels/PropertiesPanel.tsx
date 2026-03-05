@@ -1348,12 +1348,24 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
     return lane ? lane.label : 'None';
   })();
 
-  // Resolve group label from groupId
-  const groupLabel = (() => {
-    if (!data.groupId) return 'None';
-    const groupNode = nodes.find((n) => n.id === data.groupId);
-    return groupNode ? ((groupNode.data as FlowNodeData).label || 'Group') : 'None';
-  })();
+  // Resolve group(s) the node is physically inside (by bounding-box containment)
+  const groupLabel = useMemo(() => {
+    if (!thisNode || thisNode.type === 'groupNode') return 'None';
+    const nx = thisNode.position.x;
+    const ny = thisNode.position.y;
+    const containing: string[] = [];
+    for (const n of nodes) {
+      if (n.type !== 'groupNode' || n.id === nodeId) continue;
+      const gd = n.data as FlowNodeData;
+      const gw = gd.width || 300;
+      const gh = gd.height || 200;
+      if (nx >= n.position.x && ny >= n.position.y &&
+          nx <= n.position.x + gw && ny <= n.position.y + gh) {
+        containing.push(gd.label || 'Group');
+      }
+    }
+    return containing.length > 0 ? containing.join(', ') : 'None';
+  }, [thisNode, nodes, nodeId]);
   const posStr = `${Math.round(position.x)}, ${Math.round(position.y)}`;
   const dimStr = measured
     ? `${Math.round(measured.width ?? 0)} x ${Math.round(measured.height ?? 0)}`
