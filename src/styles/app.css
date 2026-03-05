@@ -124,6 +124,13 @@ input[type="button"] {
   --cursor-elbow-move: url('../assets/cursors/cursor_elbow_move.png') 16 16, grab;
 }
 
+/* Force ReactFlow above swimlane header layer (z:1) so nodes always render on top.
+   Using CSS rather than style prop because ReactFlow's internal wrapperStyle
+   can interfere with inline style merging. */
+[data-charthero-canvas-area] .react-flow {
+  z-index: 2 !important;
+}
+
 /* Default canvas cursor: custom blue arrow (selection mode) */
 .react-flow__pane {
   cursor: var(--cursor-default) !important;
