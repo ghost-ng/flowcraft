@@ -1301,39 +1301,13 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       useUIStore.getState().clearPuckSelection();
     }
 
-    // Auto-select/deselect swimlane during bulk selection
-    const slStore = useSwimlaneStore.getState();
-    const { config: slConfig, containerOffset: slOffset } = slStore;
-    const hasH = slConfig.horizontal.length > 0;
-    const hasV = slConfig.vertical.length > 0;
-    if (hasH || hasV) {
-      if (selNodes.length > 1) {
-        // Compute swimlane container bounds in flow coordinates
-        const hHdr = slConfig.hHeaderWidth ?? 48;
-        const vHdr = slConfig.vHeaderHeight ?? 32;
-        let slW = 2000, slH = 2000;
-        if (hasV) {
-          let cursor = hasH ? hHdr : 0;
-          for (const l of [...slConfig.vertical].sort((a, b) => a.order - b.order))
-            if (!l.hidden) cursor += l.collapsed ? 32 : l.size;
-          slW = cursor;
-        }
-        if (hasH) {
-          let cursor = hasV ? vHdr : 0;
-          for (const l of [...slConfig.horizontal].sort((a, b) => a.order - b.order))
-            if (!l.hidden) cursor += l.collapsed ? 32 : l.size;
-          slH = cursor;
-        }
-        // Bounding box of selected nodes
-        const selL = Math.min(...selNodes.map((n) => n.position.x));
-        const selT = Math.min(...selNodes.map((n) => n.position.y));
-        const selR = Math.max(...selNodes.map((n) => n.position.x + ((n.data as FlowNodeData).width || 160)));
-        const selB = Math.max(...selNodes.map((n) => n.position.y + ((n.data as FlowNodeData).height || 60)));
-        // Check overlap between selection bbox and swimlane bounds
-        const overlaps = selL < slOffset.x + slW && selR > slOffset.x &&
-                         selT < slOffset.y + slH && selB > slOffset.y;
-        slStore.setSwimlaneSelected(overlaps);
-      } else if (selNodes.length === 0) {
+    // Deselect swimlane when all nodes are deselected.
+    // Swimlane selection is deliberate — only via its own UI controls, not auto-triggered
+    // by node selection. This prevents accidental selection when shift-clicking nodes.
+    if (selNodes.length === 0) {
+      const slStore = useSwimlaneStore.getState();
+      const { config: slConfig } = slStore;
+      if (slConfig.horizontal.length > 0 || slConfig.vertical.length > 0) {
         slStore.setSwimlaneSelected(false);
       }
     }

@@ -878,7 +878,6 @@ export const SwimlaneHeaderLayer = React.memo(SwimlaneHeaderLayerInner);
 // SwimlaneResizeOverlay — rendered ABOVE ReactFlow so handles receive events
 // ---------------------------------------------------------------------------
 
-const CORNER_SELECT_ZONE = 28; // px - clickable zone at each corner to select the swimlane
 
 const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly }) => {
   const config = useSwimlaneStore((s) => s.config);
@@ -956,35 +955,9 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
         }}
       >
         {/* ---- Corner click zones to select the swimlane (always present) ---- */}
-        {!readOnly && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
-          (corner) => {
-            const pos: React.CSSProperties = {};
-            if (corner.includes('top')) pos.top = -CORNER_SELECT_ZONE / 2;
-            if (corner.includes('bottom')) { pos.top = totalHeight - CORNER_SELECT_ZONE / 2; }
-            if (corner.includes('left')) pos.left = -CORNER_SELECT_ZONE / 2;
-            if (corner.includes('right')) { pos.left = totalWidth - CORNER_SELECT_ZONE / 2; }
-            return (
-              <div
-                key={`select-${corner}`}
-                style={{
-                  position: 'absolute',
-                  ...pos,
-                  width: CORNER_SELECT_ZONE,
-                  height: CORNER_SELECT_ZONE,
-                  pointerEvents: 'auto',
-                  cursor: 'var(--cursor-select)',
-                  zIndex: 14,
-                }}
-                onMouseDown={(e) => {
-                  // Only select swimlane via Shift+click — regular clicks should pass through
-                  if (!e.shiftKey) return;
-                  e.stopPropagation();
-                  setSwimlaneSelected(true);
-                }}
-              />
-            );
-          },
-        )}
+        {/* pointer-events: none — these zones don't block nodes above.
+            Swimlane selection is handled via Shift+click on resize handles
+            or marquee selection in FlowCanvas. */}
 
         {/* ---- Corner resize handles (only visible when swimlane is selected) ---- */}
         {!readOnly && selected && (['top-left', 'top-right', 'bottom-left', 'bottom-right'] as Corner[]).map(
