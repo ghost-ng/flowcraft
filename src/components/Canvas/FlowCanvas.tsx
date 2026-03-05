@@ -1301,14 +1301,64 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       useUIStore.getState().clearPuckSelection();
     }
 
-    // Deselect swimlane when all nodes are deselected.
-    // Swimlane selection is deliberate — only via its own UI controls, not auto-triggered
-    // by node selection. This prevents accidental selection when shift-clicking nodes.
+    const slStore = useSwimlaneStore.getState();
+    const { config: slConfig } = slStore;
+    const hasLanes = slConfig.horizontal.length > 0 || slConfig.vertical.length > 0;
+
     if (selNodes.length === 0) {
-      const slStore = useSwimlaneStore.getState();
-      const { config: slConfig } = slStore;
-      if (slConfig.horizontal.length > 0 || slConfig.vertical.length > 0) {
-        slStore.setSwimlaneSelected(false);
+      // Deselect swimlane when all nodes are deselected
+      if (hasLanes) slStore.setSwimlaneSelected(false);
+    } else if (hasLanes && selNodes.length >= 2) {
+      // Auto-select swimlane when marquee selection encompasses the ENTIRE swimlane.
+      // Check: bounding box of selected nodes must fully contain swimlane container bounds.
+      const offset = slStore.containerOffset;
+      // Compute swimlane total bounds in flow coordinates
+      const hLanes = slConfig.horizontal;
+      const vLanes = slConfig.vertical;
+      const hHeaderW = slConfig.hHeaderWidth ?? 48;
+      const vHeaderH = slConfig.vHeaderHeight ?? 32;
+      let slTotalW = 0;
+      let slTotalH = 0;
+      if (vLanes.length > 0) {
+        const vHeaderOffset = hLanes.length > 0 ? hHeaderW : 0;
+        let pos = vHeaderOffset;
+        for (const lane of vLanes) {
+          if (!lane.hidden) pos += lane.size;
+        }
+        slTotalW = pos;
+      } else {
+        slTotalW = 800;
+      }
+      if (hLanes.length > 0) {
+        const hHeaderOffset = vLanes.length > 0 ? vHeaderH : 0;
+        let pos = hHeaderOffset;
+        for (const lane of hLanes) {
+          if (!lane.hidden) pos += lane.size;
+        }
+        slTotalH = pos;
+      } else {
+        slTotalH = 800;
+      }
+      const slLeft = offset.x;
+      const slTop = offset.y;
+      const slRight = offset.x + slTotalW;
+      const slBottom = offset.y + slTotalH;
+
+      // Compute bounding box of selected nodes
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const n of selNodes) {
+        const nd = n.data as FlowNodeData;
+        const w = nd.width || n.measured?.width || 100;
+        const h = nd.height || n.measured?.height || 50;
+        if (n.position.x < minX) minX = n.position.x;
+        if (n.position.y < minY) minY = n.position.y;
+        if (n.position.x + w > maxX) maxX = n.position.x + w;
+        if (n.position.y + h > maxY) maxY = n.position.y + h;
+      }
+
+      // Selected nodes bbox must encompass the swimlane container
+      if (minX <= slLeft && minY <= slTop && maxX >= slRight && maxY >= slBottom) {
+        slStore.setSwimlaneSelected(true);
       }
     }
   }, []);

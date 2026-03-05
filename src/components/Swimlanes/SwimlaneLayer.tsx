@@ -7,6 +7,7 @@ import {
   type SwimlaneOrientation,
 } from '../../store/swimlaneStore';
 import { useStyleStore } from '../../store/styleStore';
+import { useUIStore } from '../../store/uiStore';
 import LaneHeader from './LaneHeader';
 
 // ---------------------------------------------------------------------------
@@ -951,6 +952,7 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
   const selected = useSwimlaneStore((s) => s.swimlaneSelected);
   const setSwimlaneSelected = useSwimlaneStore((s) => s.setSwimlaneSelected);
   const darkMode = useStyleStore((s) => s.darkMode);
+  const selectionColor = useUIStore((s) => s.selectionColor);
   const viewport = useViewport();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -1015,8 +1017,9 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
           transform: `translate(${viewport.x + containerOffset.x * viewport.zoom}px, ${viewport.y + containerOffset.y * viewport.zoom}px) scale(${viewport.zoom})`,
           width: totalWidth,
           height: totalHeight,
-          outline: selected ? `2px dashed ${darkMode ? 'rgba(96,165,250,0.5)' : 'rgba(59,130,246,0.5)'}` : 'none',
+          outline: selected ? `2px solid ${selectionColor}` : 'none',
           outlineOffset: 2,
+          boxShadow: selected ? `0 0 8px 2px ${selectionColor}40` : 'none',
         }}
       >
         {/* ---- Corner click zones to select the swimlane (always present) ---- */}
