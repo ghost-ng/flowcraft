@@ -41,10 +41,13 @@ import {
 
 /**
  * Find the canvas element to capture.
- * Captures `.react-flow` which contains the grid background, swimlane layer,
- * viewport (nodes/edges), and minimap — but not surrounding UI controls.
+ * Prefers `[data-charthero-canvas-area]` which wraps both the swimlane layer
+ * AND the `.react-flow` viewport — so swimlanes are included in exports.
+ * Falls back to `.react-flow` if the wrapper isn't found.
  */
 export function getReactFlowElement(): HTMLElement {
+  const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
+  if (canvasArea) return canvasArea;
   const container = document.querySelector<HTMLElement>('.react-flow');
   if (container) return container;
   throw new Error('Could not find React Flow element in the DOM');
@@ -152,9 +155,10 @@ export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
 export async function exportAsSvg(options: SvgExportOptions): Promise<void> {
   const { embedFonts, padding } = options;
 
-  // Use the full .react-flow container — the viewport child has CSS transforms
-  // that html-to-image may not resolve correctly, causing blank output.
-  const container = document.querySelector<HTMLElement>('.react-flow');
+  // Use the canvas area wrapper (includes swimlane layer + ReactFlow viewport).
+  // Falls back to .react-flow if the wrapper isn't found.
+  const container = document.querySelector<HTMLElement>('[data-charthero-canvas-area]')
+    ?? document.querySelector<HTMLElement>('.react-flow');
   if (!container) throw new Error('Could not find React Flow element in the DOM');
 
   const dataUrl = await toSvg(container, {

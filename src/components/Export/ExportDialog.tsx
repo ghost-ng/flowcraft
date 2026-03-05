@@ -567,8 +567,20 @@ function hideForSelectionExport(
     if (!edgeId || !connectedEdgeIds.has(edgeId)) hideVis(el);
   });
 
-  // 6. Always hide the swimlane layer for selection scope
-  //    (it's a direct child of .react-flow, not one of the standard RF classes)
+  // 6. Always hide the swimlane layer for selection scope.
+  //    Swimlane layers are siblings of .react-flow inside [data-charthero-canvas-area].
+  //    Hide all direct children of the canvas wrapper that aren't .react-flow itself.
+  const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
+  if (canvasArea) {
+    Array.from(canvasArea.children).forEach((child) => {
+      const el = child as HTMLElement;
+      if (!el.classList.contains('react-flow')) {
+        hide(el);
+      }
+    });
+  }
+
+  // Also hide any non-standard children inside .react-flow (e.g. injected overlays)
   document.querySelectorAll<HTMLElement>('.react-flow > *').forEach((el) => {
     const cl = el.classList;
     if (
@@ -606,9 +618,10 @@ function overrideViewportForCapture(
   const rf = getReactFlowInstance();
   if (!rf) return null;
 
-  const rfElement = document.querySelector<HTMLElement>('.react-flow');
+  const captureElement = document.querySelector<HTMLElement>('[data-charthero-canvas-area]')
+    ?? document.querySelector<HTMLElement>('.react-flow');
   const vpElement = document.querySelector<HTMLElement>('.react-flow__viewport');
-  if (!rfElement || !vpElement) return null;
+  if (!captureElement || !vpElement) return null;
 
   const allNodes = rf.getNodes();
   const targetNodes = scope === 'selected'
@@ -617,7 +630,7 @@ function overrideViewportForCapture(
   if (targetNodes.length === 0) return null;
 
   const bounds = getNodesBounds(targetNodes);
-  const { width, height } = rfElement.getBoundingClientRect();
+  const { width, height } = captureElement.getBoundingClientRect();
   const padding = scope === 'selected' ? 0.1 : 0.05;
   const { x, y, zoom } = getViewportForBounds(bounds, width, height, 0.1, 2, padding);
 
@@ -702,6 +715,8 @@ const ExportDialog: React.FC = () => {
         document.querySelectorAll<HTMLElement>('.react-flow__panel').forEach(hideEl);
         if (!includeGrid) hideEl(document.querySelector<HTMLElement>('.react-flow__background'));
         if (!includeMinimap) hideEl(document.querySelector<HTMLElement>('.react-flow__minimap'));
+        // Hide UI-only elements (undo/redo, legend button, rulers, resize handles)
+        document.querySelectorAll<HTMLElement>('[data-export-ignore]').forEach(hideEl);
         restorePreview = () => { for (const { el, prev } of previewHidden) el.style.display = prev; };
       }
 
@@ -789,6 +804,8 @@ const ExportDialog: React.FC = () => {
       document.querySelectorAll<HTMLElement>('.react-flow__panel').forEach(hide);
       if (!includeGrid) hide(document.querySelector<HTMLElement>('.react-flow__background'));
       if (!includeMinimap) hide(document.querySelector<HTMLElement>('.react-flow__minimap'));
+      // Hide UI-only elements (undo/redo, legend button, rulers, resize handles)
+      document.querySelectorAll<HTMLElement>('[data-export-ignore]').forEach(hide);
       restoreExport = () => { for (const { el, prev } of hiddenEls) el.style.display = prev; };
     }
 

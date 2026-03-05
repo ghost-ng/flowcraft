@@ -1380,10 +1380,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       {topBanner.enabled && <BannerBar position="top" config={topBanner} />}
 
       {/* Canvas area — takes remaining space */}
-      <div className="flex-1 min-h-0 relative" onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined, isolation: 'isolate' }}>
+      <div data-charthero-canvas-area className="flex-1 min-h-0 relative" onContextMenu={presentationMode ? (e) => e.preventDefault() : onWrapperContextMenu} onWheel={presentationMode ? undefined : onWheelHandler} style={{ cursor: formatPainterActive ? FORMAT_PAINTER_CURSOR : undefined, isolation: 'isolate' }}>
       {/* Format painter active indicator */}
       {formatPainterActive && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-lg animate-pulse">
+        <div data-export-ignore className="absolute top-3 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-white text-sm font-medium shadow-lg animate-pulse">
           <span className="w-2 h-2 rounded-full bg-white" />
           Format Painter Active — Click nodes to apply style
           <button
@@ -1541,7 +1541,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
       {/* Floating undo/redo buttons */}
       {!presentationMode && onUndo && onRedo && (
-        <div className="absolute z-10 flex gap-1" style={{ top: rulerVisible ? 'calc(7rem + 24px)' : '7rem', left: rulerVisible ? 'calc(0.5rem + 24px)' : '0.5rem' }}>
+        <div data-export-ignore className="absolute z-10 flex gap-1" style={{ top: rulerVisible ? 'calc(7rem + 24px)' : '7rem', left: rulerVisible ? 'calc(0.5rem + 24px)' : '0.5rem' }}>
           <button
             onClick={onUndo}
             disabled={!canUndo}
@@ -1562,25 +1562,25 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       )}
 
       {/* Legend floating buttons */}
-      {!presentationMode && <LegendButton />}
+      {!presentationMode && <div data-export-ignore><LegendButton /></div>}
 
       {/* SVG arrowhead marker definitions (must be in DOM for url(#...) refs) */}
       <MarkerDefs />
 
       {/* Swimlane resize handles rendered ABOVE ReactFlow so they receive mouse events */}
-      {hasLanes && <SwimlaneResizeOverlay readOnly={presentationMode} />}
+      {hasLanes && <div data-export-ignore><SwimlaneResizeOverlay readOnly={presentationMode} /></div>}
 
       {/* Ruler overlays */}
       {rulerVisible && (
-        <>
+        <div data-export-ignore>
           <RulerCorner />
           <Ruler orientation="horizontal" />
           <Ruler orientation="vertical" />
-        </>
+        </div>
       )}
 
       {/* Walk mode breadcrumb overlay */}
-      {walkModeActive && <WalkModeBreadcrumb />}
+      {walkModeActive && <div data-export-ignore><WalkModeBreadcrumb /></div>}
 
       {/* Chain highlight overlay */}
       {highlightedChain.size > 0 && <ChainHighlight />}

@@ -86,22 +86,46 @@ const ScreenshotOverlay: React.FC = () => {
 
       const { toPng } = await import('html-to-image');
 
-      // Capture the full .react-flow container (includes swimlane layer + viewport)
-      const container = document.querySelector<HTMLElement>('.react-flow');
-      const element = container;
-      if (!element) throw new Error('Could not find React Flow element');
+      // Capture the canvas wrapper (includes swimlane layer + ReactFlow viewport)
+      const element = document.querySelector<HTMLElement>('[data-charthero-canvas-area]')
+        ?? document.querySelector<HTMLElement>('.react-flow');
+      if (!element) throw new Error('Could not find canvas element');
 
       // Get the container's bounding rect to convert screen coords to element coords
       const containerRect = element.getBoundingClientRect();
+
+      // Hide gridlines during capture (they should not appear in screenshots)
+      const gridEl = document.querySelector<HTMLElement>('.react-flow__background');
+      const prevGridDisplay = gridEl?.style.display ?? '';
+      if (gridEl) gridEl.style.display = 'none';
+
+      // Also hide panels (zoom controls, attribution), minimap, and UI-only elements
+      const hiddenEls: { el: HTMLElement; prev: string }[] = [];
+      const hideEl = (el: HTMLElement | null) => {
+        if (!el) return;
+        hiddenEls.push({ el, prev: el.style.display });
+        el.style.display = 'none';
+      };
+      document.querySelectorAll<HTMLElement>('.react-flow__panel').forEach(hideEl);
+      hideEl(document.querySelector<HTMLElement>('.react-flow__minimap'));
+      document.querySelectorAll<HTMLElement>('[data-export-ignore]').forEach(hideEl);
 
       // Pixel ratio for crisp capture
       const pixelRatio = 2;
 
       // Capture the full viewport at high resolution
-      const dataUrl = await toPng(element, {
-        pixelRatio,
-        backgroundColor: '#ffffff',
-      });
+      let dataUrl: string;
+      try {
+        dataUrl = await toPng(element, {
+          pixelRatio,
+          backgroundColor: '#ffffff',
+        });
+      } finally {
+        // Restore grid visibility
+        if (gridEl) gridEl.style.display = prevGridDisplay;
+        // Restore panels / minimap
+        for (const { el, prev } of hiddenEls) el.style.display = prev;
+      }
 
       // Load the image and crop to the selected region
       const img = new Image();

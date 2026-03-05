@@ -529,8 +529,23 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   const toggleSection = useCallback((section: string) => {
-    setAllExpanded(null); // Reset override when user manually toggles a section
-    setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+    setAllExpanded((prevAll) => {
+      if (prevAll !== null) {
+        // Sync collapsedSections to match the current allExpanded override
+        // before applying the individual toggle, so other sections stay put
+        const allCollapsed = !prevAll;
+        setCollapsedSections({
+          block: allCollapsed,
+          label: allCollapsed,
+          icon: allCollapsed,
+          status: allCollapsed,
+          [section]: !allCollapsed, // toggle the clicked section
+        });
+      } else {
+        setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+      }
+      return null; // Clear override — individual states now govern
+    });
   }, []);
 
   // Auto-expand relevant sections based on node properties when selection changes
@@ -994,6 +1009,39 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
               <span className="text-xs text-text-muted w-8 text-right font-mono">
                 {Math.round((data.opacity ?? 1) * 100)}%
               </span>
+            </div>
+          </Field>
+
+          {/* Rotation */}
+          <Field label="Rotation">
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={0}
+                max={359}
+                step={1}
+                value={Math.round(data.rotation ?? 0)}
+                onChange={(e) => update({ rotation: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+              />
+              <input
+                type="number"
+                min={0}
+                max={359}
+                step={1}
+                value={Math.round(data.rotation ?? 0)}
+                onChange={(e) => {
+                  let val = Number(e.target.value);
+                  val = ((val % 360) + 360) % 360;
+                  update({ rotation: val });
+                }}
+                className="w-12 text-xs text-center rounded border border-border dark:border-dk-border bg-white dark:bg-dk-input px-1 py-0.5 font-mono"
+              />
+              <span className="text-xs text-text-muted">°</span>
+              <ResetIcon
+                visible={(data.rotation ?? 0) !== 0}
+                onReset={() => update({ rotation: 0 })}
+              />
             </div>
           </Field>
 

@@ -575,10 +575,10 @@ const SwimlaneLayer: React.FC = () => {
   // Total dimensions
   const totalWidth = hasVLanes
     ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 2000;
+    : 800;
   const totalHeight = hasHLanes
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 2000;
+    : 800;
 
   return (
     <div
@@ -805,10 +805,10 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
 
   const totalWidth = hasVLanes
     ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 2000;
+    : 800;
   const totalHeight = hasHLanes
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 2000;
+    : 800;
 
   return (
     <div
@@ -925,10 +925,10 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
 
   const totalWidth = hasVLanes
     ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 2000;
+    : 800;
   const totalHeight = hasHLanes
     ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : 2000;
+    : 800;
 
   // Compute header offsets for corner resize proportional calculation
   const headerOffsetX = hasVLanes ? (hasHLanes ? H_HEADER_WIDTH : 0) : 0;
@@ -976,6 +976,8 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
                   zIndex: 14,
                 }}
                 onMouseDown={(e) => {
+                  // Only select swimlane via Shift+click — regular clicks should pass through
+                  if (!e.shiftKey) return;
                   e.stopPropagation();
                   setSwimlaneSelected(true);
                 }}

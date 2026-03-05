@@ -562,8 +562,10 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const iconPosition = nodeData.iconPosition || 'left';
   const [editValue, setEditValue] = useState(nodeData.label);
   const [autoFitFontSize, setAutoFitFontSize] = useState<number | null>(null);
+  const [isRotating, setIsRotating] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const shape = nodeData.shape || 'rectangle';
   const isIconOnly = !!nodeData.iconOnly;
@@ -635,6 +637,55 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       }
     },
     [commitEdit, nodeData.label, setIsEditingNode],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Rotation handle – drag to rotate the node around its center
+  // ---------------------------------------------------------------------------
+  const handleRotateStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setIsRotating(true);
+
+      // Determine node center in screen coordinates by using the wrapper element
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const startAngle = nodeData.rotation || 0;
+
+      // Calculate the initial angle from center to mouse position
+      const initAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+
+      const onMouseMove = (ev: MouseEvent) => {
+        const currentAngle = Math.atan2(ev.clientY - centerY, ev.clientX - centerX) * (180 / Math.PI);
+        let delta = currentAngle - initAngle;
+        let newRotation = startAngle + delta;
+
+        // Normalise to 0–360
+        newRotation = ((newRotation % 360) + 360) % 360;
+
+        // Snap to 15-degree increments when Shift is held
+        if (ev.shiftKey) {
+          newRotation = Math.round(newRotation / 15) * 15;
+        }
+
+        updateNodeData(id, { rotation: newRotation });
+      };
+
+      const onMouseUp = () => {
+        setIsRotating(false);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    },
+    [id, nodeData.rotation, updateNodeData],
   );
 
   // Build wrapper styles based on shape
@@ -811,7 +862,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   }, [shape]);
 
   return (
-    <div style={wrapperStyle} onDoubleClick={handleDoubleClick}>
+    <div ref={wrapperRef} style={wrapperStyle} onDoubleClick={handleDoubleClick}>
       <NodeResizer
         isVisible={!!isSelected}
         minWidth={40}
@@ -839,6 +890,50 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
         }}
       />
+
+      {/* Rotation handle — visible only when selected */}
+      {isSelected && (
+        <div
+          className="charthero-rotate-handle-group"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: -32,
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            pointerEvents: 'none',
+            zIndex: 60,
+          }}
+        >
+          {/* Rotate handle circle */}
+          <div
+            className={`charthero-rotate-handle${isRotating ? ' rotating' : ''}`}
+            onMouseDown={handleRotateStart}
+            data-tooltip={`${Math.round(rotation)}°`}
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: 'white',
+              border: `2px solid ${selectionColor}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              pointerEvents: 'auto',
+              flexShrink: 0,
+            }}
+          />
+          {/* Connecting line from handle down to node top edge */}
+          <div
+            style={{
+              width: 1,
+              height: 18,
+              backgroundColor: selectionColor,
+              opacity: 0.6,
+            }}
+          />
+        </div>
+      )}
 
       {/* Dependency badges overlay */}
       <DependencyBadge nodeId={id} />

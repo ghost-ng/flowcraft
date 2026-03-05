@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
+import { icons } from 'lucide-react';
 import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
 
@@ -18,6 +19,35 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const fontSize = nodeData.fontSize ?? 12;
   const fontWeight = nodeData.fontWeight ?? 600;
   const fontFamily = nodeData.fontFamily || "'Inter', sans-serif";
+
+  // Icon support
+  const IconComponent = nodeData.icon
+    ? (icons as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[nodeData.icon]
+    : null;
+  const iconColor = nodeData.iconColor || textColor;
+  const iconBgColor = nodeData.iconBgColor;
+  const iconBorderColor = nodeData.iconBorderColor;
+  const iconBorderWidth = nodeData.iconBorderWidth ?? 0;
+  const iconSize = nodeData.iconSize || (fontSize + 2);
+
+  const renderIcon = () => {
+    if (!IconComponent) return null;
+    const iconEl = <IconComponent size={iconSize} className="shrink-0 block" style={{ color: iconColor }} />;
+    const hasWrapper = iconBgColor || (iconBorderColor && iconBorderWidth > 0);
+    if (!hasWrapper) return iconEl;
+    return (
+      <span
+        className="inline-flex items-center justify-center shrink-0 rounded"
+        style={{
+          backgroundColor: iconBgColor || 'transparent',
+          border: iconBorderWidth > 0 && iconBorderColor ? `${iconBorderWidth}px solid ${iconBorderColor}` : undefined,
+          padding: 2,
+        }}
+      >
+        {iconEl}
+      </span>
+    );
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
@@ -119,8 +149,12 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             fontFamily,
             userSelect: 'none',
             cursor: 'var(--cursor-select)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
           }}
         >
+          {renderIcon()}
           {label}
         </div>
       )}

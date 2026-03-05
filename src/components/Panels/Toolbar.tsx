@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FilePlus,
+  ExternalLink,
   FolderOpen,
   Save,
   Undo2,
@@ -883,6 +884,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <div className={`absolute ${toolbarOrientation === 'horizontal' ? 'top-full left-0 mt-1' : 'left-full top-0 ml-1'} z-50 min-w-[180px] rounded-lg shadow-xl border p-1 max-h-[calc(100vh-80px)] overflow-y-auto ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}`}>
               <button onClick={() => { handleNew(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <FilePlus size={14} className="text-slate-400 dark:text-dk-faint" /> New Diagram
+              </button>
+              <button onClick={() => { window.open(window.location.href, '_blank'); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
+                <ExternalLink size={14} className="text-slate-400 dark:text-dk-faint" /> New Tab
               </button>
               <button onClick={() => { handleOpen(); setFileMenuOpen(false); }} className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded whitespace-nowrap transition-colors cursor-pointer ${darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'}`}>
                 <FolderOpen size={14} className="text-slate-400 dark:text-dk-faint" /> Open (.fc)

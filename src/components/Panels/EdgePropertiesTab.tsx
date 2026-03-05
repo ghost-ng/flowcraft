@@ -179,8 +179,23 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
     );
 
     const toggleSection = useCallback((key: string) => {
-      setAllExpanded(null);
-      setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+      setAllExpanded((prevAll) => {
+        if (prevAll !== null) {
+          // Sync collapsedSections to match the current allExpanded override
+          // before applying the individual toggle, so other sections stay put
+          const allCollapsed = !prevAll;
+          setCollapsedSections({
+            style: allCollapsed,
+            label: allCollapsed,
+            arrowheads: allCollapsed,
+            dependency: allCollapsed,
+            [key]: !allCollapsed, // toggle the clicked section
+          });
+        } else {
+          setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+        }
+        return null; // Clear override — individual states now govern
+      });
     }, []);
 
     // React to toggle-all signal from the tab bar chevron
