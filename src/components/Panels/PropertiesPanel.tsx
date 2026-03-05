@@ -1347,6 +1347,13 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
     const lane = allLanes.find((l) => l.id === data.swimlaneId);
     return lane ? lane.label : 'None';
   })();
+
+  // Resolve group label from groupId
+  const groupLabel = (() => {
+    if (!data.groupId) return 'None';
+    const groupNode = nodes.find((n) => n.id === data.groupId);
+    return groupNode ? ((groupNode.data as FlowNodeData).label || 'Group') : 'None';
+  })();
   const posStr = `${Math.round(position.x)}, ${Math.round(position.y)}`;
   const dimStr = measured
     ? `${Math.round(measured.width ?? 0)} x ${Math.round(measured.height ?? 0)}`
@@ -1358,6 +1365,7 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
       <ReadOnlyField label="Position" value={posStr} />
       <ReadOnlyField label="Dimensions" value={dimStr} />
       <ReadOnlyField label="Swimlane" value={swimlaneLabel} />
+      <ReadOnlyField label="Group" value={groupLabel} />
 
       {/* Group Members — only shown for group nodes */}
       {isGroupNode && (
