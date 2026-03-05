@@ -130,11 +130,10 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     [id, nodeData.rotation, updateNodeData],
   );
 
-  // Visual transforms
-  const transformParts: string[] = [];
-  if (rotation !== 0) transformParts.push(`rotate(${rotation}deg)`);
-  if (flipH) transformParts.push('scaleX(-1)');
-  if (flipV) transformParts.push('scaleY(-1)');
+  // Visual transforms — rotation on wrapper, flip on inner
+  const flipParts: string[] = [];
+  if (flipH) flipParts.push('scaleX(-1)');
+  if (flipV) flipParts.push('scaleY(-1)');
 
   return (
     <div
@@ -144,9 +143,11 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         height,
         position: 'relative',
         overflow: 'visible',
+        transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+        transition: 'transform 0.2s',
       }}
     >
-      {/* Inner shape with visual transforms */}
+      {/* Inner shape with flip transforms */}
       <div
         style={{
           width: '100%',
@@ -156,7 +157,7 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           borderRadius,
           opacity,
           position: 'relative',
-          transform: transformParts.length > 0 ? transformParts.join(' ') : undefined,
+          transform: flipParts.length > 0 ? flipParts.join(' ') : undefined,
           transition: 'box-shadow 0.15s, transform 0.2s',
           boxShadow: selected
             ? `0 0 0 ${1.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`

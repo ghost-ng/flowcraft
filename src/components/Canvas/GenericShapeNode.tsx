@@ -776,18 +776,24 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     : '';
   const combinedShadow = [borderShadow, selectionShadow, linkGroupShadow, dropShadow].filter(Boolean).join(', ') || 'none';
 
+  // Visual transforms
+  const rotation = nodeData.rotation || 0;
+  const flipH = nodeData.flipH || false;
+  const flipV = nodeData.flipV || false;
+
+  // Build wrapper transform (rotation goes here so selection outline rotates with the shape)
+  const wrapperTransformParts: string[] = [];
+  if (rotation !== 0) wrapperTransformParts.push(`rotate(${rotation}deg)`);
+
   // Outer wrapper: holds resizer + handles, never clips
   const wrapperStyle: React.CSSProperties = {
     width,
     height,
     position: 'relative',
     overflow: 'visible',
+    transform: wrapperTransformParts.length > 0 ? wrapperTransformParts.join(' ') : undefined,
+    transition: 'transform 0.2s',
   };
-
-  // Visual transforms (CSS transform on inner shape — keeps handles in original positions)
-  const rotation = nodeData.rotation || 0;
-  const flipH = nodeData.flipH || false;
-  const flipV = nodeData.flipV || false;
 
   // Inner shape: has the visual styling, clips text overflow
   const nodeStyle: React.CSSProperties = {
@@ -814,10 +820,9 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     ...(noBox ? {} : shapeStyles[shape]),
     // User-set border radius overrides the shape default
     ...(userBorderRadius !== undefined && !noBox ? { borderRadius: userBorderRadius } : {}),
-    // Apply visual transforms (rotation + flip)
+    // Apply flip transforms (rotation is on the wrapper so selection outline rotates too)
     ...(() => {
       const parts: string[] = [];
-      if (rotation !== 0) parts.push(`rotate(${rotation}deg)`);
       if (flipH) parts.push('scaleX(-1)');
       if (flipV) parts.push('scaleY(-1)');
       return parts.length > 0 ? { transform: parts.join(' ') } : {};
