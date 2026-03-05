@@ -39,6 +39,8 @@ interface LaneHeaderProps {
   showColor?: boolean;
   /** Header width for horizontal lanes / height for vertical lanes (from store) */
   headerSize?: number;
+  /** When true, render full visuals but no interactivity (for the z:0 visual layer) */
+  visualOnly?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -228,6 +230,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   showLabel: showLabelProp,
   showColor: showColorProp,
   headerSize: headerSizeProp,
+  visualOnly = false,
 }) => {
   const labelVisible = showLabelProp ?? true;
   const colorVisible = showColorProp ?? true;
@@ -357,6 +360,12 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   // Widen the header when label is rotated so angled text has room
   const rotBuffer = Math.abs(rotateAngle) > 0 ? Math.ceil(Math.abs(rotateAngle) * 0.3) : 0;
 
+  // visualOnly = full visuals, no interactivity (rendered at z:0 behind nodes)
+  // interactive (default) = transparent visuals, full interactivity (rendered at z:3 above ReactFlow)
+  const bgColor = visualOnly
+    ? (darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)')
+    : 'transparent';
+
   const style: React.CSSProperties = isHorizontal
     ? {
         position: 'absolute',
@@ -368,12 +377,12 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRight: `2px solid ${color}`,
-        backgroundColor: 'transparent',
+        borderRight: visualOnly ? `2px solid ${color}` : 'none',
+        backgroundColor: bgColor,
         zIndex: 1,
         overflow: 'visible',
         padding: '4px 2px',
-        pointerEvents: 'auto',
+        pointerEvents: visualOnly ? 'none' : 'auto',
       }
     : {
         position: 'absolute',
@@ -385,12 +394,12 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderBottom: `2px solid ${color}`,
-        backgroundColor: 'transparent',
+        borderBottom: visualOnly ? `2px solid ${color}` : 'none',
+        backgroundColor: bgColor,
         zIndex: 1,
         overflow: 'visible',
         padding: '2px 4px',
-        pointerEvents: 'auto',
+        pointerEvents: visualOnly ? 'none' : 'auto',
       };
 
   const textColor = darkMode ? '#c8d1dc' : '#0f172a';
@@ -459,6 +468,43 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
         transform: rotateAngle !== 0 ? `rotate(${rotateAngle}deg)` : undefined,
       };
 
+  // ---- Visual-only mode: render static content behind nodes (z:0) ----
+  if (visualOnly) {
+    return (
+      <div style={style} data-lane-header={laneId}>
+        {colorVisible && (
+          <div
+            style={{
+              width: isHorizontal ? 24 : 8,
+              height: isHorizontal ? 8 : 20,
+              backgroundColor: color,
+              borderRadius: 2,
+              flexShrink: 0,
+              marginBottom: isHorizontal ? 4 : 0,
+              marginRight: isHorizontal ? 0 : 6,
+            }}
+          />
+        )}
+        {(labelVisible && colorVisible) && (
+          <GripVertical
+            size={12}
+            style={{
+              color: darkMode ? '#7e8d9f' : '#94a3b8',
+              flexShrink: 0,
+              marginBottom: isHorizontal ? 2 : 0,
+              marginRight: isHorizontal ? 0 : 4,
+              transform: isHorizontal ? 'rotate(90deg)' : undefined,
+            }}
+          />
+        )}
+        {labelVisible && (
+          <span style={textStyle}>{label}</span>
+        )}
+      </div>
+    );
+  }
+
+  // ---- Interactive mode: invisible content above ReactFlow (z:3) ----
   return (
     <>
       <div
@@ -484,6 +530,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
               marginRight: isHorizontal ? 0 : 6,
               cursor: 'var(--cursor-select)',
               position: 'relative',
+              opacity: 0,
             }}
           />
         )}
@@ -502,6 +549,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
               transform: isHorizontal ? 'rotate(90deg)' : undefined,
               pointerEvents: 'auto',
               cursor: 'var(--cursor-open-hand)',
+              opacity: 0,
             }}
           />
         )}
@@ -518,7 +566,7 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
             style={editStyle}
           />
         ) : labelVisible ? (
-          <span style={{ ...textStyle, cursor: 'var(--cursor-select)' }}>
+          <span style={{ ...textStyle, cursor: 'var(--cursor-select)', opacity: 0 }}>
             {label}
           </span>
         ) : null}

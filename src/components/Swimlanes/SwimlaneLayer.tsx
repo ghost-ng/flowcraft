@@ -268,14 +268,12 @@ const HeaderResizeHandle: React.FC<HeaderResizeHandleProps> = ({
 interface MatrixCornerHandleProps {
   width: number;
   height: number;
-  darkMode: boolean;
   zoom: number;
 }
 
 const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
   width,
   height,
-  darkMode,
   zoom,
 }) => {
   const startRef = useRef<{
@@ -340,19 +338,7 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
       }}
       onMouseDown={handleMouseDown}
     >
-      {/* Grip dots pattern */}
-      <svg
-        width={Math.min(20, width - 4)}
-        height={Math.min(20, height - 4)}
-        viewBox="0 0 20 20"
-        fill="none"
-      >
-        <circle cx="6" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-        <circle cx="14" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-        <circle cx="6" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-        <circle cx="14" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-        <circle cx="10" cy="10" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
-      </svg>
+      {/* Grip dots rendered in visual layer (SwimlaneLayer z:0) — this is interaction-only */}
     </div>
   );
 };
@@ -735,47 +721,52 @@ const SwimlaneLayer: React.FC = () => {
             }),
           )}
 
-        {/* ---- Header background strips (visual only, rendered behind nodes at z:0) ---- */}
+        {/* ---- Visual-only headers (rendered behind nodes at z:0) ---- */}
         {hasHLanes && hBounds.map(({ lane, offset, size }) => {
           if (lane.hidden) return null;
-          const rotBuffer = Math.abs(config.labelRotation ?? 0) > 0 ? Math.ceil(Math.abs(config.labelRotation ?? 0) * 0.3) : 0;
           return (
-            <div
-              key={`hdr-bg-h-${lane.id}`}
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: offset,
-                width: H_HEADER_WIDTH + rotBuffer,
-                height: size,
-                backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
-                borderRight: `2px solid ${lane.color}`,
-                pointerEvents: 'none',
-              }}
+            <LaneHeader
+              key={`hdr-vis-h-${lane.id}`}
+              laneId={lane.id}
+              label={lane.label}
+              color={lane.color}
+              colorOpacity={lane.colorOpacity}
+              orientation="horizontal"
+              offset={offset}
+              size={size}
+              darkMode={darkMode}
+              fontSize={config.labelFontSize}
+              rotation={config.labelRotation}
+              showLabel={lane.showLabel}
+              showColor={lane.showColor}
+              headerSize={H_HEADER_WIDTH}
+              visualOnly
             />
           );
         })}
         {hasVLanes && vBounds.map(({ lane, offset, size }) => {
           if (lane.hidden) return null;
-          const rotBuffer = Math.abs(config.labelRotation ?? 0) > 0 ? Math.ceil(Math.abs(config.labelRotation ?? 0) * 0.3) : 0;
           return (
-            <div
-              key={`hdr-bg-v-${lane.id}`}
-              style={{
-                position: 'absolute',
-                left: offset,
-                top: 0,
-                width: size,
-                height: (config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT) + rotBuffer,
-                backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
-                borderBottom: `2px solid ${lane.color}`,
-                pointerEvents: 'none',
-              }}
+            <LaneHeader
+              key={`hdr-vis-v-${lane.id}`}
+              laneId={lane.id}
+              label={lane.label}
+              color={lane.color}
+              colorOpacity={lane.colorOpacity}
+              orientation="vertical"
+              offset={offset}
+              size={size}
+              darkMode={darkMode}
+              fontSize={config.labelFontSize}
+              showLabel={lane.showLabel}
+              showColor={lane.showColor}
+              headerSize={V_HEADER_HEIGHT}
+              visualOnly
             />
           );
         })}
 
-        {/* ---- Matrix corner background (visual only) ---- */}
+        {/* ---- Matrix corner background + grip dots (visual only, behind nodes) ---- */}
         {isMatrix && (
           <div
             style={{
@@ -788,8 +779,19 @@ const SwimlaneLayer: React.FC = () => {
               borderRight: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
               borderBottom: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
               pointerEvents: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          />
+          >
+            <svg width={Math.min(20, H_HEADER_WIDTH - 4)} height={Math.min(20, V_HEADER_HEIGHT - 4)} viewBox="0 0 20 20" fill="none">
+              <circle cx="6" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+              <circle cx="14" cy="6" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+              <circle cx="6" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+              <circle cx="14" cy="14" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+              <circle cx="10" cy="10" r="1.5" fill={darkMode ? '#7e8d9f' : '#94a3b8'} />
+            </svg>
+          </div>
         )}
 
         {/* ---- Outer border ---- */}
@@ -925,7 +927,6 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
           <MatrixCornerHandle
             width={H_HEADER_WIDTH}
             height={V_HEADER_HEIGHT}
-            darkMode={darkMode}
             zoom={viewport.zoom}
           />
         )}
