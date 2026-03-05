@@ -336,9 +336,7 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
         cursor: 'move',
         pointerEvents: 'auto',
         zIndex: 11,
-        backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
-        borderRight: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
-        borderBottom: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
+        backgroundColor: 'transparent',
       }}
       onMouseDown={handleMouseDown}
     >
@@ -777,6 +775,23 @@ const SwimlaneLayer: React.FC = () => {
           );
         })}
 
+        {/* ---- Matrix corner background (visual only) ---- */}
+        {isMatrix && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: H_HEADER_WIDTH,
+              height: V_HEADER_HEIGHT,
+              backgroundColor: darkMode ? 'rgba(37,51,69,0.9)' : 'rgba(255,255,255,0.9)',
+              borderRight: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
+              borderBottom: `1px solid ${darkMode ? 'rgba(132,148,167,0.3)' : 'rgba(100,116,139,0.25)'}`,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+
         {/* ---- Outer border ---- */}
         {(() => {
           const cb = config.containerBorder;
@@ -904,6 +919,16 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
               />
             );
           })}
+
+        {/* Matrix corner move handle — same layer as headers for consistent interactivity */}
+        {hasHLanes && hasVLanes && (
+          <MatrixCornerHandle
+            width={H_HEADER_WIDTH}
+            height={V_HEADER_HEIGHT}
+            darkMode={darkMode}
+            zoom={viewport.zoom}
+          />
+        )}
       </div>
     </div>
   );
@@ -971,8 +996,7 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
   const headerOffsetY = hasHLanes ? (hasVLanes ? V_HEADER_HEIGHT : 0) : 0;
 
   // Move handle dimensions for all modes (matrix and non-matrix)
-  const moveHandleWidth = hasHLanes ? H_HEADER_WIDTH : Math.min(32, totalWidth);
-  const moveHandleHeight = hasVLanes ? V_HEADER_HEIGHT : Math.min(24, totalHeight);
+  // Move handle is now rendered in SwimlaneHeaderLayer
 
   return (
     <div
@@ -1141,13 +1165,7 @@ const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly
           />
         )}
 
-        {/* ---- Move handle (top-left corner for dragging the entire container) ---- */}
-        <MatrixCornerHandle
-          width={moveHandleWidth}
-          height={moveHandleHeight}
-          darkMode={darkMode}
-          zoom={viewport.zoom}
-        />
+        {/* Move handle is now rendered in SwimlaneHeaderLayer for correct z-ordering */}
         </>)}
       </div>
     </div>
