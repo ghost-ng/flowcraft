@@ -504,11 +504,19 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
     );
   }
 
+  // Select swimlane on single-click (deliberate action on header)
+  const handleSingleClick = useCallback((e: React.MouseEvent) => {
+    // Don't select on double-click (that edits label)
+    if (e.detail >= 2) return;
+    useSwimlaneStore.getState().setSwimlaneSelected(true);
+  }, []);
+
   // ---- Interactive mode: invisible content above ReactFlow (z:3) ----
   return (
     <>
       <div
         style={style}
+        onClick={handleSingleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         data-lane-header={laneId}

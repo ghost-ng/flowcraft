@@ -111,7 +111,7 @@ const ScreenshotOverlay: React.FC = () => {
       document.querySelectorAll<HTMLElement>('[data-export-ignore]').forEach(hideEl);
 
       // Pixel ratio for crisp capture
-      const pixelRatio = 2;
+      const pixelRatio = 4;
 
       // Capture the full viewport at high resolution
       let dataUrl: string;

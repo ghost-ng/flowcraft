@@ -27,6 +27,7 @@ import {
 } from '../../store/exportStore';
 import { useFlowStore } from '../../store/flowStore';
 import { useStyleStore } from '../../store/styleStore';
+import { useSwimlaneStore } from '../../store/swimlaneStore';
 import { getReactFlowInstance } from '../Canvas/FlowCanvas';
 import {
   runExport,
@@ -567,11 +568,11 @@ function hideForSelectionExport(
     if (!edgeId || !connectedEdgeIds.has(edgeId)) hideVis(el);
   });
 
-  // 6. Always hide the swimlane layer for selection scope.
+  // 6. Hide swimlane layers for selection scope — UNLESS the swimlane is selected.
   //    Swimlane layers are siblings of .react-flow inside [data-charthero-canvas-area].
-  //    Hide all direct children of the canvas wrapper that aren't .react-flow itself.
+  const swimlaneIsSelected = useSwimlaneStore.getState().swimlaneSelected;
   const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
-  if (canvasArea) {
+  if (canvasArea && !swimlaneIsSelected) {
     Array.from(canvasArea.children).forEach((child) => {
       const el = child as HTMLElement;
       if (!el.classList.contains('react-flow')) {
@@ -627,9 +628,16 @@ function overrideViewportForCapture(
   const targetNodes = scope === 'selected'
     ? allNodes.filter((n) => selectedNodeIds.includes(n.id))
     : allNodes;
-  if (targetNodes.length === 0) return null;
 
-  const bounds = getNodesBounds(targetNodes);
+  // When swimlane is selected and scope is 'selected', include all nodes
+  // (the swimlane visuals wrap the full diagram area)
+  const swimlaneIsSelected = useSwimlaneStore.getState().swimlaneSelected;
+  const effectiveNodes = (scope === 'selected' && swimlaneIsSelected && targetNodes.length === 0)
+    ? allNodes
+    : targetNodes;
+  if (effectiveNodes.length === 0) return null;
+
+  const bounds = getNodesBounds(effectiveNodes);
   const { width, height } = captureElement.getBoundingClientRect();
   const padding = scope === 'selected' ? 0.1 : 0.05;
   const { x, y, zoom } = getViewportForBounds(bounds, width, height, 0.1, 2, padding);
@@ -659,7 +667,8 @@ const ExportDialog: React.FC = () => {
   const nodeCount = useFlowStore((s) => s.nodes.length);
   const edgeCount = useFlowStore((s) => s.edges.length);
   const selectedNodeIds = useFlowStore((s) => s.selectedNodes);
-  const hasSelection = selectedNodeIds.length > 0;
+  const swimlaneSelected = useSwimlaneStore((s) => s.swimlaneSelected);
+  const hasSelection = selectedNodeIds.length > 0 || swimlaneSelected;
   // Scope: 'all' fits the entire diagram; 'selection' = current viewport; 'selected' = selected nodes only
   const [scope, setScope] = useState<'all' | 'selection' | 'selected'>('all');
   // Whether to export only the selected elements (no background/grid/minimap)

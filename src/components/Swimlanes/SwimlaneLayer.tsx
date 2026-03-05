@@ -287,6 +287,9 @@ const MatrixCornerHandle: React.FC<MatrixCornerHandleProps> = ({
       e.stopPropagation();
       e.preventDefault();
 
+      // Select swimlane on click (deliberate action on corner handle)
+      useSwimlaneStore.getState().setSwimlaneSelected(true);
+
       const startOffset = useSwimlaneStore.getState().containerOffset;
       startRef.current = {
         clientX: e.clientX,
