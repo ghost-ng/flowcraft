@@ -46,3 +46,4 @@ docs/
 dev/
 debug/
 .mcp.json
+test-results/.last-run.json
