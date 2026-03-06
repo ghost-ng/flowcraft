@@ -41,12 +41,10 @@ import {
 
 /**
  * Find the canvas element to capture.
- * Prefers `[data-charthero-capture-area]` which wraps banners + canvas area
- * so banners are included in exports. Falls back to canvas-area then .react-flow.
+ * Uses `[data-charthero-canvas-area]` which wraps swimlane layers + ReactFlow.
+ * Falls back to `.react-flow` if the wrapper isn't found.
  */
 export function getReactFlowElement(): HTMLElement {
-  const captureArea = document.querySelector<HTMLElement>('[data-charthero-capture-area]');
-  if (captureArea) return captureArea;
   const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
   if (canvasArea) return canvasArea;
   const container = document.querySelector<HTMLElement>('.react-flow');

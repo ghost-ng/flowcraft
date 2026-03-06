@@ -254,7 +254,7 @@ const PresentationOverlay: React.FC = () => {
       </svg>
 
       {/* Floating toolbar at bottom-center */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9995] flex items-center gap-1 px-3 py-2 rounded-xl shadow-2xl border backdrop-blur-md"
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10001] flex items-center gap-1 px-3 py-2 rounded-xl shadow-2xl border backdrop-blur-md"
         style={{
           backgroundColor: darkMode ? 'rgba(28,39,54,0.9)' : 'rgba(255,255,255,0.95)',
           borderColor: darkMode ? '#3a4a5c' : '#e2e8f0',
