@@ -130,6 +130,7 @@ const SHAPE_OPTIONS: { value: NodeShape; label: string }[] = [
 interface NodePropsTabProps {
   nodeId: string;
   data: FlowNodeData;
+  nodeType?: string;
   toggleAllSignal?: number;
 }
 
@@ -545,7 +546,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
   );
 };
 
-const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, toggleAllSignal }) => {
+const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, nodeType, toggleAllSignal }) => {
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -648,24 +649,26 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
 
       {!isSectionCollapsed('block') && (
         <>
-          {/* Shape type selector */}
-          <Field label="Shape">
-            <select
-              value={data.shape || 'rectangle'}
-              onChange={(e) => {
-                const newShape = e.target.value as NodeShape;
-                const { selectedNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
-                for (const nid of selectedNodes) {
-                  bulkUpdate(nid, { shape: newShape } as Partial<FlowNodeData>);
-                }
-              }}
-              className="w-full px-2 py-1.5 rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            >
-              {SHAPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </Field>
+          {/* Shape type selector — hidden for extension nodes */}
+          {nodeType !== 'extensionNode' && (
+            <Field label="Shape">
+              <select
+                value={data.shape || 'rectangle'}
+                onChange={(e) => {
+                  const newShape = e.target.value as NodeShape;
+                  const { selectedNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                  for (const nid of selectedNodes) {
+                    bulkUpdate(nid, { shape: newShape } as Partial<FlowNodeData>);
+                  }
+                }}
+                className="w-full px-2 py-1.5 rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              >
+                {SHAPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </Field>
+          )}
 
           {/* Block Size */}
           <Field label="Block Size">
@@ -1045,6 +1048,25 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
                   data-tooltip-left={`Align ${value.charAt(0).toUpperCase() + value.slice(1)}`}
                 >
                   {icon}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {/* Label position */}
+          <Field label="Label Position">
+            <div className="flex items-center gap-1">
+              {(['above', 'overlay', 'below'] as const).map((pos) => (
+                <button
+                  key={pos}
+                  onClick={() => update({ labelPosition: pos })}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer
+                    ${(data.labelPosition || (nodeType === 'extensionNode' ? 'below' : 'overlay')) === pos
+                      ? 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-800/15 dark:border-blue-500/50 dark:text-blue-400'
+                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-dk-border dark:text-dk-muted dark:hover:bg-dk-hover'
+                    }`}
+                >
+                  {pos.charAt(0).toUpperCase() + pos.slice(1)}
                 </button>
               ))}
             </div>
@@ -2667,6 +2689,7 @@ const PropertiesPanel: React.FC = () => {
           <NodePropsTab
             nodeId={selectedNode.id}
             data={selectedNode.data as FlowNodeData}
+            nodeType={selectedNode.type}
             toggleAllSignal={nodeToggleSignal}
           />
         ) : activePanelTab === 'edge' ? (
