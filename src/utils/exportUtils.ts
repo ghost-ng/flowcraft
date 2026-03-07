@@ -999,6 +999,51 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       ? hex(borderColorRaw)
       : darkenHex(fillColorRaw);
 
+    // ---------- Extension nodes: render SVG content as image ---------------
+    if (node.type === 'extensionNode' && d.svgContent) {
+      const svgContent = d.svgContent as string;
+      const base64 = btoa(unescape(encodeURIComponent(svgContent)));
+      const dataUri = `data:image/svg+xml;base64,${base64}`;
+      slide.addImage({ data: dataUri, x, y, w: wInch, h: hInch });
+
+      // Label text above or below the SVG image
+      const labelPos = (d.labelPosition as string) || 'bottom';
+      if (label) {
+        const labelH = 0.25;
+        const labelY = labelPos === 'top' ? y - labelH - 0.02 : y + hInch + 0.02;
+        slide.addText(label, {
+          x,
+          y: labelY,
+          w: wInch,
+          h: labelH,
+          fontSize: Math.max(6, finalFontSize),
+          color: textColor,
+          align: 'center',
+          valign: 'middle',
+          fontFace: fontFamily,
+          bold: isBold,
+        });
+      }
+
+      // Status pucks still apply to extension nodes
+      const pucks = getStatusIndicators(d);
+      for (const puck of pucks) {
+        if (puck.status === 'none') continue;
+        const puckSize = toW(puck.size || 12);
+        const pos = puckOffset(puck.position, wInch, hInch, puckSize);
+        const puckColor = hex(puck.color, '3b82f6');
+        const puckBorderColor = hex(puck.borderColor, puckColor);
+        slide.addShape('ellipse', {
+          x: x + pos.x, y: y + pos.y, w: puckSize, h: puckSize,
+          fill: { color: puckColor },
+          line: puck.borderWidth
+            ? { color: puckBorderColor, width: puck.borderWidth, dashType: toPptxDashType(puck.borderStyle) }
+            : undefined,
+        });
+      }
+      continue;
+    }
+
     const pptxShapeName = PPTX_SHAPE_MAP[d.shape];
     const svgRenderer = SVG_SHAPE_RENDERERS[d.shape];
 
@@ -1608,7 +1653,8 @@ export function importFromJson(
       'textAlign', 'icon', 'iconColor', 'iconBgColor', 'iconBorderColor', 'iconPosition',
       'borderStyle', 'groupId', 'linkGroupId', 'layerId', 'swimlaneId', 'notes',
       'completedBy', 'startOn',
-      'svgPath', 'svgViewBox', 'svgStrokeColor'] as const) {
+      'svgPath', 'svgViewBox', 'svgStrokeColor',
+      'svgContent', 'extensionPackId', 'extensionItemId', 'labelPosition'] as const) {
       if (typeof rawData[key] === 'string') {
         (nodeData as Record<string, unknown>)[key] = rawData[key];
       }
@@ -1678,10 +1724,11 @@ export function importFromJson(
         }));
     }
 
-    // Determine node type — only 'shapeNode' and 'groupNode' are registered in
-    // React Flow's nodeTypes map, so remap anything else to 'shapeNode'.
+    // Determine node type — 'shapeNode', 'groupNode', and 'extensionNode' are
+    // registered in React Flow's nodeTypes map, so remap anything else to 'shapeNode'.
     let type: string = 'shapeNode';
     if (shape === 'group') type = 'groupNode';
+    else if (r.type === 'extensionNode') type = 'extensionNode';
     else if (r.type === 'shapeNode' || r.type === 'groupNode') type = r.type as string;
 
     nodes.push({
