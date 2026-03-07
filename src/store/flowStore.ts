@@ -143,6 +143,14 @@ export interface FlowNodeData {
   connectorEdgeId?: string;
   /** Whether this endpoint is source or target */
   endpointRole?: 'source' | 'target';
+  /** Extension pack ID this node came from */
+  extensionPackId?: string;
+  /** Extension item ID within the pack */
+  extensionItemId?: string;
+  /** Raw SVG content for extension nodes (embedded for export portability) */
+  svgContent?: string;
+  /** Label position: above/below the shape or overlaid inside */
+  labelPosition?: 'above' | 'below' | 'overlay';
   [key: string]: unknown;
 }
 
