@@ -83,6 +83,11 @@ input[type="button"] {
   cursor: var(--cursor-select);
 }
 
+/* Consistent range slider colour across all panels */
+input[type="range"] {
+  accent-color: var(--color-primary);
+}
+
 /* Override Tailwind cursor utilities to use custom cursors app-wide */
 .cursor-pointer { cursor: var(--cursor-select) !important; }
 .cursor-grab    { cursor: var(--cursor-open-hand) !important; }

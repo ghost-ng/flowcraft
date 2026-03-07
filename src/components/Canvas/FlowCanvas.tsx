@@ -20,9 +20,10 @@ import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useDependencyStore } from '../../store/dependencyStore';
 import { diagramStyles } from '../../styles/diagramStyles';
-import { useSwimlaneStore } from '../../store/swimlaneStore';
+import { useSwimlaneStore, createDefaultContainer } from '../../store/swimlaneStore';
 import GenericShapeNode from './GenericShapeNode';
 import GroupNode from './GroupNode';
+import EndpointNode from './EndpointNode';
 import Ruler, { RulerCorner } from './Ruler';
 import StatusBar from './StatusBar';
 import { edgeTypes, MarkerDefs } from '../Edges';
@@ -74,6 +75,7 @@ const FORMAT_PAINTER_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.
 const nodeTypes: NodeTypes = {
   shapeNode: GenericShapeNode,
   groupNode: GroupNode,
+  endpointNode: EndpointNode,
 };
 
 const DEFAULT_EDGE_OPTIONS = {
@@ -98,48 +100,52 @@ function assignSwimlaneToNode(
   nodeW = 160,
   nodeH = 60,
 ) {
-  const { config, containerOffset } = useSwimlaneStore.getState();
-  const hLanes = config.horizontal;
-  const vLanes = config.vertical;
-  if (hLanes.length === 0 && vLanes.length === 0) return;
-
-  const localX = position.x - containerOffset.x;
-  const localY = position.y - containerOffset.y;
-
-  const hHeaderW = config.hHeaderWidth ?? 48;
-  const vHeaderH = config.vHeaderHeight ?? 32;
-
-  // Compute actual container dimensions so we don't assign nodes outside the swimlane
-  const collapsedSize = 32;
-  const totalHHeight = hLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0)
-    + (vLanes.length > 0 ? vHeaderH : 0);
-  const totalVWidth = vLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0)
-    + (hLanes.length > 0 ? hHeaderW : 0);
-
-  // Quick bounds check: if node center is outside the swimlane container, clear assignment
-  const cx = localX + nodeW / 2;
-  const cy = localY + nodeH / 2;
-  const containerW = vLanes.length > 0 ? totalVWidth : (hLanes.length > 0 ? hHeaderW + hLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0) : 0);
-  const containerH = hLanes.length > 0 ? totalHHeight : (vLanes.length > 0 ? vHeaderH + vLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0) : 0);
+  const { containers } = useSwimlaneStore.getState();
+  if (containers.length === 0) return;
 
   let assignedLaneId: string | null = null;
 
-  if (cx >= 0 && cy >= 0 && cx <= containerW && cy <= containerH) {
-    if (hLanes.length > 0) {
-      const headerOffset = vLanes.length > 0 ? vHeaderH : 0;
-      const laneDefs: LaneDefinition[] = hLanes.map((l) => ({
-        id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
-      }));
-      const boundaries = computeLaneBoundaries(laneDefs, 'horizontal', headerOffset);
-      assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
-    }
-    if (!assignedLaneId && vLanes.length > 0) {
-      const headerOffset = hLanes.length > 0 ? hHeaderW : 0;
-      const laneDefs: LaneDefinition[] = vLanes.map((l) => ({
-        id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
-      }));
-      const boundaries = computeLaneBoundaries(laneDefs, 'vertical', headerOffset);
-      assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
+  for (const container of containers) {
+    const { config, containerOffset } = container;
+    const hLanes = config.horizontal;
+    const vLanes = config.vertical;
+    if (hLanes.length === 0 && vLanes.length === 0) continue;
+
+    const localX = position.x - containerOffset.x;
+    const localY = position.y - containerOffset.y;
+
+    const hHeaderW = config.hHeaderWidth ?? 48;
+    const vHeaderH = config.vHeaderHeight ?? 32;
+
+    const collapsedSize = 32;
+    const totalHHeight = hLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0)
+      + (vLanes.length > 0 ? vHeaderH : 0);
+    const totalVWidth = vLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0)
+      + (hLanes.length > 0 ? hHeaderW : 0);
+
+    const cx = localX + nodeW / 2;
+    const cy = localY + nodeH / 2;
+    const containerW = vLanes.length > 0 ? totalVWidth : (hLanes.length > 0 ? hHeaderW + hLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0) : 0);
+    const containerH = hLanes.length > 0 ? totalHHeight : (vLanes.length > 0 ? vHeaderH + vLanes.reduce((sum, l) => sum + (l.collapsed ? collapsedSize : l.size), 0) : 0);
+
+    if (cx >= 0 && cy >= 0 && cx <= containerW && cy <= containerH) {
+      if (hLanes.length > 0) {
+        const headerOffset = vLanes.length > 0 ? vHeaderH : 0;
+        const laneDefs: LaneDefinition[] = hLanes.map((l) => ({
+          id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
+        }));
+        const boundaries = computeLaneBoundaries(laneDefs, 'horizontal', headerOffset);
+        assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
+      }
+      if (!assignedLaneId && vLanes.length > 0) {
+        const headerOffset = hLanes.length > 0 ? hHeaderW : 0;
+        const laneDefs: LaneDefinition[] = vLanes.map((l) => ({
+          id: l.id, label: l.label, size: l.size, collapsed: l.collapsed, order: l.order,
+        }));
+        const boundaries = computeLaneBoundaries(laneDefs, 'vertical', headerOffset);
+        assignedLaneId = getNodeLaneAssignment({ x: localX, y: localY }, { width: nodeW, height: nodeH }, boundaries);
+      }
+      if (assignedLaneId) break;
     }
   }
 
@@ -310,11 +316,11 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const highlightedChain = useDependencyStore((s) => s.highlightedChain);
 
   // Swimlane store
-  const hLanes = useSwimlaneStore((s) => s.config.horizontal);
-  const vLanes = useSwimlaneStore((s) => s.config.vertical);
-  const hasLanes = hLanes.length > 0 || vLanes.length > 0;
+  const containers = useSwimlaneStore((s) => s.containers);
+  const allHLanes = useMemo(() => containers.flatMap((c) => c.config.horizontal), [containers]);
+  const allVLanes = useMemo(() => containers.flatMap((c) => c.config.vertical), [containers]);
+  const hasLanes = allHLanes.length > 0 || allVLanes.length > 0;
   const setIsCreatingSwimlanes = useSwimlaneStore((s) => s.setIsCreating);
-  const swimlaneContainerOffset = useSwimlaneStore((s) => s.containerOffset);
 
   // Re-assign all nodes to swimlanes when lane config or container offset changes
   useEffect(() => {
@@ -327,15 +333,15 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       assignSwimlaneToNode(n.id, n.position, w, h);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hLanes, vLanes, swimlaneContainerOffset]);
+  }, [containers]);
 
   // Compute hidden lane IDs and filter nodes/edges for hidden lanes
   const hiddenLaneIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const lane of hLanes) if (lane.hidden) ids.add(lane.id);
-    for (const lane of vLanes) if (lane.hidden) ids.add(lane.id);
+    for (const lane of allHLanes) if (lane.hidden) ids.add(lane.id);
+    for (const lane of allVLanes) if (lane.hidden) ids.add(lane.id);
     return ids;
-  }, [hLanes, vLanes]);
+  }, [allHLanes, allVLanes]);
 
   const visibleNodes = useMemo(() => {
     if (hiddenLaneIds.size === 0) return nodes;
@@ -426,6 +432,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   const swimlaneDragRef = useRef<{
     dragNodeStartPos: { x: number; y: number };
     startContainerOffset: { x: number; y: number };
+    containerId: string;
   } | null>(null);
 
   // Context menu state
@@ -506,6 +513,81 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     (event: React.DragEvent) => {
       event.preventDefault();
       if (presentationMode) return;
+      // Handle connector drop — create two tiny endpoint nodes + edge
+      const connectorType = event.dataTransfer.getData('application/charthero-connector');
+      if (connectorType) {
+        const dropPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        const gap = 200;
+        const edgeId = `edge_${Date.now()}`;
+        const sourceId = nextId();
+        const targetId = nextId();
+        const sourceNode: FlowNode = {
+          id: sourceId,
+          type: 'endpointNode',
+          position: { x: dropPos.x - gap / 2, y: dropPos.y - 6 },
+          data: {
+            label: '',
+            shape: 'circle' as const,
+            width: 12,
+            height: 12,
+            isConnectorEndpoint: true,
+            connectorEdgeId: edgeId,
+            endpointRole: 'source',
+          },
+        };
+        const targetNode: FlowNode = {
+          id: targetId,
+          type: 'endpointNode',
+          position: { x: dropPos.x + gap / 2, y: dropPos.y - 6 },
+          data: {
+            label: '',
+            shape: 'circle' as const,
+            width: 12,
+            height: 12,
+            isConnectorEndpoint: true,
+            connectorEdgeId: edgeId,
+            endpointRole: 'target',
+          },
+        };
+        addNode(sourceNode);
+        addNode(targetNode);
+
+        const { edges, setEdges } = useFlowStore.getState();
+        const newEdge: FlowEdge = {
+          id: edgeId,
+          source: sourceId,
+          target: targetId,
+          sourceHandle: 'center',
+          targetHandle: 'center',
+          type: connectorType,
+          data: {},
+        };
+        setEdges([...edges, newEdge]);
+        // Select the edge (not the endpoint nodes)
+        useFlowStore.getState().setSelectedEdges([edgeId]);
+        useUIStore.getState().setDefaultEdgeType(connectorType);
+        return;
+      }
+
+      // Handle swimlane container drop — create a new swimlane container at drop position
+      const swimlaneDrop = event.dataTransfer.getData('application/charthero-swimlane');
+      if (swimlaneDrop) {
+        const dropPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        const swimStore = useSwimlaneStore.getState();
+        const newContainer = createDefaultContainer(dropPos);
+        swimStore.addContainer(newContainer);
+        swimStore.setActiveContainerId(newContainer.id);
+        // Signal that this is a drag-drop (create-new) workflow
+        useSwimlaneStore.setState({ creatingForContainerId: newContainer.id });
+        // Open creation dialog for this new container
+        swimStore.setIsCreating(true);
+        useUIStore.getState().setActivePanelTab('lane');
+        if (!useUIStore.getState().propertiesPanelOpen) {
+          useUIStore.getState().togglePropertiesPanel();
+        }
+        return;
+      }
+
       const shapeType = event.dataTransfer.getData('application/charthero-shape');
       if (!shapeType) return;
       log.debug('onDrop shape', shapeType);
@@ -671,6 +753,18 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     (event: React.MouseEvent, node: FlowNode) => {
       event.preventDefault();
       if (presentationMode) return;
+      // For connector endpoints, show the edge context menu instead
+      if ((node.data as FlowNodeData).isConnectorEndpoint) {
+        const edgeId = (node.data as FlowNodeData).connectorEdgeId as string | undefined;
+        const role = (node.data as FlowNodeData).endpointRole as 'source' | 'target' | undefined;
+        if (edgeId) {
+          setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId, closestEnd: role ?? 'source' });
+          setNodeMenu(null);
+          setCanvasMenu(null);
+          setSelectionMenu(null);
+        }
+        return;
+      }
       const selectedNodes = useFlowStore.getState().selectedNodes;
       if (selectedNodes.length > 1 && selectedNodes.includes(node.id)) {
         setSelectionMenu({ x: event.clientX, y: event.clientY, nodeIds: selectedNodes });
@@ -729,8 +823,10 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     setEdgeMenu(null);
     setSelectionMenu(null);
     useUIStore.getState().clearPuckSelection();
-    // Deselect swimlane on pane click (explicit user action)
-    useSwimlaneStore.getState().setSwimlaneSelected(false);
+    // Deselect all swimlane containers on pane click
+    for (const c of useSwimlaneStore.getState().containers) {
+      if (c.selected) useSwimlaneStore.getState().setSwimlaneSelected(false, c.id);
+    }
   }, []);
 
   // ---- Canvas context menu handlers ----------------------------------------
@@ -1045,6 +1141,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
+      // Skip interactions for connector endpoint nodes
+      if ((node.data as FlowNodeData).isConnectorEndpoint) return;
       // Link group add-mode: clicking a node adds it to the group
       const lgUI = useUIStore.getState();
       if (lgUI.linkGroupAddMode && lgUI.linkGroupEditorId) {
@@ -1124,12 +1222,14 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   const onNodeDragStart = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
-      // Swimlane drag: if swimlane is selected, save start state
+      // Swimlane drag: if any container is selected, save start state
       const slStore = useSwimlaneStore.getState();
-      if (slStore.swimlaneSelected) {
+      const selectedContainer = slStore.containers.find((c) => c.selected);
+      if (selectedContainer) {
         swimlaneDragRef.current = {
           dragNodeStartPos: { ...node.position },
-          startContainerOffset: { ...slStore.containerOffset },
+          startContainerOffset: { ...selectedContainer.containerOffset },
+          containerId: selectedContainer.id,
         };
       } else {
         swimlaneDragRef.current = null;
@@ -1174,7 +1274,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         useSwimlaneStore.getState().setContainerOffset({
           x: slDrag.startContainerOffset.x + dx,
           y: slDrag.startContainerOffset.y + dy,
-        });
+        }, slDrag.containerId);
       }
 
       // Link group drag
@@ -1238,6 +1338,12 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
   // Assign swimlane ID when a node is dropped
   const onNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: FlowNode) => {
+      // Skip swimlane assignment for connector endpoint nodes
+      if ((node.data as FlowNodeData).isConnectorEndpoint) {
+        setAlignmentGuides({ vertical: [], horizontal: [] });
+        setDistanceGuides({ gaps: [] });
+        return;
+      }
       const nodeW = (node.data as FlowNodeData).width || 160;
       const nodeH = (node.data as FlowNodeData).height || 60;
 
@@ -1304,45 +1410,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
     }
 
     const slStore = useSwimlaneStore.getState();
-    const { config: slConfig } = slStore;
-    const hasLanes = slConfig.horizontal.length > 0 || slConfig.vertical.length > 0;
 
-    if (hasLanes && selNodes.length >= 2) {
-      // Auto-select swimlane when marquee selection encompasses the ENTIRE swimlane.
-      // Check: bounding box of selected nodes must fully contain swimlane container bounds.
-      const offset = slStore.containerOffset;
-      // Compute swimlane total bounds in flow coordinates
-      const hLanes = slConfig.horizontal;
-      const vLanes = slConfig.vertical;
-      const hHeaderW = slConfig.hHeaderWidth ?? 48;
-      const vHeaderH = slConfig.vHeaderHeight ?? 32;
-      let slTotalW = 0;
-      let slTotalH = 0;
-      if (vLanes.length > 0) {
-        const vHeaderOffset = hLanes.length > 0 ? hHeaderW : 0;
-        let pos = vHeaderOffset;
-        for (const lane of vLanes) {
-          if (!lane.hidden) pos += lane.size;
-        }
-        slTotalW = pos;
-      } else {
-        slTotalW = 800;
-      }
-      if (hLanes.length > 0) {
-        const hHeaderOffset = vLanes.length > 0 ? vHeaderH : 0;
-        let pos = hHeaderOffset;
-        for (const lane of hLanes) {
-          if (!lane.hidden) pos += lane.size;
-        }
-        slTotalH = pos;
-      } else {
-        slTotalH = 800;
-      }
-      const slLeft = offset.x;
-      const slTop = offset.y;
-      const slRight = offset.x + slTotalW;
-      const slBottom = offset.y + slTotalH;
-
+    if (slStore.containers.length > 0 && selNodes.length >= 2) {
       // Compute bounding box of selected nodes
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (const n of selNodes) {
@@ -1355,9 +1424,45 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         if (n.position.y + h > maxY) maxY = n.position.y + h;
       }
 
-      // Selected nodes bbox must encompass the swimlane container
-      if (minX <= slLeft && minY <= slTop && maxX >= slRight && maxY >= slBottom) {
-        slStore.setSwimlaneSelected(true);
+      // Auto-select each container whose bounds are fully encompassed by selection
+      for (const container of slStore.containers) {
+        const { config: slConfig, containerOffset: offset } = container;
+        const hLanes = slConfig.horizontal;
+        const vLanes = slConfig.vertical;
+        if (hLanes.length === 0 && vLanes.length === 0) continue;
+
+        const hHeaderW = slConfig.hHeaderWidth ?? 48;
+        const vHeaderH = slConfig.vHeaderHeight ?? 32;
+        let slTotalW = 0;
+        let slTotalH = 0;
+        if (vLanes.length > 0) {
+          const vHeaderOffset = hLanes.length > 0 ? hHeaderW : 0;
+          let pos = vHeaderOffset;
+          for (const lane of vLanes) {
+            if (!lane.hidden) pos += lane.size;
+          }
+          slTotalW = pos;
+        } else {
+          slTotalW = slConfig.containerWidth ?? 800;
+        }
+        if (hLanes.length > 0) {
+          const hHeaderOffset = vLanes.length > 0 ? vHeaderH : 0;
+          let pos = hHeaderOffset;
+          for (const lane of hLanes) {
+            if (!lane.hidden) pos += lane.size;
+          }
+          slTotalH = pos;
+        } else {
+          slTotalH = slConfig.containerHeight ?? 400;
+        }
+        const slLeft = offset.x;
+        const slTop = offset.y;
+        const slRight = offset.x + slTotalW;
+        const slBottom = offset.y + slTotalH;
+
+        if (minX <= slLeft && minY <= slTop && maxX >= slRight && maxY >= slBottom) {
+          slStore.setSwimlaneSelected(true, container.id, true); // additive for marquee
+        }
       }
     }
   }, []);
@@ -1514,13 +1619,16 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           <MiniMap
             style={{ backgroundColor: resolveCanvasBackground(canvasColorOverride, darkMode, activeStyleId ? diagramStyles[activeStyleId] ?? null : null) }}
             nodeColor={(node) => {
+              if ((node.data as FlowNodeData)?.isConnectorEndpoint) return 'transparent';
               const color = (node.data as Record<string, unknown>)?.color as string | undefined;
               if (color) return color;
               const fill = activeStyle.nodeDefaults.fill;
               return fill === '#ffffff' || fill === '#fff' ? '#3b82f6' : fill;
             }}
             nodeComponent={({ x, y, width, height, color, id }) => {
-              const shape = (useFlowStore.getState().nodes.find((n) => n.id === id)?.data?.shape) as string | undefined;
+              const nodeData = useFlowStore.getState().nodes.find((n) => n.id === id)?.data;
+              if ((nodeData as FlowNodeData)?.isConnectorEndpoint) return null;
+              const shape = (nodeData?.shape) as string | undefined;
               const isCircular = shape === 'circle' || shape === 'ellipse';
               const isDiamond = shape === 'diamond';
               if (isCircular) {

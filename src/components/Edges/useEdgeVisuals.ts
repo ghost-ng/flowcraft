@@ -39,6 +39,8 @@ export interface EdgeVisuals {
   styleStrokeWidth: number | undefined;
   styleDash: string | undefined;
   styleOpacity: number | undefined;
+  // Waypoints for custom edge routing
+  waypoints: Array<{ x: number; y: number }> | undefined;
 }
 
 /**
@@ -79,6 +81,7 @@ export function useEdgeVisuals(edgeId: string): EdgeVisuals {
         styleStrokeWidth: st?.strokeWidth as number | undefined,
         styleDash: st?.strokeDasharray as string | undefined,
         styleOpacity: typeof st?.opacity === 'number' ? st.opacity : undefined,
+        waypoints: d?.waypoints as Array<{ x: number; y: number }> | undefined,
       };
     },
     [edgeId],

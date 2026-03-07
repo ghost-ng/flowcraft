@@ -137,6 +137,12 @@ export interface FlowNodeData {
   svgStrokeColor?: string;
   /** Freehand stroke width */
   svgStrokeWidth?: number;
+  /** True if this node is a connector endpoint (tiny handle dot) */
+  isConnectorEndpoint?: boolean;
+  /** Edge ID this endpoint anchors (for cascade delete) */
+  connectorEdgeId?: string;
+  /** Whether this endpoint is source or target */
+  endpointRole?: 'source' | 'target';
   [key: string]: unknown;
 }
 
@@ -160,6 +166,8 @@ export interface FlowEdgeData {
   dependencyType?: 'depends-on' | 'blocks' | 'related';
   /** Free-form notes / annotations for this edge */
   notes?: string;
+  /** Draggable waypoints for custom edge routing */
+  waypoints?: Array<{ x: number; y: number }>;
   [key: string]: unknown;
 }
 
@@ -244,17 +252,40 @@ export const useFlowStore = create<FlowState>()(
     // -- React Flow handlers ------------------------------------
     onNodesChange: (changes) => {
       set((state) => {
+        // Before applying changes, cascade-delete endpoint peers + edges
+        const removedIds = changes
+          .filter((c) => c.type === 'remove')
+          .map((c) => c.id);
+        const extraNodeRemovals = new Set<string>();
+        for (const id of removedIds) {
+          const node = state.nodes.find(n => n.id === id);
+          if (node?.data.isConnectorEndpoint) {
+            const edgeId = node.data.connectorEdgeId as string | undefined;
+            if (edgeId) {
+              const edge = state.edges.find(e => e.id === edgeId);
+              state.edges = state.edges.filter(e => e.id !== edgeId);
+              state.selectedEdges = state.selectedEdges.filter(eid => eid !== edgeId);
+              if (edge) {
+                const peerId = edge.source === id ? edge.target : edge.source;
+                const peer = state.nodes.find(n => n.id === peerId);
+                if (peer?.data.isConnectorEndpoint) extraNodeRemovals.add(peerId);
+              }
+            }
+          }
+        }
+
         state.nodes = applyNodeChanges(changes, state.nodes) as FlowNode[];
+        // Remove peer endpoint nodes that weren't in the original change set
+        if (extraNodeRemovals.size > 0) {
+          state.nodes = state.nodes.filter(n => !extraNodeRemovals.has(n.id));
+        }
 
         // Keep selectedNodes in sync with selection and removal changes
         const selectionChanges = changes.filter(
           (c): c is NodeChange<FlowNode> & { type: 'select' } => c.type === 'select',
         );
-        const removedIds = changes
-          .filter((c) => c.type === 'remove')
-          .map((c) => c.id);
 
-        if (selectionChanges.length > 0 || removedIds.length > 0) {
+        if (selectionChanges.length > 0 || removedIds.length > 0 || extraNodeRemovals.size > 0) {
           const selected = new Set(state.selectedNodes);
           for (const change of selectionChanges) {
             if (change.selected) {
@@ -264,6 +295,9 @@ export const useFlowStore = create<FlowState>()(
             }
           }
           for (const id of removedIds) {
+            selected.delete(id);
+          }
+          for (const id of extraNodeRemovals) {
             selected.delete(id);
           }
           state.selectedNodes = Array.from(selected);
@@ -281,7 +315,8 @@ export const useFlowStore = create<FlowState>()(
 
         state.edges = applyEdgeChanges(changes, state.edges) as FlowEdge[];
 
-        // Clean up dependency metadata for removed edges
+        // Clean up dependency metadata and connector endpoints for removed edges
+        const endpointIdsToRemove = new Set<string>();
         for (const edge of removedEdges) {
           if (!edge) continue;
           const targetNode = state.nodes.find(n => n.id === edge.target);
@@ -298,6 +333,13 @@ export const useFlowStore = create<FlowState>()(
               blockedBy: sourceNode.data.blockedBy.filter(id => id !== edge.target),
             };
           }
+          // Cascade-delete connector endpoint nodes
+          if (sourceNode?.data.isConnectorEndpoint) endpointIdsToRemove.add(edge.source);
+          if (targetNode?.data.isConnectorEndpoint) endpointIdsToRemove.add(edge.target);
+        }
+        if (endpointIdsToRemove.size > 0) {
+          state.nodes = state.nodes.filter(n => !endpointIdsToRemove.has(n.id));
+          state.selectedNodes = state.selectedNodes.filter(id => !endpointIdsToRemove.has(id));
         }
 
         const selectionChanges = changes.filter(
@@ -365,6 +407,26 @@ export const useFlowStore = create<FlowState>()(
     removeNode: (nodeId) => {
       log.debug('removeNode', nodeId);
       set((state) => {
+        const node = state.nodes.find(n => n.id === nodeId);
+
+        // If removing a connector endpoint, also remove the edge + peer endpoint
+        if (node?.data.isConnectorEndpoint) {
+          const edgeId = node.data.connectorEdgeId as string | undefined;
+          if (edgeId) {
+            const edge = state.edges.find(e => e.id === edgeId);
+            state.edges = state.edges.filter(e => e.id !== edgeId);
+            state.selectedEdges = state.selectedEdges.filter(id => id !== edgeId);
+            if (edge) {
+              const peerId = edge.source === nodeId ? edge.target : edge.source;
+              const peer = state.nodes.find(n => n.id === peerId);
+              if (peer?.data.isConnectorEndpoint) {
+                state.nodes = state.nodes.filter(n => n.id !== peerId);
+                state.selectedNodes = state.selectedNodes.filter(id => id !== peerId);
+              }
+            }
+          }
+        }
+
         state.nodes = state.nodes.filter((n) => n.id !== nodeId);
         // Also remove connected edges
         state.edges = state.edges.filter(

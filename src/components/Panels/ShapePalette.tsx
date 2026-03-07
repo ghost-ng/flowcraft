@@ -183,6 +183,68 @@ const arrowShapes: ShapeDefinition[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Connector type definitions (edges/lines)
+// ---------------------------------------------------------------------------
+
+interface ConnectorTypeDef {
+  type: string;
+  label: string;
+  icon: React.ReactNode;
+}
+
+/** Arrowhead tip rendered at the end of each connector icon */
+const arrowTip = (x: number, y: number, angle: number) => (
+  <polygon
+    points="-5,-3 0,0 -5,3"
+    fill="currentColor"
+    transform={`translate(${x},${y}) rotate(${angle})`}
+  />
+);
+
+const connectorTypes: ConnectorTypeDef[] = [
+  {
+    type: 'smoothstep',
+    label: 'Smooth Step',
+    icon: mkIcon(
+      <>
+        <path d="M4 24 C4 24 4 16 16 16 C28 16 28 8 28 8" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        {arrowTip(28, 8, -90)}
+      </>,
+    ),
+  },
+  {
+    type: 'bezier',
+    label: 'Bezier',
+    icon: mkIcon(
+      <>
+        <path d="M4 24 C4 8 28 24 28 8" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        {arrowTip(28, 8, -70)}
+      </>,
+    ),
+  },
+  {
+    type: 'step',
+    label: 'Step',
+    icon: mkIcon(
+      <>
+        <path d="M4 24 L4 16 L28 16 L28 8" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        {arrowTip(28, 8, -90)}
+      </>,
+    ),
+  },
+  {
+    type: 'straight',
+    label: 'Straight',
+    icon: mkIcon(
+      <>
+        <line x1="4" y1="24" x2="28" y2="8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        {arrowTip(28, 8, -45)}
+      </>,
+    ),
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Draggable shape item
 // ---------------------------------------------------------------------------
 
@@ -309,6 +371,8 @@ const ShapePalette: React.FC = () => {
   const setSelectedPaletteShape = useUIStore((s) => s.setSelectedPaletteShape);
   const drawingMode = useUIStore((s) => s.drawingMode);
   const setDrawingMode = useUIStore((s) => s.setDrawingMode);
+  const defaultEdgeType = useUIStore((s) => s.defaultEdgeType);
+  const setDefaultEdgeType = useUIStore((s) => s.setDefaultEdgeType);
   const markerColor = useUIStore((s) => s.markerColor);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [markerPickerOpen, setMarkerPickerOpen] = useState(false);
@@ -366,6 +430,33 @@ const ShapePalette: React.FC = () => {
 
               {arrowShapes.map((shape) => (
                 <ShapeItem key={shape.type} shape={shape} isSelected={selectedPaletteShape === shape.type} onSelect={handleShapeSelect} />
+              ))}
+
+              {/* Connectors section separator */}
+              <div className="w-full border-t border-border dark:border-dk-border my-1" />
+
+              {connectorTypes.map((ct) => (
+                <div
+                  key={ct.type}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/charthero-connector', ct.type);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onClick={() => setDefaultEdgeType(ct.type)}
+                  data-tooltip-right={ct.label}
+                  style={{ cursor: CURSOR_OPEN_HAND }}
+                  className={`
+                    relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                    transition-all duration-100
+                    hover:bg-primary/10 hover:scale-105 active:scale-95
+                    ${defaultEdgeType === ct.type
+                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15 text-blue-600 dark:text-blue-400'
+                      : 'text-text-muted hover:text-primary'}
+                  `}
+                >
+                  {ct.icon}
+                </div>
               ))}
 
               {/* Marker (freehand drawing) button */}
@@ -430,8 +521,14 @@ const ShapePalette: React.FC = () => {
                 </div>
               </div>
 
-              {/* Swimlanes button */}
-              <button
+              {/* Swimlanes — drag to create new container */}
+              <div
+                draggable
+                data-swimlane-action
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/charthero-swimlane', 'swimlane');
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
                 onClick={() => {
                   const store = useSwimlaneStore.getState();
                   store.setIsCreating(true);
@@ -440,13 +537,16 @@ const ShapePalette: React.FC = () => {
                     useUIStore.getState().togglePropertiesPanel();
                   }
                 }}
-                data-tooltip-right="Swimlanes"
+                data-tooltip-right="Click: add lanes · Drag: new container"
+                style={{ cursor: CURSOR_OPEN_HAND }}
                 className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
-                           transition-all duration-100
-                           hover:bg-primary/10 text-text-muted hover:text-primary cursor-pointer"
+                           transition-all duration-100 group
+                           hover:bg-primary/10 hover:scale-105 active:scale-95"
               >
-                <Rows3 size={26} />
-              </button>
+                <div className="text-text-muted group-hover:text-primary transition-colors">
+                  <Rows3 size={26} />
+                </div>
+              </div>
             </div>
           </div>
         </div>

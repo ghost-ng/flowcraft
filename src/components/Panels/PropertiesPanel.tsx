@@ -26,7 +26,7 @@ import {
   icons,
 } from 'lucide-react';
 
-import { useFlowStore, type FlowNodeData, type FlowEdgeData, type StatusIndicator, getStatusIndicators, newPuckId } from '../../store/flowStore';
+import { useFlowStore, type FlowNodeData, type FlowEdgeData, type NodeShape, type StatusIndicator, getStatusIndicators, newPuckId } from '../../store/flowStore';
 import { useUIStore, type PanelTab } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { DependencyPanel } from '../Dependencies';
@@ -102,6 +102,28 @@ const ResetIcon: React.FC<{ visible: boolean; onReset: () => void }> = ({ visibl
 };
 
 // ---------------------------------------------------------------------------
+// Shape options for the shape picker dropdown
+// ---------------------------------------------------------------------------
+
+/** Shapes available in the shape picker — matches the palette + renderable shapes only */
+const SHAPE_OPTIONS: { value: NodeShape; label: string }[] = [
+  { value: 'rectangle', label: 'Rectangle' },
+  { value: 'roundedRectangle', label: 'Rounded Rect' },
+  { value: 'diamond', label: 'Diamond' },
+  { value: 'circle', label: 'Circle' },
+  { value: 'parallelogram', label: 'Parallelogram' },
+  { value: 'document', label: 'Document' },
+  { value: 'hexagon', label: 'Hexagon' },
+  { value: 'cloud', label: 'Cloud' },
+  { value: 'stickyNote', label: 'Sticky Note' },
+  { value: 'textbox', label: 'Text Box' },
+  { value: 'blockArrow', label: 'Block Arrow' },
+  { value: 'chevronArrow', label: 'Chevron Arrow' },
+  { value: 'doubleArrow', label: 'Double Arrow' },
+  { value: 'circularArrow', label: 'Circular Arrow' },
+];
+
+// ---------------------------------------------------------------------------
 // Node properties tab
 // ---------------------------------------------------------------------------
 
@@ -114,7 +136,7 @@ interface NodePropsTabProps {
 const SectionHeader: React.FC<{ label: string; collapsed: boolean; onToggle: () => void }> = ({ label, collapsed, onToggle }) => (
   <button
     onClick={onToggle}
-    className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-wider text-text-muted border-b border-border pb-1 mt-1 cursor-pointer hover:text-text transition-colors"
+    className="flex items-center justify-between w-full text-xs font-bold uppercase tracking-wider text-text dark:text-dk-text border-b border-border pb-1.5 mt-2 cursor-pointer hover:text-primary transition-colors"
   >
     {label}
     <ChevronDown
@@ -529,25 +551,22 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   const toggleSection = useCallback((section: string) => {
-    setAllExpanded((prevAll) => {
-      if (prevAll !== null) {
-        // Sync collapsedSections to match the current allExpanded override
-        // before applying the individual toggle, so other sections stay put
-        const allCollapsed = !prevAll;
-        setCollapsedSections({
-          block: allCollapsed,
-          bodyStyle: allCollapsed,
-          label: allCollapsed,
-          icon: allCollapsed,
-          status: allCollapsed,
-          [section]: !allCollapsed, // toggle the clicked section
-        });
-      } else {
-        setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-      }
-      return null; // Clear override — individual states now govern
-    });
-  }, []);
+    // When allExpanded override is active, sync individual states first
+    if (allExpanded !== null) {
+      const allCollapsed = !allExpanded;
+      setCollapsedSections({
+        block: allCollapsed,
+        bodyStyle: allCollapsed,
+        label: allCollapsed,
+        icon: allCollapsed,
+        status: allCollapsed,
+        [section]: !allCollapsed, // toggle the clicked section
+      });
+      setAllExpanded(null); // Clear override — individual states now govern
+    } else {
+      setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+    }
+  }, [allExpanded]);
 
   // Auto-expand relevant sections based on node properties when selection changes
   useEffect(() => {
@@ -629,12 +648,23 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, to
 
       {!isSectionCollapsed('block') && (
         <>
-          {/* Shape type display */}
+          {/* Shape type selector */}
           <Field label="Shape">
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-sm capitalize">
-              <ChevronRight size={14} className="text-text-muted" />
-              {data.shape || 'rectangle'}
-            </div>
+            <select
+              value={data.shape || 'rectangle'}
+              onChange={(e) => {
+                const newShape = e.target.value as NodeShape;
+                const { selectedNodes, updateNodeData: bulkUpdate } = useFlowStore.getState();
+                for (const nid of selectedNodes) {
+                  bulkUpdate(nid, { shape: newShape } as Partial<FlowNodeData>);
+                }
+              }}
+              className="w-full px-2 py-1.5 rounded bg-slate-50 dark:bg-dk-hover dark:text-dk-text border border-border dark:border-dk-border text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              {SHAPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </Field>
 
           {/* Block Size */}
@@ -1344,8 +1374,8 @@ const DataTab: React.FC<DataTabProps> = React.memo(({ nodeId, data, position, me
   // Resolve swimlane label from ID
   const swimlaneLabel = (() => {
     if (!data.swimlaneId) return 'None';
-    const { config } = useSwimlaneStore.getState();
-    const allLanes = [...config.horizontal, ...config.vertical];
+    const { containers } = useSwimlaneStore.getState();
+    const allLanes = containers.flatMap((c) => [...c.config.horizontal, ...c.config.vertical]);
     const lane = allLanes.find((l) => l.id === data.swimlaneId);
     return lane ? lane.label : 'None';
   })();
@@ -1610,7 +1640,10 @@ const BORDER_STYLE_OPTIONS: { value: BorderStyleType; label: string }[] = [
 ];
 
 const SwimlanePanel: React.FC = React.memo(() => {
-  const config = useSwimlaneStore((s) => s.config);
+  const config = useSwimlaneStore((s) => {
+    const c = s.containers.find((c) => c.id === s.activeContainerId);
+    return c?.config ?? { orientation: 'horizontal' as const, containerTitle: '', horizontal: [], vertical: [] };
+  });
   const addLane = useSwimlaneStore((s) => s.addLane);
   const removeLane = useSwimlaneStore((s) => s.removeLane);
   const updateLane = useSwimlaneStore((s) => s.updateLane);
@@ -2488,10 +2521,12 @@ const PropertiesPanel: React.FC = () => {
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
 
-  // Find the first selected node
+  // Find the first selected node (skip connector endpoint nodes)
   const selectedNode = useMemo(() => {
     if (selectedNodes.length === 0) return null;
-    return nodes.find((n) => n.id === selectedNodes[0]) ?? null;
+    const node = nodes.find((n) => n.id === selectedNodes[0]) ?? null;
+    if (node?.data.isConnectorEndpoint) return null;
+    return node;
   }, [selectedNodes, nodes]);
 
   // Find the first selected edge
@@ -2508,21 +2543,26 @@ const PropertiesPanel: React.FC = () => {
   const [edgeToggleSignal, setEdgeToggleSignal] = useState(0);
 
   // Auto-switch panel tab when selection changes (not on manual tab switch)
-  const swimlaneSelected = useSwimlaneStore((s) => s.swimlaneSelected);
+  const swimlaneSelected = useSwimlaneStore((s) => s.containers.some((c) => c.selected));
   const prevSelRef = useRef({ nodes: selectedNodes.length, edges: selectedEdges.length, swimlane: false });
   useEffect(() => {
     const prev = prevSelRef.current;
     const changed = selectedNodes.length !== prev.nodes || selectedEdges.length !== prev.edges || swimlaneSelected !== prev.swimlane;
     prevSelRef.current = { nodes: selectedNodes.length, edges: selectedEdges.length, swimlane: swimlaneSelected };
     if (!changed) return;
+    // Check if all selected nodes are connector endpoints (treat as edge selection)
+    const allEndpoints = selectedNodes.length > 0 && selectedNodes.every(id => {
+      const n = nodes.find(nn => nn.id === id);
+      return n?.data.isConnectorEndpoint;
+    });
     if (swimlaneSelected && selectedNodes.length === 0 && selectedEdges.length === 0) {
       setActivePanelTab('lane');
-    } else if (selectedEdges.length > 0) {
+    } else if (selectedEdges.length > 0 || allEndpoints) {
       setActivePanelTab('edge');
     } else if (selectedNodes.length > 0) {
       setActivePanelTab('node');
     }
-  }, [selectedEdges.length, selectedNodes.length, swimlaneSelected, activePanelTab, setActivePanelTab]);
+  }, [selectedEdges.length, selectedNodes, nodes, swimlaneSelected, activePanelTab, setActivePanelTab]);
 
   return (
     <div className="flex shrink-0">

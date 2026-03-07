@@ -100,7 +100,7 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   const darkMode = useStyleStore((s) => s.darkMode);
   const canvasColorOverride = useStyleStore((s) => s.canvasColorOverride);
   const setCanvasColorOverride = useStyleStore((s) => s.setCanvasColorOverride);
-  const hasLanes = useSwimlaneStore((s) => s.config.horizontal.length > 0 || s.config.vertical.length > 0);
+  const hasLanes = useSwimlaneStore((s) => s.containers.some((c) => c.config.horizontal.length > 0 || c.config.vertical.length > 0));
   const menuRef = useRef<HTMLDivElement>(null);
   const [showCanvasColorSub, setShowCanvasColorSub] = useState(false);
   const canvasColorItemRef = useRef<HTMLDivElement>(null);
@@ -175,7 +175,7 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
         <MenuItem
           icon={<Trash2 size={14} />}
           label="Delete Swimlanes"
-          onClick={() => { useSwimlaneStore.getState().clearAllLanes(); onClose(); }}
+          onClick={() => { useSwimlaneStore.getState().clearAllContainers(); onClose(); }}
           darkMode={darkMode}
         />
       )}

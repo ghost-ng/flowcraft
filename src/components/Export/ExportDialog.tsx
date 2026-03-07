@@ -570,7 +570,7 @@ function hideForSelectionExport(
 
   // 6. Hide swimlane layers for selection scope — UNLESS the swimlane is selected.
   //    Swimlane layers are siblings of .react-flow inside [data-charthero-canvas-area].
-  const swimlaneIsSelected = useSwimlaneStore.getState().swimlaneSelected;
+  const swimlaneIsSelected = useSwimlaneStore.getState().containers.some((c) => c.selected);
   const canvasArea = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
   if (canvasArea && !swimlaneIsSelected) {
     Array.from(canvasArea.children).forEach((child) => {
@@ -631,7 +631,7 @@ function overrideViewportForCapture(
     : allNodes;
 
   // When swimlane is selected and scope is 'selected', include all nodes
-  const swimlaneIsSelected = useSwimlaneStore.getState().swimlaneSelected;
+  const swimlaneIsSelected = useSwimlaneStore.getState().containers.some((c) => c.selected);
   const effectiveNodes = (scope === 'selected' && swimlaneIsSelected && targetNodes.length === 0)
     ? allNodes
     : targetNodes;
@@ -641,32 +641,32 @@ function overrideViewportForCapture(
 
   // Extend bounds to include swimlane container when lanes exist
   const slState = useSwimlaneStore.getState();
-  const hasLanes = slState.config.horizontal.length > 0 || slState.config.vertical.length > 0;
+  const hasLanes = slState.containers.some(c => c.config.horizontal.length > 0 || c.config.vertical.length > 0);
   if (hasLanes && scope === 'all') {
-    const co = slState.containerOffset;
-    // Compute swimlane total size from lane items
-    const hLanes = slState.config.horizontal.filter(l => !l.hidden);
-    const vLanes = slState.config.vertical.filter(l => !l.hidden);
-    const hHeaderW = slState.config.hHeaderWidth ?? 48;
-    const vHeaderH = slState.config.vHeaderHeight ?? 32;
-    const totalH = hLanes.reduce((s, l) => s + (l.collapsed ? 32 : l.size), 0);
-    const totalW = vLanes.reduce((s, l) => s + (l.collapsed ? 32 : l.size), 0);
-    const slWidth = vLanes.length > 0 ? totalW : (slState.config.containerWidth ?? 800);
-    const slHeight = hLanes.length > 0 ? totalH : (slState.config.containerHeight ?? 400);
-    // Swimlane bounding box in flow coordinates (include headers)
-    const slLeft = co.x - (hLanes.length > 0 ? hHeaderW : 0);
-    const slTop = co.y - (vLanes.length > 0 ? vHeaderH : 0);
-    const slRight = co.x + slWidth;
-    const slBottom = co.y + slHeight;
-    // Extend bounds to encompass the swimlane container
-    const bLeft = Math.min(bounds.x, slLeft);
-    const bTop = Math.min(bounds.y, slTop);
-    const bRight = Math.max(bounds.x + bounds.width, slRight);
-    const bBottom = Math.max(bounds.y + bounds.height, slBottom);
-    bounds.x = bLeft;
-    bounds.y = bTop;
-    bounds.width = bRight - bLeft;
-    bounds.height = bBottom - bTop;
+    for (const container of slState.containers) {
+      const co = container.containerOffset;
+      const cfg = container.config;
+      const hLanes = cfg.horizontal.filter(l => !l.hidden);
+      const vLanes = cfg.vertical.filter(l => !l.hidden);
+      const hHeaderW = cfg.hHeaderWidth ?? 48;
+      const vHeaderH = cfg.vHeaderHeight ?? 32;
+      const totalH = hLanes.reduce((s, l) => s + (l.collapsed ? 32 : l.size), 0);
+      const totalW = vLanes.reduce((s, l) => s + (l.collapsed ? 32 : l.size), 0);
+      const slWidth = vLanes.length > 0 ? totalW : (cfg.containerWidth ?? 800);
+      const slHeight = hLanes.length > 0 ? totalH : (cfg.containerHeight ?? 400);
+      const slLeft = co.x - (hLanes.length > 0 ? hHeaderW : 0);
+      const slTop = co.y - (vLanes.length > 0 ? vHeaderH : 0);
+      const slRight = co.x + slWidth;
+      const slBottom = co.y + slHeight;
+      const bLeft = Math.min(bounds.x, slLeft);
+      const bTop = Math.min(bounds.y, slTop);
+      const bRight = Math.max(bounds.x + bounds.width, slRight);
+      const bBottom = Math.max(bounds.y + bounds.height, slBottom);
+      bounds.x = bLeft;
+      bounds.y = bTop;
+      bounds.width = bRight - bLeft;
+      bounds.height = bBottom - bTop;
+    }
   }
 
   const { width, height } = captureElement.getBoundingClientRect();
@@ -678,13 +678,15 @@ function overrideViewportForCapture(
 
   // Also override swimlane layer transforms — they compute their own transform
   // from useViewport() React state, but we only changed the DOM. Recompute to match.
-  const containerOffset = slState.containerOffset;
-  const swimlaneTransform = `translate(${x + containerOffset.x * zoom}px, ${y + containerOffset.y * zoom}px) scale(${zoom})`;
+  // Override swimlane viewport transforms for each container
   const swimlaneVpEls = document.querySelectorAll<HTMLElement>('[data-swimlane-viewport]');
   const originalSwimlaneTransforms: string[] = [];
-  swimlaneVpEls.forEach((el) => {
+  swimlaneVpEls.forEach((el, idx) => {
     originalSwimlaneTransforms.push(el.style.transform);
-    el.style.transform = swimlaneTransform;
+    // Each swimlane-viewport element corresponds to a container; use its existing offset from data attribute or fallback
+    const container = slState.containers[idx];
+    const co = container?.containerOffset ?? { x: 0, y: 0 };
+    el.style.transform = `translate(${x + co.x * zoom}px, ${y + co.y * zoom}px) scale(${zoom})`;
   });
 
   // Temporarily remove overflow:hidden from swimlane layer roots so content isn't clipped
@@ -724,7 +726,7 @@ const ExportDialog: React.FC = () => {
   const nodeCount = useFlowStore((s) => s.nodes.length);
   const edgeCount = useFlowStore((s) => s.edges.length);
   const selectedNodeIds = useFlowStore((s) => s.selectedNodes);
-  const swimlaneSelected = useSwimlaneStore((s) => s.swimlaneSelected);
+  const swimlaneSelected = useSwimlaneStore((s) => s.containers.some((c) => c.selected));
   const hasSelection = selectedNodeIds.length > 0 || swimlaneSelected;
   // Scope: 'all' fits the entire diagram; 'selection' = current viewport; 'selected' = selected nodes only
   const [scope, setScope] = useState<'all' | 'selection' | 'selected'>('all');

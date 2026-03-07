@@ -554,11 +554,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
       setNodes([]);
       setEdges([]);
       // Reset swimlanes
+      useSwimlaneStore.getState().clearAllContainers();
       useSwimlaneStore.setState({
-        config: { orientation: 'horizontal', containerTitle: '', horizontal: [], vertical: [] },
         isCreating: false,
         editingLaneId: null,
-        containerOffset: { x: 0, y: 0 },
       });
       // Reset legends
       useLegendStore.getState().resetLegend('node');
@@ -579,7 +578,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
   const handleDeselectAll = useCallback(() => {
     clearSelection();
-    useSwimlaneStore.getState().setSwimlaneSelected(false);
+    const containers = useSwimlaneStore.getState().containers;
+    for (const c of containers) useSwimlaneStore.getState().setSwimlaneSelected(false, c.id);
   }, [clearSelection]);
 
   const handleSelectAll = useCallback(() => {

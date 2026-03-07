@@ -355,8 +355,7 @@ export function seedDocFromStores(doc: Y.Doc): void {
     // Sync secondary stores as atomic JSON
     const swimlanesMap = getSwimlanesMap(doc);
     const swimState = useSwimlaneStore.getState();
-    swimlanesMap.set('config', JSON.parse(JSON.stringify(swimState.config)));
-    swimlanesMap.set('containerOffset', JSON.parse(JSON.stringify(swimState.containerOffset)));
+    swimlanesMap.set('containers', JSON.parse(JSON.stringify(swimState.containers)));
 
     const legendsMap = getLegendsMap(doc);
     const legendState = useLegendStore.getState();
@@ -422,11 +421,8 @@ export function bindStores(doc: Y.Doc): () => void {
 
   const unsubSwimlane = useSwimlaneStore.subscribe((state, prevState) => {
     if (_isRemoteUpdate) return;
-    if (state.config !== prevState.config) {
-      swimlanesMap.set('config', JSON.parse(JSON.stringify(state.config)));
-    }
-    if (state.containerOffset !== prevState.containerOffset) {
-      swimlanesMap.set('containerOffset', JSON.parse(JSON.stringify(state.containerOffset)));
+    if (state.containers !== prevState.containers) {
+      swimlanesMap.set('containers', JSON.parse(JSON.stringify(state.containers)));
     }
   });
   disposers.push(unsubSwimlane);
@@ -510,13 +506,13 @@ export function bindStores(doc: Y.Doc): () => void {
     if (transaction.origin === 'local') return;
     _isRemoteUpdate = true;
     try {
-      const config = swimlanesMap.get('config');
-      const offset = swimlanesMap.get('containerOffset');
-      if (config) {
-        useSwimlaneStore.setState({ config: JSON.parse(JSON.stringify(config)) });
-      }
-      if (offset) {
-        useSwimlaneStore.setState({ containerOffset: JSON.parse(JSON.stringify(offset)) });
+      const containers = swimlanesMap.get('containers');
+      if (containers) {
+        const parsed = JSON.parse(JSON.stringify(containers));
+        useSwimlaneStore.setState({
+          containers: parsed,
+          activeContainerId: parsed[0]?.id ?? null,
+        });
       }
     } finally {
       _isRemoteUpdate = false;

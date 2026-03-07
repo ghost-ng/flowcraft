@@ -87,13 +87,18 @@ const LaneResizeHandle: React.FC<LaneResizeHandleProps> = ({
       e.preventDefault();
 
       const store = useSwimlaneStore.getState();
-      const lane = store
-        .config[orientation === 'horizontal' ? 'horizontal' : 'vertical']
-        .find((l) => l.id === laneId);
+      // Find the lane across all containers
+      let lane: { size: number } | undefined;
+      let activeOffset = { x: 0, y: 0 };
+      for (const c of store.containers) {
+        const lanes = c.config[orientation === 'horizontal' ? 'horizontal' : 'vertical'];
+        const found = lanes.find((l: { id: string }) => l.id === laneId);
+        if (found) { lane = found; activeOffset = c.containerOffset; break; }
+      }
       if (!lane) return;
 
       const clientPos = orientation === 'horizontal' ? e.clientY : e.clientX;
-      startRef.current = { clientPos, startSize: lane.size, startOffset: { ...store.containerOffset } };
+      startRef.current = { clientPos, startSize: lane.size, startOffset: { ...activeOffset } };
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         if (!startRef.current) return;
@@ -301,9 +306,10 @@ const ContainerEdgeResizeHandle: React.FC<ContainerEdgeResizeHandleProps> = ({
       e.preventDefault();
 
       const store = useSwimlaneStore.getState();
+      const activeC = store.containers.find((c) => c.id === store.activeContainerId);
       const clientPos = isVerticalEdge ? e.clientY : e.clientX;
       const startSize = isVerticalEdge ? totalHeight : totalWidth;
-      startRef.current = { clientPos, startSize, startOffset: { ...store.containerOffset } };
+      startRef.current = { clientPos, startSize, startOffset: { ...(activeC?.containerOffset ?? { x: 0, y: 0 }) } };
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         if (!startRef.current) return;
@@ -409,9 +415,14 @@ const ContainerDragHandle: React.FC<ContainerDragHandleProps> = ({
       e.preventDefault();
 
       // Select swimlane on click (deliberate action on corner handle)
-      useSwimlaneStore.getState().setSwimlaneSelected(true);
+      const activeId = useSwimlaneStore.getState().activeContainerId;
+      if (activeId) {
+        useSwimlaneStore.getState().setSwimlaneSelected(true, activeId);
+        useUIStore.getState().setActivePanelTab('lane');
+      }
 
-      const startOffset = useSwimlaneStore.getState().containerOffset;
+      const activeC = useSwimlaneStore.getState().containers.find((c) => c.id === activeId);
+      const startOffset = activeC?.containerOffset ?? { x: 0, y: 0 };
       startRef.current = {
         clientX: e.clientX,
         clientY: e.clientY,
@@ -526,10 +537,11 @@ const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
       e.preventDefault();
 
       const store = useSwimlaneStore.getState();
+      const activeC = store.containers.find((c) => c.id === store.activeContainerId);
       startRef.current = {
         clientX: e.clientX,
         clientY: e.clientY,
-        startOffset: { ...store.containerOffset },
+        startOffset: { ...(activeC?.containerOffset ?? { x: 0, y: 0 }) },
         startWidth: totalWidth,
         startHeight: totalHeight,
       };
@@ -575,11 +587,12 @@ const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
         const laneAreaHeight = newHeight - headerOffsetY;
 
         // Proportionally resize vertical lanes (width)
-        if (laneAreaWidth > 0 && store.config.vertical.length > 0) {
+        const activeConfig = store.containers.find((c) => c.id === store.activeContainerId)?.config;
+        if (laneAreaWidth > 0 && activeConfig && activeConfig.vertical.length > 0) {
           store.resizeLanes('vertical', laneAreaWidth);
         }
         // Proportionally resize horizontal lanes (height)
-        if (laneAreaHeight > 0 && store.config.horizontal.length > 0) {
+        if (laneAreaHeight > 0 && activeConfig && activeConfig.horizontal.length > 0) {
           store.resizeLanes('horizontal', laneAreaHeight);
         }
 
@@ -665,54 +678,50 @@ const CornerResizeHandle: React.FC<CornerResizeHandleProps> = ({
 // ---------------------------------------------------------------------------
 
 const SwimlaneLayer: React.FC = () => {
-  const config = useSwimlaneStore((s) => s.config);
-  const containerOffset = useSwimlaneStore((s) => s.containerOffset);
+  const containers = useSwimlaneStore((s) => s.containers);
   const darkMode = useStyleStore((s) => s.darkMode);
   const viewport = useViewport();
 
-  const hLanes = config.horizontal;
-  const vLanes = config.vertical;
-  const hasHLanes = hLanes.length > 0;
-  const hasVLanes = vLanes.length > 0;
-
-  const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
-  const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
-
-  // Determine the active rendering mode
-  const isMatrix = hasHLanes && hasVLanes;
-
-  // Compute lane bounds
-  const hBounds = useMemo(() => {
-    if (!hasHLanes) return [];
-    const headerOffset = hasVLanes ? V_HEADER_HEIGHT : 0;
-    return computeBounds(hLanes, 'horizontal', headerOffset);
-  }, [hLanes, hasVLanes, hasHLanes, V_HEADER_HEIGHT]);
-
-  const vBounds = useMemo(() => {
-    if (!hasVLanes) return [];
-    const headerOffset = hasHLanes ? H_HEADER_WIDTH : 0;
-    return computeBounds(vLanes, 'vertical', headerOffset);
-  }, [vLanes, hasHLanes, hasVLanes, H_HEADER_WIDTH]);
-
-  // If no lanes at all, render nothing
-  if (!hasHLanes && !hasVLanes) return null;
-
-  // Total dimensions
-  const totalWidth = hasVLanes
-    ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
-  const totalHeight = hasHLanes
-    ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
+  // If no containers, render nothing
+  if (containers.length === 0) return null;
 
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden"
       style={{ zIndex: 0, isolation: 'isolate' }}
     >
-      {/* This inner div transforms with the ReactFlow viewport */}
+      {containers.map((container) => {
+        const config = container.config;
+        const containerOffset = container.containerOffset;
+        const hLanes = config.horizontal;
+        const vLanes = config.vertical;
+        const hasHLanes = hLanes.length > 0;
+        const hasVLanes = vLanes.length > 0;
+        if (!hasHLanes && !hasVLanes) return null;
+
+        const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
+        const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
+        const isMatrix = hasHLanes && hasVLanes;
+        void isMatrix; // used in sub-sections below
+
+        const hBounds = hasHLanes
+          ? computeBounds(hLanes, 'horizontal', hasVLanes ? V_HEADER_HEIGHT : 0)
+          : [];
+        const vBounds = hasVLanes
+          ? computeBounds(vLanes, 'vertical', hasHLanes ? H_HEADER_WIDTH : 0)
+          : [];
+
+        const totalWidth = hasVLanes
+          ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+          : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
+        const totalHeight = hasHLanes
+          ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+          : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
+
+        return (
       <div
-        data-swimlane-viewport
+        key={container.id}
+        data-swimlane-viewport={container.id}
         style={{
           position: 'absolute',
           transformOrigin: '0 0',
@@ -975,6 +984,8 @@ const SwimlaneLayer: React.FC = () => {
           );
         })()}
       </div>
+        );
+      })}
     </div>
   );
 };
@@ -987,39 +998,11 @@ export default React.memo(SwimlaneLayer);
 // ---------------------------------------------------------------------------
 
 const SwimlaneHeaderLayerInner: React.FC = () => {
-  const config = useSwimlaneStore((s) => s.config);
-  const containerOffset = useSwimlaneStore((s) => s.containerOffset);
+  const containers = useSwimlaneStore((s) => s.containers);
   const darkMode = useStyleStore((s) => s.darkMode);
   const viewport = useViewport();
 
-  const hLanes = config.horizontal;
-  const vLanes = config.vertical;
-  const hasHLanes = hLanes.length > 0;
-  const hasVLanes = vLanes.length > 0;
-
-  const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
-  const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
-
-  const hBounds = useMemo(() => {
-    if (!hasHLanes) return [];
-    const headerOffset = hasVLanes ? V_HEADER_HEIGHT : 0;
-    return computeBounds(hLanes, 'horizontal', headerOffset);
-  }, [hLanes, hasVLanes, hasHLanes, V_HEADER_HEIGHT]);
-
-  const vBounds = useMemo(() => {
-    if (!hasVLanes) return [];
-    const headerOffset = hasHLanes ? H_HEADER_WIDTH : 0;
-    return computeBounds(vLanes, 'vertical', headerOffset);
-  }, [vLanes, hasHLanes, hasVLanes, H_HEADER_WIDTH]);
-
-  if (!hasHLanes && !hasVLanes) return null;
-
-  const totalWidth = hasVLanes
-    ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
-  const totalHeight = hasHLanes
-    ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
-    : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
+  if (containers.length === 0) return null;
 
   return (
     <div
@@ -1027,8 +1010,37 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
       style={{ zIndex: 3 }}
       data-export-ignore
     >
+      {containers.map((container) => {
+        const config = container.config;
+        const containerOffset = container.containerOffset;
+        const hLanes = config.horizontal;
+        const vLanes = config.vertical;
+        const hasHLanes = hLanes.length > 0;
+        const hasVLanes = vLanes.length > 0;
+        if (!hasHLanes && !hasVLanes) return null;
+
+        const H_HEADER_WIDTH = config.hHeaderWidth ?? DEFAULT_H_HEADER_WIDTH;
+        const V_HEADER_HEIGHT = config.vHeaderHeight ?? DEFAULT_V_HEADER_HEIGHT;
+
+        const hBounds = hasHLanes
+          ? computeBounds(hLanes, 'horizontal', hasVLanes ? V_HEADER_HEIGHT : 0)
+          : [];
+        const vBounds = hasVLanes
+          ? computeBounds(vLanes, 'vertical', hasHLanes ? H_HEADER_WIDTH : 0)
+          : [];
+
+        const totalWidth = hasVLanes
+          ? vBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+          : (config.containerWidth ?? DEFAULT_CONTAINER_WIDTH);
+        const totalHeight = hasHLanes
+          ? hBounds.reduce((sum, b) => Math.max(sum, b.offset + b.size), 0)
+          : (config.containerHeight ?? DEFAULT_CONTAINER_HEIGHT);
+
+        return (
       <div
-        data-swimlane-viewport
+        key={container.id}
+        data-swimlane-viewport={container.id}
+        onClick={() => useSwimlaneStore.getState().setActiveContainerId(container.id)}
         style={{
           position: 'absolute',
           transformOrigin: '0 0',
@@ -1089,6 +1101,8 @@ const SwimlaneHeaderLayerInner: React.FC = () => {
           darkMode={darkMode}
         />
       </div>
+        );
+      })}
     </div>
   );
 };
@@ -1101,26 +1115,35 @@ export const SwimlaneHeaderLayer = React.memo(SwimlaneHeaderLayerInner);
 
 
 const SwimlaneResizeOverlayInner: React.FC<{ readOnly?: boolean }> = ({ readOnly }) => {
-  const config = useSwimlaneStore((s) => s.config);
-  const containerOffset = useSwimlaneStore((s) => s.containerOffset);
-  const selected = useSwimlaneStore((s) => s.swimlaneSelected);
+  const containers = useSwimlaneStore((s) => s.containers);
+  const activeContainerId = useSwimlaneStore((s) => s.activeContainerId);
   const setSwimlaneSelected = useSwimlaneStore((s) => s.setSwimlaneSelected);
   const darkMode = useStyleStore((s) => s.darkMode);
   const selectionColor = useUIStore((s) => s.selectionColor);
   const viewport = useViewport();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Find the active container
+  const activeContainer = containers.find((c) => c.id === activeContainerId);
+  const selected = activeContainer?.selected ?? false;
+
   // Deselect when clicking outside the swimlane container
   useEffect(() => {
     if (!selected) return;
     const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setSwimlaneSelected(false);
+        // Don't deselect when clicking swimlane-related UI (palette button, dialog, panel)
+        const target = e.target as HTMLElement;
+        if (target.closest?.('[data-swimlane-action]') || target.closest?.('.fixed.inset-0.z-50')) return;
+        if (activeContainerId) setSwimlaneSelected(false, activeContainerId);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [selected, setSwimlaneSelected]);
+
+  const config = activeContainer?.config ?? { orientation: 'horizontal' as const, containerTitle: '', horizontal: [], vertical: [] };
+  const containerOffset = activeContainer?.containerOffset ?? { x: 0, y: 0 };
 
   const hLanes = config.horizontal;
   const vLanes = config.vertical;

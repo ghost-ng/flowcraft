@@ -13,7 +13,8 @@ import { useExportStore } from './store/exportStore';
 import { useFlowStore } from './store/flowStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useAIStore } from './store/aiStore';
-import { useSwimlaneStore } from './store/swimlaneStore';
+import { useSwimlaneStore, type SwimlaneContainer, type SwimlaneConfig } from './store/swimlaneStore';
+import { generateId } from './utils/idGenerator';
 import { useLegendStore } from './store/legendStore';
 import { useLayerStore } from './store/layerStore';
 import type { Layer } from './store/layerStore';
@@ -94,10 +95,11 @@ const App: React.FC = () => {
     for (const id of selectedNodes) {
       removeNode(id);
     }
-    // Also clear swimlanes if the swimlane container is selected
+    // Also clear swimlanes if any container is selected
     const slStore = useSwimlaneStore.getState();
-    if (slStore.swimlaneSelected) {
-      slStore.clearAllLanes();
+    const selectedContainers = slStore.containers.filter((c) => c.selected);
+    for (const c of selectedContainers) {
+      slStore.removeContainer(c.id);
     }
   }, []);
 
@@ -565,8 +567,7 @@ const App: React.FC = () => {
         nodes: flow.nodes,
         edges: flow.edges,
         swimlanes: {
-          config: swim.config,
-          containerOffset: swim.containerOffset,
+          containers: swim.containers,
         },
         legends: {
           nodeLegend: legend.nodeLegend,
@@ -596,11 +597,26 @@ const App: React.FC = () => {
 
       // Swimlanes
       const sw = saved.swimlanes as Record<string, unknown> | undefined;
-      if (sw?.config) {
-        useSwimlaneStore.setState({
-          config: sw.config as typeof useSwimlaneStore extends { getState: () => infer S } ? S extends { config: infer C } ? C : never : never,
-          containerOffset: (sw.containerOffset as { x: number; y: number }) || { x: 0, y: 0 },
-        });
+      if (sw) {
+        if (Array.isArray(sw.containers)) {
+          // New multi-container format
+          useSwimlaneStore.setState({
+            containers: sw.containers as SwimlaneContainer[],
+            activeContainerId: (sw.containers as SwimlaneContainer[])[0]?.id ?? null,
+          });
+        } else if (sw.config) {
+          // Legacy single-container format — wrap into containers array
+          const legacyContainer: SwimlaneContainer = {
+            id: generateId('swimlane'),
+            config: sw.config as SwimlaneConfig,
+            containerOffset: (sw.containerOffset as { x: number; y: number }) || { x: 0, y: 0 },
+            selected: false,
+          };
+          useSwimlaneStore.setState({
+            containers: [legacyContainer],
+            activeContainerId: legacyContainer.id,
+          });
+        }
       }
 
       // Legends

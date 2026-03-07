@@ -65,8 +65,12 @@ const LaneContextMenu: React.FC<LaneContextMenuProps> = ({
   const updateLane = useSwimlaneStore((s) => s.updateLane);
   const removeLane = useSwimlaneStore((s) => s.removeLane);
   const lane = useSwimlaneStore((s) => {
-    const lanes = orientation === 'horizontal' ? s.config.horizontal : s.config.vertical;
-    return lanes.find((l) => l.id === laneId);
+    for (const c of s.containers) {
+      const lanes = orientation === 'horizontal' ? c.config.horizontal : c.config.vertical;
+      const found = lanes.find((l: { id: string }) => l.id === laneId);
+      if (found) return found;
+    }
+    return undefined;
   });
   const [showColors, setShowColors] = useState(false);
   const [showVisibility, setShowVisibility] = useState(false);
@@ -330,7 +334,8 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
-    const startOffset = useSwimlaneStore.getState().containerOffset;
+    const activeC = useSwimlaneStore.getState().containers.find((c) => c.id === useSwimlaneStore.getState().activeContainerId);
+    const startOffset = activeC?.containerOffset ?? { x: 0, y: 0 };
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - startX;
@@ -509,7 +514,8 @@ const LaneHeader: React.FC<LaneHeaderProps> = ({
   const handleSingleClick = useCallback((e: React.MouseEvent) => {
     // Don't select on double-click (that edits label)
     if (e.detail >= 2) return;
-    useSwimlaneStore.getState().setSwimlaneSelected(true);
+    const activeId = useSwimlaneStore.getState().activeContainerId;
+    if (activeId) useSwimlaneStore.getState().setSwimlaneSelected(true, activeId);
     // Switch properties panel to swimlane tab
     useUIStore.getState().setActivePanelTab('lane');
   }, []);

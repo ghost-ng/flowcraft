@@ -13,6 +13,9 @@ import { useEdgeTypeDrag } from './useEdgeTypeDrag';
 import EdgeLabel from './EdgeLabel';
 import EdgeTypeDragHandle from './EdgeTypeDragHandle';
 import EdgeReconnectIndicator from './EdgeReconnectIndicator';
+import WaypointHandle from './WaypointHandle';
+import { buildWaypointPath } from './waypointPath';
+import { useAddWaypoint } from './useAddWaypoint';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -54,15 +57,25 @@ const CustomBezierEdge: React.FC<EdgeProps> = ({
   const markerEnd = ev.markerEnd ?? markerEndProp;
   const markerStart = ev.markerStart ?? markerStartProp;
   const onInteractionMouseDown = useEdgeTypeDrag(id, sourceX, sourceY, targetX, targetY);
+  const onAddWaypoint = useAddWaypoint(id, sourceX, sourceY, targetX, targetY);
+  const waypoints = ev.waypoints;
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-  });
+  let edgePath: string;
+  let labelX: number;
+  let labelY: number;
+
+  if (waypoints && waypoints.length > 0) {
+    [edgePath, labelX, labelY] = buildWaypointPath({
+      sourceX, sourceY, targetX, targetY,
+      sourcePosition, targetPosition,
+      waypoints, edgeType: 'bezier',
+    });
+  } else {
+    [edgePath, labelX, labelY] = getBezierPath({
+      sourceX, sourceY, targetX, targetY,
+      sourcePosition, targetPosition,
+    });
+  }
 
   return (
     <>
@@ -75,6 +88,7 @@ const CustomBezierEdge: React.FC<EdgeProps> = ({
         strokeWidth={INTERACTION_PATH_WIDTH}
         className="react-flow__edge-interaction"
         onMouseDown={onInteractionMouseDown}
+        onDoubleClick={onAddWaypoint}
       />
 
       {/* Visible edge path — stroke/strokeWidth MUST be inline styles
@@ -121,6 +135,10 @@ const CustomBezierEdge: React.FC<EdgeProps> = ({
           {/* Reconnect triangles at endpoints */}
           <EdgeReconnectIndicator cx={sourceX} cy={sourceY} position={sourcePosition} color={strokeColor} />
           <EdgeReconnectIndicator cx={targetX} cy={targetY} position={targetPosition} color={strokeColor} />
+          {/* Waypoint handles */}
+          {waypoints?.map((wp, i) => (
+            <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
+          ))}
         </>
       )}
 

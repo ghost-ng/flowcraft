@@ -1,5 +1,6 @@
 import { create, type StoreApi } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { generateId } from '../utils/idGenerator';
 
 // ---------------------------------------------------------------------------
 // Inline types
@@ -64,16 +65,33 @@ export interface SwimlaneConfig {
   containerHeight?: number;
 }
 
+/** A single swimlane container on the canvas */
+export interface SwimlaneContainer {
+  id: string;
+  config: SwimlaneConfig;
+  containerOffset: { x: number; y: number };
+  selected: boolean;
+}
+
 export interface SwimlaneState {
   // ---- state --------------------------------------------------
-  config: SwimlaneConfig;
+  /** All swimlane containers on the canvas */
+  containers: SwimlaneContainer[];
+  /** The currently-focused container for panel editing */
+  activeContainerId: string | null;
   isCreating: boolean;
   editingLaneId: string | null;
-  containerOffset: { x: number; y: number };
-  /** Whether the swimlane container is selected (for bulk move) */
-  swimlaneSelected: boolean;
+  /** Optional: container ID to target when creating via palette drop */
+  creatingForContainerId: string | null;
 
-  // ---- actions ------------------------------------------------
+  // ---- container-level actions --------------------------------
+  addContainer: (container: SwimlaneContainer) => void;
+  removeContainer: (containerId: string) => void;
+  setActiveContainerId: (containerId: string | null) => void;
+  setContainerOffset: (offset: { x: number; y: number }, containerId?: string) => void;
+  setSwimlaneSelected: (selected: boolean, containerId?: string, additive?: boolean) => void;
+
+  // ---- lane-level actions (operate on active container) --------
   addLane: (orientation: SwimlaneOrientation, lane: SwimlaneItem) => void;
   removeLane: (orientation: SwimlaneOrientation, laneId: string) => void;
   updateLane: (
@@ -85,8 +103,6 @@ export interface SwimlaneState {
   setOrientation: (orientation: SwimlaneOrientation) => void;
   setContainerTitle: (title: string) => void;
   toggleCollapsed: (orientation: SwimlaneOrientation, laneId: string) => void;
-  setContainerOffset: (offset: { x: number; y: number }) => void;
-  setSwimlaneSelected: (selected: boolean) => void;
 
   updateContainerBorder: (patch: Partial<BorderConfig>) => void;
   updateDividerStyle: (patch: Partial<DividerConfig>) => void;
@@ -97,8 +113,11 @@ export interface SwimlaneState {
   /** Proportionally resize all visible lanes in the given orientation to fit a new total size */
   resizeLanes: (orientation: SwimlaneOrientation, newTotalSize: number) => void;
 
-  /** Remove all lanes (horizontal + vertical) and deselect */
+  /** Remove all lanes (horizontal + vertical) from the active container */
   clearAllLanes: () => void;
+
+  /** Remove ALL containers entirely */
+  clearAllContainers: () => void;
 
   setIsCreating: (creating: boolean) => void;
   setEditingLaneId: (laneId: string | null) => void;
@@ -135,6 +154,68 @@ function setLanes(
   }
 }
 
+/** Get the active container from state (immer draft) */
+function getActive(state: SwimlaneState): SwimlaneContainer | undefined {
+  return state.containers.find((c) => c.id === state.activeContainerId);
+}
+
+/** Get a container by ID, falling back to active */
+function getContainer(state: SwimlaneState, containerId?: string): SwimlaneContainer | undefined {
+  if (containerId) return state.containers.find((c) => c.id === containerId);
+  return getActive(state);
+}
+
+// ---------------------------------------------------------------------------
+// Selector helpers — use these in components instead of s.config directly
+// ---------------------------------------------------------------------------
+
+/** Select the active container's config. Returns empty default if none active. */
+export function selectActiveConfig(state: SwimlaneState): SwimlaneConfig {
+  const container = state.containers.find((c) => c.id === state.activeContainerId);
+  return container?.config ?? DEFAULT_CONFIG;
+}
+
+/** Select the active container's offset */
+export function selectActiveOffset(state: SwimlaneState): { x: number; y: number } {
+  const container = state.containers.find((c) => c.id === state.activeContainerId);
+  return container?.containerOffset ?? { x: 0, y: 0 };
+}
+
+/** Select whether the active container is selected */
+export function selectActiveSelected(state: SwimlaneState): boolean {
+  const container = state.containers.find((c) => c.id === state.activeContainerId);
+  return container?.selected ?? false;
+}
+
+/** Create a new default container at a given position */
+export function createDefaultContainer(
+  offset: { x: number; y: number },
+  overrides?: Partial<SwimlaneConfig>,
+): SwimlaneContainer {
+  return {
+    id: generateId('swimlane'),
+    config: { ...DEFAULT_CONFIG, ...overrides, horizontal: [], vertical: [] },
+    containerOffset: offset,
+    selected: false,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Backward-compat: find which container owns a given lane ID
+// ---------------------------------------------------------------------------
+
+/** Find the container that owns a particular lane ID */
+export function findContainerByLaneId(
+  state: SwimlaneState,
+  laneId: string,
+): SwimlaneContainer | undefined {
+  return state.containers.find(
+    (c) =>
+      c.config.horizontal.some((l) => l.id === laneId) ||
+      c.config.vertical.some((l) => l.id === laneId),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Store (immer for easy nested mutations)
 // ---------------------------------------------------------------------------
@@ -142,48 +223,118 @@ function setLanes(
 export const useSwimlaneStore = create<SwimlaneState>()(
   immer((set) => ({
     // -- initial state -------------------------------------------
-    config: DEFAULT_CONFIG,
+    containers: [],
+    activeContainerId: null,
     isCreating: false,
     editingLaneId: null,
-    containerOffset: { x: 0, y: 0 },
-    swimlaneSelected: false,
+    creatingForContainerId: null,
 
-    // -- actions -------------------------------------------------
+    // -- container-level actions ---------------------------------
+    addContainer: (container) => {
+      set((state) => {
+        state.containers.push(container);
+        // Auto-select the new container
+        state.activeContainerId = container.id;
+      });
+    },
+
+    removeContainer: (containerId) => {
+      set((state) => {
+        state.containers = state.containers.filter((c) => c.id !== containerId);
+        if (state.activeContainerId === containerId) {
+          state.activeContainerId = state.containers[0]?.id ?? null;
+        }
+      });
+    },
+
+    setActiveContainerId: (containerId) => {
+      set((state) => {
+        state.activeContainerId = containerId;
+      });
+    },
+
+    setContainerOffset: (offset, containerId?) => {
+      set((state) => {
+        const container = getContainer(state, containerId);
+        if (container) container.containerOffset = offset;
+      });
+    },
+
+    setSwimlaneSelected: (selected, containerId?, additive?) => {
+      set((state) => {
+        const container = getContainer(state, containerId);
+        if (container) {
+          // When selecting (not deselecting) and not additive, deselect all others first
+          if (selected && !additive) {
+            for (const c of state.containers) {
+              if (c.id !== container.id) c.selected = false;
+            }
+          }
+          container.selected = selected;
+          // When selecting a container, also make it the active one for panel editing
+          if (selected && containerId) {
+            state.activeContainerId = containerId;
+          }
+        }
+      });
+    },
+
+    // -- lane-level actions (active container) -------------------
     addLane: (orientation, lane) => {
       set((state) => {
-        const lanes = getLanes(state.config, orientation);
+        let container = getActive(state);
+        // Auto-create a container if none exists
+        if (!container) {
+          const newC: SwimlaneContainer = {
+            id: generateId('swimlane'),
+            config: { ...DEFAULT_CONFIG },
+            containerOffset: { x: 0, y: 0 },
+            selected: false,
+          };
+          state.containers.push(newC);
+          state.activeContainerId = newC.id;
+          container = state.containers[state.containers.length - 1];
+        }
+        const lanes = getLanes(container.config, orientation);
         lanes.push({ ...lane, order: lanes.length });
-        setLanes(state.config, orientation, lanes);
+        setLanes(container.config, orientation, lanes);
       });
     },
 
     removeLane: (orientation, laneId) => {
       set((state) => {
-        const lanes = getLanes(state.config, orientation).filter(
+        const container = getActive(state);
+        if (!container) return;
+        const lanes = getLanes(container.config, orientation).filter(
           (l) => l.id !== laneId,
         );
-        // Re-index order
         lanes.forEach((l, i) => {
           l.order = i;
         });
-        setLanes(state.config, orientation, lanes);
+        setLanes(container.config, orientation, lanes);
       });
     },
 
     updateLane: (orientation, laneId, patch) => {
       set((state) => {
-        const lane = getLanes(state.config, orientation).find(
-          (l) => l.id === laneId,
-        );
-        if (lane) {
-          Object.assign(lane, patch);
+        // Search all containers for the lane (lane edits can come from headers)
+        for (const container of state.containers) {
+          const lane = getLanes(container.config, orientation).find(
+            (l) => l.id === laneId,
+          );
+          if (lane) {
+            Object.assign(lane, patch);
+            return;
+          }
         }
       });
     },
 
     reorderLanes: (orientation, orderedIds) => {
       set((state) => {
-        const lanes = getLanes(state.config, orientation);
+        const container = getActive(state);
+        if (!container) return;
+        const lanes = getLanes(container.config, orientation);
         const byId = new Map(lanes.map((l) => [l.id, l]));
         const reordered: SwimlaneItem[] = [];
         for (let i = 0; i < orderedIds.length; i++) {
@@ -193,52 +344,48 @@ export const useSwimlaneStore = create<SwimlaneState>()(
             reordered.push(lane);
           }
         }
-        setLanes(state.config, orientation, reordered);
+        setLanes(container.config, orientation, reordered);
       });
     },
 
     setOrientation: (orientation) => {
       set((state) => {
-        state.config.orientation = orientation;
+        const container = getActive(state);
+        if (container) container.config.orientation = orientation;
       });
     },
 
     setContainerTitle: (title) => {
       set((state) => {
-        state.config.containerTitle = title;
+        const container = getActive(state);
+        if (container) container.config.containerTitle = title;
       });
     },
 
     toggleCollapsed: (orientation, laneId) => {
       set((state) => {
-        const lane = getLanes(state.config, orientation).find(
-          (l) => l.id === laneId,
-        );
-        if (lane) {
-          lane.collapsed = !lane.collapsed;
+        // Search all containers
+        for (const container of state.containers) {
+          const lane = getLanes(container.config, orientation).find(
+            (l) => l.id === laneId,
+          );
+          if (lane) {
+            lane.collapsed = !lane.collapsed;
+            return;
+          }
         }
-      });
-    },
-
-    setContainerOffset: (offset) => {
-      set((state) => {
-        state.containerOffset = offset;
-      });
-    },
-
-    setSwimlaneSelected: (selected) => {
-      set((state) => {
-        state.swimlaneSelected = selected;
       });
     },
 
     updateContainerBorder: (patch) => {
       set((state) => {
-        state.config.containerBorder = {
-          color: state.config.containerBorder?.color ?? '#94a3b8',
-          width: state.config.containerBorder?.width ?? 1,
-          style: state.config.containerBorder?.style ?? 'solid',
-          radius: state.config.containerBorder?.radius ?? 4,
+        const container = getActive(state);
+        if (!container) return;
+        container.config.containerBorder = {
+          color: container.config.containerBorder?.color ?? '#94a3b8',
+          width: container.config.containerBorder?.width ?? 1,
+          style: container.config.containerBorder?.style ?? 'solid',
+          radius: container.config.containerBorder?.radius ?? 4,
           ...patch,
         };
       });
@@ -246,10 +393,12 @@ export const useSwimlaneStore = create<SwimlaneState>()(
 
     updateDividerStyle: (patch) => {
       set((state) => {
-        state.config.dividerStyle = {
-          color: state.config.dividerStyle?.color ?? '',
-          width: state.config.dividerStyle?.width ?? 1,
-          style: state.config.dividerStyle?.style ?? 'solid',
+        const container = getActive(state);
+        if (!container) return;
+        container.config.dividerStyle = {
+          color: container.config.dividerStyle?.color ?? '',
+          width: container.config.dividerStyle?.width ?? 1,
+          style: container.config.dividerStyle?.style ?? 'solid',
           ...patch,
         };
       });
@@ -257,50 +406,57 @@ export const useSwimlaneStore = create<SwimlaneState>()(
 
     updateLabelConfig: (patch) => {
       set((state) => {
+        const container = getActive(state);
+        if (!container) return;
         if (patch.labelFontSize !== undefined) {
-          state.config.labelFontSize = patch.labelFontSize;
+          container.config.labelFontSize = patch.labelFontSize;
         }
         if (patch.labelRotation !== undefined) {
-          state.config.labelRotation = patch.labelRotation;
+          container.config.labelRotation = patch.labelRotation;
         }
         if (patch.hHeaderWidth !== undefined) {
-          state.config.hHeaderWidth = patch.hHeaderWidth;
+          container.config.hHeaderWidth = patch.hHeaderWidth;
         }
         if (patch.vHeaderHeight !== undefined) {
-          state.config.vHeaderHeight = patch.vHeaderHeight;
+          container.config.vHeaderHeight = patch.vHeaderHeight;
         }
       });
     },
 
     updateTitleConfig: (patch) => {
       set((state) => {
+        const container = getActive(state);
+        if (!container) return;
         if (patch.titleFontSize !== undefined) {
-          state.config.titleFontSize = patch.titleFontSize;
+          container.config.titleFontSize = patch.titleFontSize;
         }
         if (patch.titleColor !== undefined) {
-          state.config.titleColor = patch.titleColor;
+          container.config.titleColor = patch.titleColor;
         }
         if (patch.titleFontFamily !== undefined) {
-          state.config.titleFontFamily = patch.titleFontFamily;
+          container.config.titleFontFamily = patch.titleFontFamily;
         }
       });
     },
 
     updateContainerSize: (patch) => {
       set((state) => {
+        const container = getActive(state);
+        if (!container) return;
         if (patch.containerWidth !== undefined) {
-          state.config.containerWidth = patch.containerWidth;
+          container.config.containerWidth = patch.containerWidth;
         }
         if (patch.containerHeight !== undefined) {
-          state.config.containerHeight = patch.containerHeight;
+          container.config.containerHeight = patch.containerHeight;
         }
       });
     },
 
     resizeLanes: (orientation, newTotalSize) => {
       set((state) => {
-        const lanes = getLanes(state.config, orientation);
-        // Only resize visible, non-collapsed lanes
+        const container = getActive(state);
+        if (!container) return;
+        const lanes = getLanes(container.config, orientation);
         const resizable = lanes.filter((l) => !l.hidden && !l.collapsed);
         if (resizable.length === 0) return;
 
@@ -310,7 +466,6 @@ export const useSwimlaneStore = create<SwimlaneState>()(
         const MIN_LANE = 60;
         const scale = newTotalSize / currentTotal;
 
-        // Proportionally scale each lane
         for (const lane of resizable) {
           lane.size = Math.max(MIN_LANE, Math.round(lane.size * scale));
         }
@@ -319,9 +474,18 @@ export const useSwimlaneStore = create<SwimlaneState>()(
 
     clearAllLanes: () => {
       set((state) => {
-        state.config.horizontal = [];
-        state.config.vertical = [];
-        state.swimlaneSelected = false;
+        const container = getActive(state);
+        if (!container) return;
+        container.config.horizontal = [];
+        container.config.vertical = [];
+        container.selected = false;
+      });
+    },
+
+    clearAllContainers: () => {
+      set((state) => {
+        state.containers = [];
+        state.activeContainerId = null;
       });
     },
 

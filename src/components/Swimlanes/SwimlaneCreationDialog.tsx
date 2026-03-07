@@ -41,15 +41,26 @@ const SwimlaneCreationDialog: React.FC = () => {
   const isCreating = useSwimlaneStore((s) => s.isCreating);
   const setIsCreating = useSwimlaneStore((s) => s.setIsCreating);
   const addLane = useSwimlaneStore((s) => s.addLane);
-  const config = useSwimlaneStore((s) => s.config);
+  const config = useSwimlaneStore((s) => {
+    const c = s.containers.find((c) => c.id === s.activeContainerId);
+    return c?.config ?? { orientation: 'horizontal' as const, containerTitle: '', horizontal: [], vertical: [] };
+  });
   const setOrientation = useSwimlaneStore((s) => s.setOrientation);
   const setContainerTitle = useSwimlaneStore((s) => s.setContainerTitle);
-  const clearAllLanes = useSwimlaneStore((s) => s.clearAllLanes);
+  const containers = useSwimlaneStore((s) => s.containers);
+  const creatingForContainerId = useSwimlaneStore((s) => s.creatingForContainerId);
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
 
-  // Whether there are existing lanes (determines whether to show Append option)
-  const hasExistingLanes = config.horizontal.length > 0 || config.vertical.length > 0;
+  // Determine dialog mode
+  const isDragDrop = creatingForContainerId !== null;
+  const hasContainers = containers.length > 0;
+  // A container must be visually selected on canvas (not just activeContainerId which persists)
+  const hasSelectedContainer = containers.some((c) => c.selected);
+  // "Create New" when drag-drop or no containers exist; otherwise "Add Lanes" (append)
+  const isCreateNew = isDragDrop || !hasContainers;
+  // Append is disabled when there are containers but none is selected on canvas
+  const appendDisabled = !isCreateNew && hasContainers && !hasSelectedContainer;
 
   // Use the active diagram style's accent colors when available, otherwise fall back to LANE_PALETTE
   const activePalette = React.useMemo(() => {
@@ -80,19 +91,14 @@ const SwimlaneCreationDialog: React.FC = () => {
 
   const handleClose = useCallback(() => {
     setIsCreating(false);
+    useSwimlaneStore.setState({ creatingForContainerId: null });
     resetForm();
   }, [setIsCreating, resetForm]);
 
-  /** Core creation logic. When `mode` is 'append', lanes are added to existing.
-   *  When 'createNew', existing lanes are cleared first. */
-  const handleCreate = useCallback((mode: 'append' | 'createNew') => {
-    // Clear existing lanes when creating new
-    if (mode === 'createNew') {
-      clearAllLanes();
-    }
-
-    const existingHCount = mode === 'createNew' ? 0 : config.horizontal.length;
-    const existingVCount = mode === 'createNew' ? 0 : config.vertical.length;
+  /** Add lanes to the active container (click workflow always appends). */
+  const handleCreate = useCallback(() => {
+    const existingHCount = config.horizontal.length;
+    const existingVCount = config.vertical.length;
 
     // Parse labels
     const parsedLabels = labels
@@ -195,7 +201,6 @@ const SwimlaneCreationDialog: React.FC = () => {
     setContainerTitle,
     setOrientation,
     addLane,
-    clearAllLanes,
     handleClose,
     activePalette,
     darkMode,
@@ -227,7 +232,9 @@ const SwimlaneCreationDialog: React.FC = () => {
       >
         {/* Header */}
         <div className={`flex items-center justify-between px-5 py-3.5 border-b ${borderClass}`}>
-          <h2 className={`text-sm font-semibold ${textClass}`}>Create Swimlanes</h2>
+          <h2 className={`text-sm font-semibold ${textClass}`}>
+            {isCreateNew ? 'Create Swimlanes' : 'Add Lanes'}
+          </h2>
           <button
             onClick={handleClose}
             className={`p-1 rounded-md ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-100'} transition-colors cursor-pointer ${mutedClass}`}
@@ -384,34 +391,35 @@ const SwimlaneCreationDialog: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className={`flex items-center justify-end gap-2 px-5 py-3.5 border-t ${borderClass}`}>
-          <button
-            onClick={handleClose}
-            className={`
-              px-4 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
-              ${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}
-            `}
-          >
-            Cancel
-          </button>
-          {hasExistingLanes && (
+        <div className={`flex flex-col gap-2 px-5 py-3.5 border-t ${borderClass}`}>
+          {appendDisabled && (
+            <p className={`text-[11px] ${mutedClass} text-center`}>
+              Select a swimlane on the canvas to add lanes, or drag the swimlane button onto the canvas to create a new one
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2">
             <button
-              onClick={() => handleCreate('append')}
+              onClick={handleClose}
               className={`
                 px-4 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer
-                border-primary/40 text-primary ${darkMode ? 'hover:bg-primary/15' : 'hover:bg-primary/10'}
+                ${borderClass} ${mutedClass} ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}
               `}
             >
-              Append Lanes
+              Cancel
             </button>
-          )}
-          <button
-            onClick={() => handleCreate('createNew')}
-            className="px-4 py-1.5 text-xs font-medium rounded-md bg-primary text-white
-                       hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            {hasExistingLanes ? 'Create New' : 'Create'}
-          </button>
+            <button
+              onClick={() => handleCreate()}
+              disabled={appendDisabled}
+              className={`
+                px-4 py-1.5 text-xs font-medium rounded-md transition-colors
+                ${appendDisabled
+                  ? 'bg-primary/40 text-white/60 cursor-not-allowed'
+                  : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}
+              `}
+            >
+              {isCreateNew ? 'Create' : 'Add Lanes'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

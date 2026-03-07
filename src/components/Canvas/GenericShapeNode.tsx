@@ -50,12 +50,14 @@ const ArrowSvgs: Record<string, React.FC<ArrowSvgProps>> = {
   ),
   circularArrow: ({ fill, stroke, strokeW }) => (
     <>
+      {/* Circular arc (~300° around center 50,50, radius 34) */}
       <path
-        d="M 75 12 A 32 32 0 1 1 38 20"
-        fill="none" stroke={fill} strokeWidth={6} strokeLinecap="round"
+        d="M 72 22 A 34 34 0 1 1 34 26"
+        fill="none" stroke={fill} strokeWidth={8} strokeLinecap="round"
       />
+      {/* Arrowhead at the gap */}
       <polygon
-        points="24,4 48,20 22,28"
+        points="18,10 44,28 18,34"
         fill={fill} stroke={stroke} strokeWidth={strokeW} strokeLinejoin="round"
       />
     </>
@@ -207,6 +209,34 @@ const SHAPE_PUCK_POSITIONS: Record<string, EdgePositions> = {
     'top-left':     { left: 3,  top: 3 },
     'bottom-right': { left: 97, top: 97 },
     'bottom-left':  { left: 3,  top: 97 },
+  },
+  // Block arrow: body from x:0-100, shaft y:20-60, tip at x:155
+  blockArrow: {
+    'top-right':    { left: 90, top: 10 },
+    'top-left':     { left: 5,  top: 28 },
+    'bottom-right': { left: 90, top: 90 },
+    'bottom-left':  { left: 5,  top: 72 },
+  },
+  // Chevron arrow: notch at left x:0-40, point at right x:155
+  chevronArrow: {
+    'top-right':    { left: 90, top: 12 },
+    'top-left':     { left: 5,  top: 10 },
+    'bottom-right': { left: 90, top: 88 },
+    'bottom-left':  { left: 5,  top: 90 },
+  },
+  // Double arrow: points on both sides at x:0 and x:160
+  doubleArrow: {
+    'top-right':    { left: 90, top: 12 },
+    'top-left':     { left: 10, top: 12 },
+    'bottom-right': { left: 90, top: 88 },
+    'bottom-left':  { left: 10, top: 88 },
+  },
+  // Circular arrow: circular shape centered ~50,50 in 100x100 viewBox
+  circularArrow: {
+    'top-right':    { left: 85, top: 15 },
+    'top-left':     { left: 15, top: 15 },
+    'bottom-right': { left: 85, top: 85 },
+    'bottom-left':  { left: 15, top: 85 },
   },
 };
 // Alias: ellipse uses the same positions as circle
@@ -856,7 +886,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     : {};
 
   const ArrowSvg = isArrowShape ? ArrowSvgs[shape] : null;
-  const arrowViewBox = isCircularArrow ? '0 0 100 80' : '0 0 160 80';
+  const arrowViewBox = isCircularArrow ? '0 0 100 100' : '0 0 160 80';
   const ShapeSvg = isSvgShape ? ShapeSvgs[shape] : null;
 
   // Handle position overrides for SVG shapes whose edges don't align with the bounding box.

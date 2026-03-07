@@ -16,7 +16,7 @@ import { useFlowStore, newPuckId, getStatusIndicators } from '../store/flowStore
 import type { FlowNode, FlowEdge, FlowNodeData, FlowEdgeData, StatusIndicator } from '../store/flowStore';
 import { useStyleStore } from '../store/styleStore';
 import { useSwimlaneStore } from '../store/swimlaneStore';
-import type { SwimlaneConfig, BorderStyleType } from '../store/swimlaneStore';
+import type { SwimlaneConfig, SwimlaneItem, BorderConfig, DividerConfig } from '../store/swimlaneStore';
 import { useBannerStore } from '../store/bannerStore';
 import type { BannerConfig } from '../store/bannerStore';
 import { useLayerStore } from '../store/layerStore';
@@ -621,13 +621,17 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
   const toH = (px: number) => px * scale;
 
   // -- render swimlanes (background layer) ----------------------------
-  const swimConfig = swimlaneState.config;
-  const swimOffset = swimlaneState.containerOffset;
+  const allContainers = swimlaneState.containers;
+
+  // Render each swimlane container
+  for (const swimContainer of allContainers) {
+  const swimConfig = swimContainer.config;
+  const swimOffset = swimContainer.containerOffset;
   const hLanes = swimConfig.horizontal;
   const vLanes = swimConfig.vertical;
-  const hasSwimlanes = hLanes.length > 0 || vLanes.length > 0;
+  if (hLanes.length === 0 && vLanes.length === 0) continue;
 
-  if (hasSwimlanes) {
+  if (true) {
     const border = swimConfig.containerBorder;
     const divider = swimConfig.dividerStyle;
 
@@ -783,6 +787,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
       hOffset += laneSize;
     }
   }
+  } // end for-each container
 
   // -- add edges as lines (below nodes) -------------------------
   for (const edge of edges) {
@@ -958,6 +963,7 @@ export async function exportAsPptx(options: PptxExportOptions): Promise<void> {
 
   // -- add nodes as native shapes or SVG images -----------------------
   for (const node of nodes) {
+    if (node.data.isConnectorEndpoint) continue;
     const d = node.data;
     const defaults = getDefaultSize(d.shape);
     const w = d.width || defaults.w;
@@ -1339,7 +1345,7 @@ export function buildJsonExportData(options: JsonExportOptions): Record<string, 
   const exportData: Record<string, unknown> = {
     version: '1.0',
     exportedAt: new Date().toISOString(),
-    nodes: state.nodes,
+    nodes: state.nodes.filter(n => !n.data.isConnectorEndpoint),
     edges: state.edges,
   };
 
@@ -1356,46 +1362,39 @@ export function buildJsonExportData(options: JsonExportOptions): Record<string, 
   }
 
   // Always include swimlanes and layers if they have content
-  const hasSwimLanes = swimlaneState.config.horizontal.length > 0 || swimlaneState.config.vertical.length > 0;
+  const hasSwimLanes = swimlaneState.containers.some(c => c.config.horizontal.length > 0 || c.config.vertical.length > 0);
   if (hasSwimLanes) {
-    const swimlaneExport: Record<string, unknown> = {
-      orientation: swimlaneState.config.orientation,
-      containerTitle: swimlaneState.config.containerTitle,
-      horizontal: swimlaneState.config.horizontal,
-      vertical: swimlaneState.config.vertical,
-    };
-    // Include container offset if non-zero for round-trip fidelity
-    const offset = swimlaneState.containerOffset;
-    if (offset.x !== 0 || offset.y !== 0) {
-      swimlaneExport.containerOffset = offset;
+    // Export as array of containers for multi-container support
+    const containersExport = swimlaneState.containers
+      .filter(c => c.config.horizontal.length > 0 || c.config.vertical.length > 0)
+      .map(container => {
+        const cfg = container.config;
+        const exp: Record<string, unknown> = {
+          id: container.id,
+          orientation: cfg.orientation,
+          containerTitle: cfg.containerTitle,
+          horizontal: cfg.horizontal,
+          vertical: cfg.vertical,
+        };
+        const offset = container.containerOffset;
+        if (offset.x !== 0 || offset.y !== 0) {
+          exp.containerOffset = offset;
+        }
+        if (cfg.containerBorder) exp.containerBorder = cfg.containerBorder;
+        if (cfg.dividerStyle) exp.dividerStyle = cfg.dividerStyle;
+        if (typeof cfg.labelFontSize === 'number') exp.labelFontSize = cfg.labelFontSize;
+        if (typeof cfg.labelRotation === 'number') exp.labelRotation = cfg.labelRotation;
+        if (typeof cfg.hHeaderWidth === 'number') exp.hHeaderWidth = cfg.hHeaderWidth;
+        if (typeof cfg.vHeaderHeight === 'number') exp.vHeaderHeight = cfg.vHeaderHeight;
+        if (typeof cfg.containerWidth === 'number') exp.containerWidth = cfg.containerWidth;
+        if (typeof cfg.containerHeight === 'number') exp.containerHeight = cfg.containerHeight;
+        return exp;
+      });
+    exportData.swimlanes = containersExport;
+    // Backward compat: also write legacy single-object format for older importers
+    if (containersExport.length === 1) {
+      exportData.swimlanesLegacy = containersExport[0];
     }
-    // Include border config if customized
-    if (swimlaneState.config.containerBorder) {
-      swimlaneExport.containerBorder = swimlaneState.config.containerBorder;
-    }
-    if (swimlaneState.config.dividerStyle) {
-      swimlaneExport.dividerStyle = swimlaneState.config.dividerStyle;
-    }
-    // Include label config if customized
-    if (typeof swimlaneState.config.labelFontSize === 'number') {
-      swimlaneExport.labelFontSize = swimlaneState.config.labelFontSize;
-    }
-    if (typeof swimlaneState.config.labelRotation === 'number') {
-      swimlaneExport.labelRotation = swimlaneState.config.labelRotation;
-    }
-    if (typeof swimlaneState.config.hHeaderWidth === 'number') {
-      swimlaneExport.hHeaderWidth = swimlaneState.config.hHeaderWidth;
-    }
-    if (typeof swimlaneState.config.vHeaderHeight === 'number') {
-      swimlaneExport.vHeaderHeight = swimlaneState.config.vHeaderHeight;
-    }
-    if (typeof swimlaneState.config.containerWidth === 'number') {
-      swimlaneExport.containerWidth = swimlaneState.config.containerWidth;
-    }
-    if (typeof swimlaneState.config.containerHeight === 'number') {
-      swimlaneExport.containerHeight = swimlaneState.config.containerHeight;
-    }
-    exportData.swimlanes = swimlaneExport;
   }
 
   const hasLayers = layerState.layers.length > 1 || layerState.layers[0]?.id !== 'default';
@@ -1753,6 +1752,7 @@ export function importFromJson(
       if (typeof rawData.labelBgColor === 'string') edgeData.labelBgColor = rawData.labelBgColor;
       if (typeof rawData.dependencyType === 'string') edgeData.dependencyType = rawData.dependencyType;
       if (typeof rawData.notes === 'string') edgeData.notes = rawData.notes;
+      if (Array.isArray(rawData.waypoints)) edgeData.waypoints = rawData.waypoints;
 
       // Style overrides (from context-menu coloring / diagram style overlays)
       if (rawData.styleOverrides && typeof rawData.styleOverrides === 'object') {
@@ -1846,104 +1846,80 @@ export function importFromJson(
   // Swimlanes — clear existing, then apply imported (or leave empty if none)
   {
     const store = useSwimlaneStore.getState();
-    // Always clear existing lanes on import to avoid orphaned swimlanes
-    const existingH = store.config.horizontal.map((l) => l.id);
-    for (const id of existingH) store.removeLane('horizontal', id);
-    const existingV = store.config.vertical.map((l) => l.id);
-    for (const id of existingV) store.removeLane('vertical', id);
-    // Reset container offset so imported lanes render at default position
-    store.setContainerOffset({ x: 0, y: 0 });
+    // Always clear existing containers on import
+    store.clearAllContainers();
 
-    if (data.swimlanes && typeof data.swimlanes === 'object') {
-      const sw = data.swimlanes as Record<string, unknown>;
-      if (typeof sw.orientation === 'string') {
-        store.setOrientation(sw.orientation as SwimlaneConfig['orientation']);
-      }
-      if (typeof sw.containerTitle === 'string') {
-        store.setContainerTitle(sw.containerTitle);
-      }
+    if (data.swimlanes) {
+      // Helper to import a single swimlane object into a container
+      const importSwimlaneObject = (sw: Record<string, unknown>, containerId?: string) => {
+        // Create a new container
+        const id = (typeof containerId === 'string' ? containerId : undefined) ??
+                   (typeof sw.id === 'string' ? sw.id : `container_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
+        const offset = (sw.containerOffset && typeof sw.containerOffset === 'object')
+          ? { x: (sw.containerOffset as Record<string, unknown>).x as number ?? 0, y: (sw.containerOffset as Record<string, unknown>).y as number ?? 0 }
+          : { x: 0, y: 0 };
+        store.addContainer({
+          id,
+          config: {
+            orientation: (typeof sw.orientation === 'string' ? sw.orientation : 'horizontal') as SwimlaneConfig['orientation'],
+            containerTitle: typeof sw.containerTitle === 'string' ? sw.containerTitle : '',
+            horizontal: [],
+            vertical: [],
+            ...(sw.containerBorder && typeof sw.containerBorder === 'object' ? { containerBorder: sw.containerBorder as BorderConfig } : {}),
+            ...(sw.dividerStyle && typeof sw.dividerStyle === 'object' ? { dividerStyle: sw.dividerStyle as DividerConfig } : {}),
+            ...(typeof sw.labelFontSize === 'number' ? { labelFontSize: sw.labelFontSize } : {}),
+            ...(typeof sw.labelRotation === 'number' ? { labelRotation: sw.labelRotation } : {}),
+            ...(typeof sw.hHeaderWidth === 'number' ? { hHeaderWidth: sw.hHeaderWidth } : {}),
+            ...(typeof sw.vHeaderHeight === 'number' ? { vHeaderHeight: sw.vHeaderHeight } : {}),
+            ...(typeof sw.containerWidth === 'number' ? { containerWidth: sw.containerWidth } : {}),
+            ...(typeof sw.containerHeight === 'number' ? { containerHeight: sw.containerHeight } : {}),
+          },
+          containerOffset: offset,
+          selected: false,
+        });
+        store.setActiveContainerId(id);
 
-      if (Array.isArray(sw.horizontal)) {
-        for (const lane of sw.horizontal) {
-          if (typeof lane === 'object' && lane !== null) {
-            const l = lane as Record<string, unknown>;
-            store.addLane('horizontal', {
-              id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              label: typeof l.label === 'string' ? l.label : 'Lane',
-              color: typeof l.color === 'string' ? l.color : '#e2e8f0',
-              collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
-              size: typeof l.size === 'number' ? l.size : 200,
-              order: typeof l.order === 'number' ? l.order : 0,
-              showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
-              showColor: typeof l.showColor === 'boolean' ? l.showColor : undefined,
-              hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
-            });
+        // Add lanes
+        const parseLane = (l: Record<string, unknown>): SwimlaneItem => ({
+          id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          label: typeof l.label === 'string' ? l.label : 'Lane',
+          color: typeof l.color === 'string' ? l.color : '#e2e8f0',
+          collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
+          size: typeof l.size === 'number' ? l.size : 200,
+          order: typeof l.order === 'number' ? l.order : 0,
+          showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
+          showColor: typeof l.showColor === 'boolean' ? l.showColor : undefined,
+          hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
+        });
+
+        if (Array.isArray(sw.horizontal)) {
+          for (const lane of sw.horizontal) {
+            if (typeof lane === 'object' && lane !== null) {
+              store.addLane('horizontal', parseLane(lane as Record<string, unknown>));
+            }
           }
         }
-      }
-      if (Array.isArray(sw.vertical)) {
-        for (const lane of sw.vertical) {
-          if (typeof lane === 'object' && lane !== null) {
-            const l = lane as Record<string, unknown>;
-            store.addLane('vertical', {
-              id: typeof l.id === 'string' ? l.id : `lane_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-              label: typeof l.label === 'string' ? l.label : 'Lane',
-              color: typeof l.color === 'string' ? l.color : '#e2e8f0',
-              collapsed: typeof l.collapsed === 'boolean' ? l.collapsed : false,
-              size: typeof l.size === 'number' ? l.size : 200,
-              order: typeof l.order === 'number' ? l.order : 0,
-              showLabel: typeof l.showLabel === 'boolean' ? l.showLabel : undefined,
-              showColor: typeof l.showColor === 'boolean' ? l.showColor : undefined,
-              hidden: typeof l.hidden === 'boolean' ? l.hidden : undefined,
-            });
+        if (Array.isArray(sw.vertical)) {
+          for (const lane of sw.vertical) {
+            if (typeof lane === 'object' && lane !== null) {
+              store.addLane('vertical', parseLane(lane as Record<string, unknown>));
+            }
           }
         }
-      }
-      // Restore container offset if present in exported data
-      if (sw.containerOffset && typeof sw.containerOffset === 'object') {
-        const co = sw.containerOffset as Record<string, unknown>;
-        if (typeof co.x === 'number' && typeof co.y === 'number') {
-          store.setContainerOffset({ x: co.x, y: co.y });
+      };
+
+      if (Array.isArray(data.swimlanes)) {
+        // New multi-container format
+        for (const containerData of data.swimlanes) {
+          if (typeof containerData === 'object' && containerData !== null) {
+            importSwimlaneObject(containerData as Record<string, unknown>);
+          }
         }
+      } else if (typeof data.swimlanes === 'object') {
+        // Legacy single-container format
+        importSwimlaneObject(data.swimlanes as Record<string, unknown>);
       }
-      // Restore border config
-      if (sw.containerBorder && typeof sw.containerBorder === 'object') {
-        const cb = sw.containerBorder as Record<string, unknown>;
-        store.updateContainerBorder({
-          ...(typeof cb.color === 'string' ? { color: cb.color } : {}),
-          ...(typeof cb.width === 'number' ? { width: cb.width } : {}),
-          ...(typeof cb.style === 'string' ? { style: cb.style as BorderStyleType } : {}),
-          ...(typeof cb.radius === 'number' ? { radius: cb.radius } : {}),
-        });
-      }
-      if (sw.dividerStyle && typeof sw.dividerStyle === 'object') {
-        const ds = sw.dividerStyle as Record<string, unknown>;
-        store.updateDividerStyle({
-          ...(typeof ds.color === 'string' ? { color: ds.color } : {}),
-          ...(typeof ds.width === 'number' ? { width: ds.width } : {}),
-          ...(typeof ds.style === 'string' ? { style: ds.style as BorderStyleType } : {}),
-        });
-      }
-      // Restore label config
-      if (typeof sw.labelFontSize === 'number') {
-        store.updateLabelConfig({ labelFontSize: sw.labelFontSize });
-      }
-      if (typeof sw.labelRotation === 'number') {
-        store.updateLabelConfig({ labelRotation: sw.labelRotation });
-      }
-      if (typeof sw.hHeaderWidth === 'number') {
-        store.updateLabelConfig({ hHeaderWidth: sw.hHeaderWidth });
-      }
-      if (typeof sw.vHeaderHeight === 'number') {
-        store.updateLabelConfig({ vHeaderHeight: sw.vHeaderHeight });
-      }
-      // Restore container dimensions
-      if (typeof sw.containerWidth === 'number' || typeof sw.containerHeight === 'number') {
-        store.updateContainerSize({
-          containerWidth: typeof sw.containerWidth === 'number' ? sw.containerWidth : undefined,
-          containerHeight: typeof sw.containerHeight === 'number' ? sw.containerHeight : undefined,
-        });
-      }
+
     }
   }
 

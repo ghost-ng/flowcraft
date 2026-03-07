@@ -44,11 +44,14 @@ const LEGEND_OVERLAY_ID = 'minimap-legend-overlay';
 // ---------------------------------------------------------------------------
 
 export default function MiniMapOverlays() {
-  const hLanes = useSwimlaneStore((s) => s.config.horizontal);
-  const vLanes = useSwimlaneStore((s) => s.config.vertical);
-  const containerOffset = useSwimlaneStore((s) => s.containerOffset);
-  const hHeaderWidth = useSwimlaneStore((s) => s.config.hHeaderWidth) ?? 48;
-  const vHeaderHeight = useSwimlaneStore((s) => s.config.vHeaderHeight) ?? 32;
+  const containers = useSwimlaneStore((s) => s.containers);
+  const activeContainer = useSwimlaneStore((s) => s.containers.find((c) => c.id === s.activeContainerId));
+  const hLanes = activeContainer?.config.horizontal ?? [];
+  const vLanes = activeContainer?.config.vertical ?? [];
+  const containerOffset = activeContainer?.containerOffset ?? { x: 0, y: 0 };
+  const hHeaderWidth = activeContainer?.config.hHeaderWidth ?? 48;
+  const vHeaderHeight = activeContainer?.config.vHeaderHeight ?? 32;
+  void containers; // triggers re-render when any container changes
   const darkMode = useStyleStore((s) => s.darkMode);
 
   // Legend state

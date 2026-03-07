@@ -6,6 +6,7 @@ import React from 'react';
 import { type EdgeProps, getSmoothStepPath } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
+import { useFlowStore } from '../../store/flowStore';
 import { resolveEdgeStyle } from '../../utils/themeResolver';
 import { diagramStyles } from '../../styles/diagramStyles';
 import { useEdgeVisuals } from './useEdgeVisuals';
@@ -13,6 +14,9 @@ import { useEdgeTypeDrag } from './useEdgeTypeDrag';
 import EdgeLabel from './EdgeLabel';
 import EdgeTypeDragHandle from './EdgeTypeDragHandle';
 import EdgeReconnectIndicator from './EdgeReconnectIndicator';
+import WaypointHandle from './WaypointHandle';
+import { buildWaypointPath } from './waypointPath';
+import { useAddWaypoint } from './useAddWaypoint';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -54,16 +58,29 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
   const markerEnd = ev.markerEnd ?? markerEndProp;
   const markerStart = ev.markerStart ?? markerStartProp;
   const onInteractionMouseDown = useEdgeTypeDrag(id, sourceX, sourceY, targetX, targetY);
+  const onAddWaypoint = useAddWaypoint(id, sourceX, sourceY, targetX, targetY);
+  const waypoints = ev.waypoints;
 
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    borderRadius: 8,
-  });
+  // Determine edge subtype from store (smoothstep vs step)
+  const edgeType = (useFlowStore.getState().edges.find(e => e.id === id)?.type ?? 'smoothstep') as 'smoothstep' | 'step';
+
+  let edgePath: string;
+  let labelX: number;
+  let labelY: number;
+
+  if (waypoints && waypoints.length > 0) {
+    [edgePath, labelX, labelY] = buildWaypointPath({
+      sourceX, sourceY, targetX, targetY,
+      sourcePosition, targetPosition,
+      waypoints, edgeType,
+    });
+  } else {
+    [edgePath, labelX, labelY] = getSmoothStepPath({
+      sourceX, sourceY, targetX, targetY,
+      sourcePosition, targetPosition,
+      borderRadius: 8,
+    });
+  }
 
   return (
     <>
@@ -76,6 +93,7 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
         strokeWidth={INTERACTION_PATH_WIDTH}
         className="react-flow__edge-interaction"
         onMouseDown={onInteractionMouseDown}
+        onDoubleClick={onAddWaypoint}
       />
 
       {/* Visible edge path — stroke/strokeWidth MUST be inline styles
@@ -122,6 +140,10 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
           {/* Reconnect triangles at endpoints */}
           <EdgeReconnectIndicator cx={sourceX} cy={sourceY} position={sourcePosition} color={strokeColor} />
           <EdgeReconnectIndicator cx={targetX} cy={targetY} position={targetPosition} color={strokeColor} />
+          {/* Waypoint handles */}
+          {waypoints?.map((wp, i) => (
+            <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
+          ))}
         </>
       )}
 
