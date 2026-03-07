@@ -620,6 +620,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const shape = nodeData.shape || 'rectangle';
   const isIconOnly = !!nodeData.iconOnly;
+  const labelPosition = (nodeData.labelPosition as 'above' | 'below' | 'overlay' | undefined) || 'overlay';
+  const isExternalLabel = labelPosition === 'above' || labelPosition === 'below';
 
   // Resolve styling via the theme resolver
   const resolved = resolveNodeStyle(nodeData as unknown as Record<string, unknown>, shape, activeStyle);
@@ -833,11 +835,12 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   // Outer wrapper: holds resizer + handles, never clips
   const wrapperStyle: React.CSSProperties = {
     width,
-    height,
+    height: isExternalLabel ? 'auto' : height,
     position: 'relative',
     overflow: 'visible',
     transform: wrapperTransformParts.length > 0 ? wrapperTransformParts.join(' ') : undefined,
     transition: 'transform 0.2s',
+    ...(isExternalLabel ? { display: 'flex', flexDirection: 'column', alignItems: 'center' } : {}),
   };
 
   // Bake node-level opacity into fill & border colors so text remains fully visible.
@@ -1050,85 +1053,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       <Handle type="source" position={Position.Right} id="right" className="charthero-handle" style={handleStyles.right} />
       <Handle type="target" position={Position.Right} id="right" className="charthero-handle" style={handleStyles.right || { top: '50%' }} />
 
-      {/* Inner shape div */}
-      <div style={nodeStyle}>
-
-      {/* Arrow shape SVG layer */}
-      {isArrowShape && ArrowSvg && (
-        <svg
-          width="100%"
-          height="100%"
-          viewBox={arrowViewBox}
-          preserveAspectRatio="none"
-          className="absolute inset-0 pointer-events-none"
-        >
-          <ArrowSvg
-            fill={applyOpacity(fillColor, opacity)}
-            stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
-            strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
-          />
-        </svg>
-      )}
-
-      {/* Non-rectangular shape SVG layer */}
-      {isSvgShape && ShapeSvg && (
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 160 80"
-          preserveAspectRatio="none"
-          className="absolute inset-0 pointer-events-none"
-        >
-          <ShapeSvg
-            fill={applyOpacity(fillColor, opacity)}
-            stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
-            strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
-          />
-        </svg>
-      )}
-
-      {/* Diamond SVG layer — rendered as a proper polygon so selection
-          borders, NodeResizer, and pucks all track the bounding box correctly
-          instead of relying on a CSS rotate(45deg) hack. */}
-      {isDiamond && (
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="absolute inset-0 pointer-events-none"
-        >
-          <polygon
-            points="50,0 100,50 50,100 0,50"
-            fill={applyOpacity(fillColor, opacity)}
-            stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
-            strokeWidth={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
-
-      {/* Freehand drawing SVG layer */}
-      {shape === 'freehand' && nodeData.svgPath && (
-        <svg
-          width="100%"
-          height="100%"
-          viewBox={nodeData.svgViewBox || '0 0 100 100'}
-          preserveAspectRatio="xMidYMid meet"
-          className="absolute inset-0 pointer-events-none"
-        >
-          <path
-            d={nodeData.svgPath}
-            fill="none"
-            stroke={isSelected ? selectionColor : applyOpacity(nodeData.svgStrokeColor || borderColor || '#000000', opacity)}
-            strokeWidth={nodeData.svgStrokeWidth || 3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
-
-      {/* Label with optional icon */}
+      {/* Label element builder (shared by overlay and external positions) */}
       {(() => {
         const IconComponent = nodeData.icon
           ? (icons as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[nodeData.icon]
@@ -1159,64 +1084,177 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           );
         };
 
-        // Icon-only mode: render just the icon centered, no label text
-        if (isIconOnly && IconComponent) {
-          const iconSize = nodeData.iconSize || Math.min(width, height) * 0.6;
+        // Build the label content (used for both overlay and external positions)
+        const renderLabelContent = (isOverlay: boolean) => {
+          // Icon-only mode: render just the icon centered, no label text
+          if (isIconOnly && IconComponent) {
+            const iconSize = nodeData.iconSize || Math.min(width, height) * 0.6;
+            return (
+              <div className="flex items-center justify-center w-full h-full relative z-10">
+                {renderStyledIcon(iconSize)}
+              </div>
+            );
+          }
+
+          const actualIconSize = nodeData.iconSize || (scaledFontSize + 2);
+
           return (
-            <div className="flex items-center justify-center w-full h-full relative z-10">
-              {renderStyledIcon(iconSize)}
+            <div
+              ref={labelRef}
+              className={`flex items-center gap-1.5 w-full relative z-10 overflow-hidden px-1 ${isOverlay ? 'h-full' : ''} ${iconPosition === 'right' ? 'flex-row-reverse' : ''} ${
+                (nodeData as Record<string, unknown>).textAlign === 'left' ? 'justify-start' :
+                (nodeData as Record<string, unknown>).textAlign === 'right' ? 'justify-end' :
+                'justify-center'
+              }`}
+              style={{ ...labelStyle, fontSize: scaledFontSize }}
+            >
+              {IconComponent && renderStyledIcon(actualIconSize)}
+              {isEditing ? (
+                <textarea
+                  ref={inputRef}
+                  className="bg-transparent text-center outline-none border-none w-full px-1 resize-none"
+                  style={{
+                    color: textColor,
+                    fontSize: scaledFontSize,
+                    lineHeight: 1.3,
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
+                    overflow: 'hidden',
+                    minHeight: '1.3em',
+                  }}
+                  value={editValue}
+                  rows={Math.max(1, (editValue || '').split('\n').length)}
+                  onChange={(e) => {
+                    setEditValue(e.target.value);
+                    // Auto-resize textarea to fit content
+                    const ta = e.target;
+                    ta.style.height = 'auto';
+                    ta.style.height = `${ta.scrollHeight}px`;
+                  }}
+                  onBlur={commitEdit}
+                  onKeyDown={handleKeyDown}
+                />
+              ) : (
+                <span className="text-center select-none break-words leading-tight whitespace-pre-wrap" style={{ wordBreak: 'break-word', cursor: 'var(--cursor-select)' }}>
+                  {nodeData.label}
+                </span>
+              )}
             </div>
           );
-        }
+        };
 
-        const actualIconSize = nodeData.iconSize || (scaledFontSize + 2);
-
-        return (
+        // External label element (above/below the shape)
+        const externalLabelEl = (
           <div
-            ref={labelRef}
-            className={`flex items-center gap-1.5 w-full h-full relative z-10 overflow-hidden px-1 ${iconPosition === 'right' ? 'flex-row-reverse' : ''} ${
-              (nodeData as Record<string, unknown>).textAlign === 'left' ? 'justify-start' :
-              (nodeData as Record<string, unknown>).textAlign === 'right' ? 'justify-end' :
-              'justify-center'
-            }`}
-            style={{ ...labelStyle, fontSize: scaledFontSize }}
+            style={{
+              width: '100%',
+              textAlign: 'center',
+              color: textColor,
+              fontSize: scaledFontSize,
+              fontWeight: nodeData.fontWeight || 500,
+              fontFamily: nodeData.fontFamily || defaultFontFamily || "'Inter', sans-serif",
+              ...(labelPosition === 'above' ? { marginBottom: 4 } : { marginTop: 4 }),
+            }}
+            onDoubleClick={handleDoubleClick}
           >
-            {IconComponent && renderStyledIcon(actualIconSize)}
-            {isEditing ? (
-              <textarea
-                ref={inputRef}
-                className="bg-transparent text-center outline-none border-none w-full px-1 resize-none"
-                style={{
-                  color: textColor,
-                  fontSize: scaledFontSize,
-                  lineHeight: 1.3,
-                  wordBreak: 'break-word',
-                  overflowWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                  overflow: 'hidden',
-                  minHeight: '1.3em',
-                }}
-                value={editValue}
-                rows={Math.max(1, (editValue || '').split('\n').length)}
-                onChange={(e) => {
-                  setEditValue(e.target.value);
-                  // Auto-resize textarea to fit content
-                  const ta = e.target;
-                  ta.style.height = 'auto';
-                  ta.style.height = `${ta.scrollHeight}px`;
-                }}
-                onBlur={commitEdit}
-                onKeyDown={handleKeyDown}
-              />
-            ) : (
-              <span className="text-center select-none break-words leading-tight whitespace-pre-wrap" style={{ wordBreak: 'break-word', cursor: 'var(--cursor-select)' }}>
-                {nodeData.label}
-              </span>
-            )}
+            {renderLabelContent(false)}
           </div>
         );
+
+        return (
+          <>
+            {/* External label above the shape */}
+            {labelPosition === 'above' && externalLabelEl}
+
+            {/* Inner shape div */}
+            <div style={{ ...nodeStyle, ...(isExternalLabel ? { width, height } : {}) }}>
+
+            {/* Arrow shape SVG layer */}
+            {isArrowShape && ArrowSvg && (
+              <svg
+                width="100%"
+                height="100%"
+                viewBox={arrowViewBox}
+                preserveAspectRatio="none"
+                className="absolute inset-0 pointer-events-none"
+              >
+                <ArrowSvg
+                  fill={applyOpacity(fillColor, opacity)}
+                  stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
+                  strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+                />
+              </svg>
+            )}
+
+            {/* Non-rectangular shape SVG layer */}
+            {isSvgShape && ShapeSvg && (
+              <svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 160 80"
+                preserveAspectRatio="none"
+                className="absolute inset-0 pointer-events-none"
+              >
+                <ShapeSvg
+                  fill={applyOpacity(fillColor, opacity)}
+                  stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
+                  strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+                />
+              </svg>
+            )}
+
+            {/* Diamond SVG layer — rendered as a proper polygon so selection
+                borders, NodeResizer, and pucks all track the bounding box correctly
+                instead of relying on a CSS rotate(45deg) hack. */}
+            {isDiamond && (
+              <svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="absolute inset-0 pointer-events-none"
+              >
+                <polygon
+                  points="50,0 100,50 50,100 0,50"
+                  fill={applyOpacity(fillColor, opacity)}
+                  stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
+                  strokeWidth={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+
+            {/* Freehand drawing SVG layer */}
+            {shape === 'freehand' && nodeData.svgPath && (
+              <svg
+                width="100%"
+                height="100%"
+                viewBox={nodeData.svgViewBox || '0 0 100 100'}
+                preserveAspectRatio="xMidYMid meet"
+                className="absolute inset-0 pointer-events-none"
+              >
+                <path
+                  d={nodeData.svgPath}
+                  fill="none"
+                  stroke={isSelected ? selectionColor : applyOpacity(nodeData.svgStrokeColor || borderColor || '#000000', opacity)}
+                  strokeWidth={nodeData.svgStrokeWidth || 3}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+
+            {/* Label overlay (default — inside the shape) */}
+            {!isExternalLabel && renderLabelContent(true)}
+
+            </div>{/* end inner shape div */}
+
+            {/* External label below the shape */}
+            {labelPosition === 'below' && externalLabelEl}
+          </>
+        );
       })()}
-      </div>{/* end inner shape div */}
     </div>
   );
 };
