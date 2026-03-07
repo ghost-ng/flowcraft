@@ -811,9 +811,6 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const userBorderRadius = nodeData.borderRadius;
 
   // Build box-shadow layers
-  const borderShadow = (!noBox && borderColor !== 'transparent' && !hasDashedBorder)
-    ? `0 0 0 ${borderW}px ${borderColor}`
-    : '';
   // SVG-rendered shapes (parallelogram, hexagon, diamond, etc.) use SVG stroke
   // for selection — skip the rectangular box-shadow selection ring for those.
   const selectionShadow = (isSelected && !noBox)
@@ -823,10 +820,6 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const linkGroupShadow = isInEditedGroup && !isSelected
     ? '0 0 0 2px #3b82f6, 0 0 6px 1px #3b82f640'
     : '';
-  const dropShadow = (!noBox && !isSelected && !isInEditedGroup)
-    ? '0 1px 3px rgba(0,0,0,0.1)'
-    : '';
-  const combinedShadow = [borderShadow, selectionShadow, linkGroupShadow, dropShadow].filter(Boolean).join(', ') || 'none';
 
   // Visual transforms
   const rotation = nodeData.rotation || 0;
@@ -847,15 +840,34 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     transition: 'transform 0.2s',
   };
 
+  // Bake node-level opacity into fill & border colors so text remains fully visible.
+  // CSS `opacity` on the container would fade the label too, which is not the intent.
+  const applyOpacity = (c: string, o: number): string => {
+    if (o >= 1 || !c || c === 'transparent' || c === 'none') return c;
+    try { return chroma(c).alpha(chroma(c).alpha() * o).css(); } catch { return c; }
+  };
+  const effectiveFill = noBox ? 'transparent' : applyOpacity(fillColor, opacity);
+  const effectiveBorder = applyOpacity(borderColor, opacity);
+  const effectiveOutline = hasDashedBorder
+    ? `${borderW}px ${borderStyleProp} ${effectiveBorder}`
+    : 'none';
+  // Rebuild shadow with opacity-adjusted colors
+  const oBorderShadow = (!noBox && borderColor !== 'transparent' && !hasDashedBorder)
+    ? `0 0 0 ${borderW}px ${effectiveBorder}`
+    : '';
+  const oDropShadow = (!noBox && !isSelected && !isInEditedGroup && opacity >= 0.3)
+    ? '0 1px 3px rgba(0,0,0,0.1)'
+    : '';
+  const opacityShadow = [oBorderShadow, selectionShadow, linkGroupShadow, oDropShadow].filter(Boolean).join(', ') || 'none';
+
   // Inner shape: has the visual styling, clips text overflow
   const nodeStyle: React.CSSProperties = {
     width: '100%',
     height: '100%',
-    background: noBox ? 'transparent' : fillColor,
+    background: effectiveFill,
     border: 'none',
-    outline: hasDashedBorder ? `${borderW}px ${borderStyleProp} ${borderColor}` : 'none',
+    outline: effectiveOutline,
     outlineOffset: hasDashedBorder ? '0px' : undefined,
-    opacity,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -863,7 +875,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     fontSize: scaledFontSize,
     fontWeight: nodeData.fontWeight || 500,
     fontFamily: nodeData.fontFamily || defaultFontFamily || "'Inter', sans-serif",
-    boxShadow: combinedShadow,
+    boxShadow: opacityShadow,
     backdropFilter: (!noBox && activeStyle?.nodeDefaults.backdropFilter) || undefined,
     WebkitBackdropFilter: (!noBox && activeStyle?.nodeDefaults.backdropFilter) || undefined,
     transition: 'box-shadow 0.15s, transform 0.2s',
@@ -1051,8 +1063,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           className="absolute inset-0 pointer-events-none"
         >
           <ArrowSvg
-            fill={fillColor}
-            stroke={isSelected ? selectionColor : borderColor}
+            fill={applyOpacity(fillColor, opacity)}
+            stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
             strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
           />
         </svg>
@@ -1068,8 +1080,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           className="absolute inset-0 pointer-events-none"
         >
           <ShapeSvg
-            fill={fillColor}
-            stroke={isSelected ? selectionColor : borderColor}
+            fill={applyOpacity(fillColor, opacity)}
+            stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
             strokeW={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
           />
         </svg>
@@ -1088,8 +1100,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         >
           <polygon
             points="50,0 100,50 50,100 0,50"
-            fill={fillColor}
-            stroke={isSelected ? selectionColor : borderColor}
+            fill={applyOpacity(fillColor, opacity)}
+            stroke={isSelected ? selectionColor : applyOpacity(borderColor, opacity)}
             strokeWidth={isSelected ? Math.max(borderW, selectionThickness) : borderColor !== 'transparent' ? borderW : 0}
             strokeLinejoin="round"
           />
@@ -1108,7 +1120,7 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           <path
             d={nodeData.svgPath}
             fill="none"
-            stroke={isSelected ? selectionColor : (nodeData.svgStrokeColor || borderColor || '#000000')}
+            stroke={isSelected ? selectionColor : applyOpacity(nodeData.svgStrokeColor || borderColor || '#000000', opacity)}
             strokeWidth={nodeData.svgStrokeWidth || 3}
             strokeLinecap="round"
             strokeLinejoin="round"
