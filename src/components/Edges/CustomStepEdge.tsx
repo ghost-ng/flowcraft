@@ -2,7 +2,7 @@
 // CustomStepEdge.tsx -- Right-angle step edge with custom styling
 // ---------------------------------------------------------------------------
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { type EdgeProps, getSmoothStepPath } from '@xyflow/react';
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
@@ -15,7 +15,7 @@ import EdgeLabel from './EdgeLabel';
 import EdgeTypeDragHandle from './EdgeTypeDragHandle';
 import EdgeReconnectIndicator from './EdgeReconnectIndicator';
 import WaypointHandle from './WaypointHandle';
-import { buildWaypointPath } from './waypointPath';
+import { buildWaypointPath, computeStepElbows } from './waypointPath';
 import { useAddWaypoint } from './useAddWaypoint';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +60,7 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
   const onInteractionMouseDown = useEdgeTypeDrag(id, sourceX, sourceY, targetX, targetY);
   const onAddWaypoint = useAddWaypoint(id, sourceX, sourceY, targetX, targetY);
   const waypoints = ev.waypoints;
+  const autoElbowsRef = useRef<Array<{ x: number; y: number }>>([]);
 
   // Determine edge subtype from store (smoothstep vs step)
   const edgeType = (useFlowStore.getState().edges.find(e => e.id === id)?.type ?? 'smoothstep') as 'smoothstep' | 'step';
@@ -75,11 +76,27 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
       waypoints, edgeType,
     });
   } else {
-    [edgePath, labelX, labelY] = getSmoothStepPath({
-      sourceX, sourceY, targetX, targetY,
-      sourcePosition, targetPosition,
-      borderRadius: 8,
-    });
+    // Auto-compute elbow waypoints for step routing
+    const autoElbows = computeStepElbows(
+      sourceX, sourceY, sourcePosition,
+      targetX, targetY, targetPosition,
+    );
+    autoElbowsRef.current = autoElbows;
+
+    if (autoElbows.length > 0) {
+      [edgePath, labelX, labelY] = buildWaypointPath({
+        sourceX, sourceY, targetX, targetY,
+        sourcePosition, targetPosition,
+        waypoints: autoElbows,
+        edgeType,
+      });
+    } else {
+      [edgePath, labelX, labelY] = getSmoothStepPath({
+        sourceX, sourceY, targetX, targetY,
+        sourcePosition, targetPosition,
+        borderRadius: 8,
+      });
+    }
   }
 
   return (
@@ -140,10 +157,15 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
           {/* Reconnect triangles at endpoints */}
           <EdgeReconnectIndicator cx={sourceX} cy={sourceY} position={sourcePosition} color={strokeColor} />
           <EdgeReconnectIndicator cx={targetX} cy={targetY} position={targetPosition} color={strokeColor} />
-          {/* Waypoint handles */}
-          {waypoints?.map((wp, i) => (
-            <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
-          ))}
+          {/* Waypoint handles — stored waypoints or auto-computed elbows */}
+          {waypoints && waypoints.length > 0
+            ? waypoints.map((wp, i) => (
+                <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
+              ))
+            : autoElbowsRef.current.map((wp, i) => (
+                <WaypointHandle key={`auto-${i}`} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} isAutoElbow autoElbows={autoElbowsRef.current} />
+              ))
+          }
         </>
       )}
 

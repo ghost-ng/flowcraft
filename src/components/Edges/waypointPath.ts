@@ -181,6 +181,57 @@ export function buildWaypointPath(params: WaypointPathParams): [string, number, 
   return [fullPath, mid.x, mid.y];
 }
 
+/**
+ * Auto-compute elbow corner positions for step/smoothstep edges so they're
+ * immediately draggable without the user needing to double-click first.
+ */
+export function computeStepElbows(
+  sx: number, sy: number, sPos: Position,
+  tx: number, ty: number, tPos: Position,
+): Array<{ x: number; y: number }> {
+  // Horizontal→horizontal routing (right→left, left→right)
+  if ((sPos === Position.Right && tPos === Position.Left) ||
+      (sPos === Position.Left && tPos === Position.Right)) {
+    const midX = (sx + tx) / 2;
+    if (Math.abs(sy - ty) < 1) return []; // straight horizontal
+    return [{ x: midX, y: sy }, { x: midX, y: ty }];
+  }
+  // Vertical→vertical routing (bottom→top, top→bottom)
+  if ((sPos === Position.Bottom && tPos === Position.Top) ||
+      (sPos === Position.Top && tPos === Position.Bottom)) {
+    const midY = (sy + ty) / 2;
+    if (Math.abs(sx - tx) < 1) return []; // straight vertical
+    return [{ x: sx, y: midY }, { x: tx, y: midY }];
+  }
+  // Mixed orientations: L-shaped path with single elbow
+  if ((sPos === Position.Right || sPos === Position.Left) &&
+      (tPos === Position.Top || tPos === Position.Bottom)) {
+    return [{ x: tx, y: sy }];
+  }
+  if ((sPos === Position.Top || sPos === Position.Bottom) &&
+      (tPos === Position.Right || tPos === Position.Left)) {
+    return [{ x: sx, y: ty }];
+  }
+  // Same-side connections
+  if (sPos === Position.Right && tPos === Position.Right) {
+    const maxX = Math.max(sx, tx) + 30;
+    return [{ x: maxX, y: sy }, { x: maxX, y: ty }];
+  }
+  if (sPos === Position.Left && tPos === Position.Left) {
+    const minX = Math.min(sx, tx) - 30;
+    return [{ x: minX, y: sy }, { x: minX, y: ty }];
+  }
+  if (sPos === Position.Bottom && tPos === Position.Bottom) {
+    const maxY = Math.max(sy, ty) + 30;
+    return [{ x: sx, y: maxY }, { x: tx, y: maxY }];
+  }
+  if (sPos === Position.Top && tPos === Position.Top) {
+    const minY = Math.min(sy, ty) - 30;
+    return [{ x: sx, y: minY }, { x: tx, y: minY }];
+  }
+  return [];
+}
+
 /** Find the midpoint along the polyline defined by points (by arc length) */
 function getMidpoint(points: Array<{ x: number; y: number }>): { x: number; y: number } {
   if (points.length === 0) return { x: 0, y: 0 };
