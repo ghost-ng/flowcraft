@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { X, Plus, Minus } from 'lucide-react';
 
 import {
@@ -41,10 +41,13 @@ const SwimlaneCreationDialog: React.FC = () => {
   const isCreating = useSwimlaneStore((s) => s.isCreating);
   const setIsCreating = useSwimlaneStore((s) => s.setIsCreating);
   const addLane = useSwimlaneStore((s) => s.addLane);
-  const config = useSwimlaneStore((s) => {
-    const c = s.containers.find((c) => c.id === s.activeContainerId);
-    return c?.config ?? { orientation: 'horizontal' as const, containerTitle: '', horizontal: [], vertical: [] };
-  });
+  const activeContainer = useSwimlaneStore((s) =>
+    s.containers.find((c) => c.id === s.activeContainerId),
+  );
+  const config = useMemo(
+    () => activeContainer?.config ?? { orientation: 'horizontal' as const, containerTitle: '', horizontal: [], vertical: [] },
+    [activeContainer],
+  );
   const setOrientation = useSwimlaneStore((s) => s.setOrientation);
   const setContainerTitle = useSwimlaneStore((s) => s.setContainerTitle);
   const containers = useSwimlaneStore((s) => s.containers);

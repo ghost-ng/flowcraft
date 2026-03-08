@@ -28,6 +28,7 @@ import ExtensionNode from '../../extensions/ExtensionNode';
 import { useExtensionStore } from '../../extensions/extensionStore';
 import Ruler, { RulerCorner } from './Ruler';
 import StatusBar from './StatusBar';
+import PinnedExtensionsBar from '../Panels/PinnedExtensionsBar';
 import { edgeTypes, MarkerDefs } from '../Edges';
 import { SwimlaneLayer, SwimlaneHeaderLayer, SwimlaneResizeOverlay } from '../Swimlanes';
 import { LegendOverlay, LegendButton } from '../Legend';
@@ -572,7 +573,8 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         return;
       }
 
-      // Handle extension pack item drop — create an extensionNode
+      // Handle extension pack item drop — create an extensionNode (icon) + textbox (label)
+      // linked together so they move as a unit but can be ungrouped independently.
       const extensionData = event.dataTransfer.getData('application/charthero-extension');
       if (extensionData) {
         try {
@@ -581,12 +583,16 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           const item = pack?.items.find((i) => i.id === itemId);
           if (item) {
             const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-            const newNode: FlowNode = {
-              id: nextId(),
+            const iconId = nextId();
+            const labelId = nextId();
+
+            // Icon node — extensionNode with no label
+            const iconNode: FlowNode = {
+              id: iconId,
               type: 'extensionNode',
               position,
               data: {
-                label: item.name,
+                label: '',
                 shape: 'rectangle' as NodeShape,
                 extensionPackId: packId,
                 extensionItemId: itemId,
@@ -596,8 +602,39 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
                 height: item.defaultHeight,
               } as FlowNodeData,
             };
-            addNode(newNode);
-            useFlowStore.getState().setSelectedNodes([newNode.id]);
+
+            // Label node — textbox positioned below the icon
+            const labelNode: FlowNode = {
+              id: labelId,
+              type: 'shapeNode',
+              position: {
+                x: position.x + (item.defaultWidth / 2) - 50,
+                y: position.y + item.defaultHeight + 4,
+              },
+              data: {
+                label: item.name,
+                shape: 'textbox' as NodeShape,
+                width: 100,
+                height: 24,
+                fontSize: 14,
+                textAlign: 'center',
+                color: 'transparent',
+                borderColor: 'transparent',
+                borderWidth: 0,
+                opacity: 0,
+              } as FlowNodeData,
+            };
+
+            addNode(iconNode);
+            addNode(labelNode);
+
+            // Link-group them so they move together
+            const lgId = useFlowStore.getState().createLinkGroup([iconId, labelId]);
+            // Tag the icon so we know it has a paired label
+            useFlowStore.getState().updateNodeData(iconId, { pairedLabelNodeId: labelId, linkGroupId: lgId });
+            useFlowStore.getState().updateNodeData(labelId, { pairedIconNodeId: iconId, linkGroupId: lgId });
+
+            useFlowStore.getState().setSelectedNodes([iconId, labelId]);
           }
         } catch { /* ignore parse errors */ }
         return;
@@ -1845,6 +1882,9 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       {bottomBanner.enabled && !presentationMode && <BannerBar position="bottom" config={bottomBanner} />}
 
       </div>{/* end capture-area */}
+
+      {/* Pinned extensions bar — above status bar */}
+      {!presentationMode && <PinnedExtensionsBar />}
 
       {/* Status bar at very bottom, below banners */}
       {!presentationMode && <StatusBar />}

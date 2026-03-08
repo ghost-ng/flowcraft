@@ -417,43 +417,55 @@ export const useFlowStore = create<FlowState>()(
       set((state) => {
         const node = state.nodes.find(n => n.id === nodeId);
 
+        // Collect all node IDs to remove (includes link group siblings)
+        const idsToRemove = new Set<string>([nodeId]);
+        if (node?.data.linkGroupId) {
+          for (const n of state.nodes) {
+            if (n.data.linkGroupId === node.data.linkGroupId) {
+              idsToRemove.add(n.id);
+            }
+          }
+        }
+
         // If removing a connector endpoint, also remove the edge + peer endpoint
-        if (node?.data.isConnectorEndpoint) {
-          const edgeId = node.data.connectorEdgeId as string | undefined;
-          if (edgeId) {
-            const edge = state.edges.find(e => e.id === edgeId);
-            state.edges = state.edges.filter(e => e.id !== edgeId);
-            state.selectedEdges = state.selectedEdges.filter(id => id !== edgeId);
-            if (edge) {
-              const peerId = edge.source === nodeId ? edge.target : edge.source;
-              const peer = state.nodes.find(n => n.id === peerId);
-              if (peer?.data.isConnectorEndpoint) {
-                state.nodes = state.nodes.filter(n => n.id !== peerId);
-                state.selectedNodes = state.selectedNodes.filter(id => id !== peerId);
+        for (const removeId of idsToRemove) {
+          const rmNode = state.nodes.find(n => n.id === removeId);
+          if (rmNode?.data.isConnectorEndpoint) {
+            const edgeId = rmNode.data.connectorEdgeId as string | undefined;
+            if (edgeId) {
+              const edge = state.edges.find(e => e.id === edgeId);
+              state.edges = state.edges.filter(e => e.id !== edgeId);
+              state.selectedEdges = state.selectedEdges.filter(id => id !== edgeId);
+              if (edge) {
+                const peerId = edge.source === removeId ? edge.target : edge.source;
+                const peer = state.nodes.find(n => n.id === peerId);
+                if (peer?.data.isConnectorEndpoint) {
+                  idsToRemove.add(peerId);
+                }
               }
             }
           }
         }
 
-        state.nodes = state.nodes.filter((n) => n.id !== nodeId);
+        state.nodes = state.nodes.filter((n) => !idsToRemove.has(n.id));
         // Also remove connected edges
         state.edges = state.edges.filter(
-          (e) => e.source !== nodeId && e.target !== nodeId,
+          (e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target),
         );
-        state.selectedNodes = state.selectedNodes.filter((id) => id !== nodeId);
+        state.selectedNodes = state.selectedNodes.filter((id) => !idsToRemove.has(id));
 
         // Clean up dependency references from remaining nodes
         for (const node of state.nodes) {
-          if (node.data.dependsOn?.includes(nodeId)) {
+          if (node.data.dependsOn?.some(id => idsToRemove.has(id))) {
             node.data = {
               ...node.data,
-              dependsOn: node.data.dependsOn.filter(id => id !== nodeId),
+              dependsOn: node.data.dependsOn.filter(id => !idsToRemove.has(id)),
             };
           }
-          if (node.data.blockedBy?.includes(nodeId)) {
+          if (node.data.blockedBy?.some(id => idsToRemove.has(id))) {
             node.data = {
               ...node.data,
-              blockedBy: node.data.blockedBy.filter(id => id !== nodeId),
+              blockedBy: node.data.blockedBy.filter(id => !idsToRemove.has(id)),
             };
           }
         }

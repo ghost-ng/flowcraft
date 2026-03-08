@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronsLeft, ChevronsRight, ChevronDown, ChevronRight, Pen, Pin, PinOff, Puzzle, Rows3, Shapes, Trash2, Upload } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, Pen, Pin, PinOff, Puzzle, Rows3, Shapes, Trash2, Upload } from 'lucide-react';
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import { useSwimlaneStore } from '../../store/swimlaneStore';
@@ -493,55 +493,6 @@ const ExtensionsPopover: React.FC<ExtensionsPopoverProps> = ({ anchorRect, onClo
 };
 
 // ---------------------------------------------------------------------------
-// Pinned extension pack section
-// ---------------------------------------------------------------------------
-
-interface PinnedPackSectionProps {
-  pack: ExtensionPack;
-}
-
-const PinnedPackSection: React.FC<PinnedPackSectionProps> = React.memo(({ pack }) => {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="w-full">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-0.5 px-1 py-0.5 text-[10px] font-semibold text-text-muted dark:text-dk-muted truncate cursor-pointer hover:text-primary dark:hover:text-dk-text transition-colors"
-        data-tooltip-right={pack.name}
-      >
-        {expanded ? <ChevronDown size={10} className="shrink-0" /> : <ChevronRight size={10} className="shrink-0" />}
-        <span className="truncate">{pack.name}</span>
-      </button>
-      {expanded && (
-        <div className="flex flex-wrap gap-0.5 px-0.5 pb-1">
-          {pack.items.map((item) => (
-            <div
-              key={item.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('application/charthero-extension', JSON.stringify({ packId: pack.id, itemId: item.id }));
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              data-tooltip-right={item.name}
-              style={{ cursor: CURSOR_OPEN_HAND }}
-              className="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-100 hover:bg-primary/10 hover:scale-105 active:scale-95"
-            >
-              <div
-                className="w-8 h-8 text-text-muted dark:text-dk-muted"
-                dangerouslySetInnerHTML={{ __html: item.svgContent }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
-
-PinnedPackSection.displayName = 'PinnedPackSection';
-
-// ---------------------------------------------------------------------------
 // Main ShapePalette
 // ---------------------------------------------------------------------------
 
@@ -563,16 +514,10 @@ const ShapePalette: React.FC = () => {
   const extensionsBtnRef = useRef<HTMLButtonElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Extension store
-  const packs = useExtensionStore((s) => s.packs);
-  const pinnedPackIds = useExtensionStore((s) => s.pinnedPackIds);
-
-  // Load built-in packs on mount
+  // Load built-in extension packs on mount
   useEffect(() => {
     useExtensionStore.getState().loadBuiltInPacks();
   }, []);
-
-  const pinnedPacks = packs.filter((p) => pinnedPackIds.includes(p.id));
 
   const handleShapeSelect = useCallback((type: string) => {
     // Toggle: click same shape to deselect
@@ -756,18 +701,9 @@ const ShapePalette: React.FC = () => {
               >
                 <Puzzle size={20} />
               </button>
-
-              {/* Pinned extension pack grids */}
-              {pinnedPacks.length > 0 && (
-                <>
-                  <div className="w-full border-t border-border dark:border-dk-border my-1" />
-                  {pinnedPacks.map((pack) => (
-                    <PinnedPackSection key={pack.id} pack={pack} />
-                  ))}
-                </>
-              )}
             </div>
           </div>
+
         </div>
       )}
 

@@ -40,8 +40,31 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const resolved = resolveNodeStyle(nodeData as unknown as Record<string, unknown>, nodeData.shape || 'rectangle', activeStyle);
   const fillColor = resolved.fill;
   const borderColor = resolved.borderColor;
-  const textColor = nodeData.textColor || resolved.textColor || '#1e293b';
-  const fontSize = nodeData.fontSize || resolved.fontSize || 14;
+  // Extension SVGs are outline-only (fill="none"), so text must contrast with the
+  // canvas background, not the node fill.  The theme fontColor (e.g. #ffffff in
+  // Flat Material) assumes filled shapes, so we check contrast against the canvas
+  // before using it.
+  const darkMode = useStyleStore((s) => s.darkMode);
+  const canvasBg = activeStyle?.canvas?.background || (darkMode ? '#1a1a2e' : '#ffffff');
+  const themeFontColor = activeStyle?.nodeDefaults.fontColor;
+  const fallbackTextColor = darkMode ? '#e2e8f0' : '#1e293b';
+  let textColor: string;
+  if (nodeData.textColor) {
+    textColor = nodeData.textColor;
+  } else if (themeFontColor) {
+    // Only use the theme font color if it contrasts with the canvas background
+    try {
+      const contrast = chroma.contrast(themeFontColor, canvasBg);
+      textColor = contrast >= 3 ? themeFontColor : fallbackTextColor;
+    } catch {
+      textColor = fallbackTextColor;
+    }
+  } else {
+    textColor = fallbackTextColor;
+  }
+  // Use a fixed default size for extension labels so they stay consistent across
+  // themes (theme fontSize varies 12-18 and is tuned for filled shapes, not icons).
+  const fontSize = nodeData.fontSize || 14;
   const fontWeight = nodeData.fontWeight || 500;
   const fontFamily = nodeData.fontFamily || defaultFontFamily || "'Inter', sans-serif";
 
@@ -146,7 +169,11 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
 
   const effectiveFill = applyOpacity(fillColor, opacity);
-  const effectiveBorder = applyOpacity(borderColor, opacity);
+  // Extension SVGs are outline-based.  When the theme sets stroke to transparent
+  // or none (e.g. Flat Material), use the fill color for strokes so outlines
+  // remain visible.
+  const isInvisibleBorder = !borderColor || borderColor === 'transparent' || borderColor === 'none';
+  const effectiveBorder = isInvisibleBorder ? applyOpacity(fillColor, opacity) : applyOpacity(borderColor, opacity);
 
   // ---- Recolor SVG ----
   const recoloredSvg = useMemo(() => {
@@ -195,6 +222,9 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
 
   // ---- Label element ----
+  // Label width can be wider than the icon via labelWidth; defaults to node width
+  const labelW = (nodeData.labelWidth as number | undefined) || width;
+
   const labelEl = (overlay: boolean) => {
     const baseStyle: React.CSSProperties = {
       color: textColor,
@@ -202,10 +232,12 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       fontWeight,
       fontFamily,
       textAlign: 'center' as const,
-      width: '100%',
+      width: labelW,
       wordBreak: 'break-word' as const,
       overflowWrap: 'break-word' as const,
       lineHeight: 1.3,
+      // Centre the label under/over the icon even when wider
+      marginLeft: overlay ? undefined : (width - labelW) / 2,
     };
 
     if (overlay) {

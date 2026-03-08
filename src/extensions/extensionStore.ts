@@ -72,10 +72,10 @@ export const useExtensionStore = create<ExtensionState>()(
     loaded: false,
 
     loadBuiltInPacks: async () => {
-      if (get().loaded) return;
+      // Check actual built-in packs presence (not just the flag) to survive HMR reloads
+      if (get().packs.some((p) => p.builtIn)) return;
       const { builtInPacks } = await import('./packs/index');
       set((s) => {
-        // Merge built-in packs (don't duplicate)
         const existingIds = new Set(s.packs.map((p) => p.id));
         for (const pack of builtInPacks) {
           if (!existingIds.has(pack.id)) s.packs.push(pack);

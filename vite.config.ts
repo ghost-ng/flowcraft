@@ -121,6 +121,8 @@ export default defineConfig({
             './src/extensions/packs/networkInfra.ts',
             './src/extensions/packs/uxWireframe.ts',
             './src/extensions/packs/peopleTeams.ts',
+            './src/extensions/packs/businessProcess.ts',
+            './src/extensions/packs/dataAnalytics.ts',
           ],
         },
       },

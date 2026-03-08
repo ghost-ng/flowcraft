@@ -1071,6 +1071,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
               ))}
             </div>
           </Field>
+
         </>
       )}
 
