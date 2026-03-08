@@ -80,6 +80,28 @@ export function unlockSwimlaneOverflow(): () => void {
 }
 
 /**
+ * Temporarily set overflow:visible on the capture-area and canvas-area wrappers
+ * so that nodes near a banner boundary are not clipped during image export.
+ * Returns a cleanup function to restore original overflow values.
+ */
+export function unlockCaptureOverflow(): () => void {
+  const captureEl = document.querySelector<HTMLElement>('[data-charthero-capture-area]');
+  const canvasEl = document.querySelector<HTMLElement>('[data-charthero-canvas-area]');
+  const saved: Array<[HTMLElement, string]> = [];
+  for (const el of [captureEl, canvasEl]) {
+    if (el) {
+      saved.push([el, el.style.overflow]);
+      el.style.overflow = 'visible';
+    }
+  }
+  return () => {
+    for (const [el, orig] of saved) {
+      el.style.overflow = orig;
+    }
+  };
+}
+
+/**
  * Generates a timestamped filename.
  */
 function getFilename(ext: string): string {
@@ -139,6 +161,7 @@ export async function exportAsPng(options: PngExportOptions): Promise<void> {
   const element = getReactFlowElement(true);
   const { scale, transparentBackground, padding } = options;
   const restoreOverflow = unlockSwimlaneOverflow();
+  const restoreCapture = unlockCaptureOverflow();
 
   try {
     const dataUrl = await toPng(element, {
@@ -154,6 +177,7 @@ export async function exportAsPng(options: PngExportOptions): Promise<void> {
     saveAs(blob, getFilename('png'));
   } finally {
     restoreOverflow();
+    restoreCapture();
   }
 }
 
@@ -165,6 +189,7 @@ export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
   const element = getReactFlowElement(true);
   const { quality, scale, backgroundColor, padding } = options;
   const restoreOverflow = unlockSwimlaneOverflow();
+  const restoreCapture = unlockCaptureOverflow();
 
   try {
     const dataUrl = await toJpeg(element, {
@@ -181,6 +206,7 @@ export async function exportAsJpg(options: JpgExportOptions): Promise<void> {
     saveAs(blob, getFilename('jpg'));
   } finally {
     restoreOverflow();
+    restoreCapture();
   }
 }
 
@@ -193,6 +219,7 @@ export async function exportAsSvg(options: SvgExportOptions): Promise<void> {
 
   const container = getReactFlowElement(true);
   const restoreOverflow = unlockSwimlaneOverflow();
+  const restoreCapture = unlockCaptureOverflow();
 
   try {
     const dataUrl = await toSvg(container, {
@@ -221,6 +248,7 @@ export async function exportAsSvg(options: SvgExportOptions): Promise<void> {
     saveAs(blob, getFilename('svg'));
   } finally {
     restoreOverflow();
+    restoreCapture();
   }
 }
 
@@ -239,6 +267,7 @@ const PDF_PAGE_SIZES: Record<string, string> = {
 export async function exportAsPdf(options: PdfExportOptions): Promise<void> {
   const element = getReactFlowElement(true);
   const restoreOverflow = unlockSwimlaneOverflow();
+  const restoreCapture = unlockCaptureOverflow();
 
   // Capture the diagram as a PNG first
   let dataUrl: string;
@@ -249,6 +278,7 @@ export async function exportAsPdf(options: PdfExportOptions): Promise<void> {
     });
   } finally {
     restoreOverflow();
+    restoreCapture();
   }
 
   const { pageSize, orientation, fitToPage, margin } = options;
