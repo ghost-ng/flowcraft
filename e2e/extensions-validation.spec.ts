@@ -52,10 +52,10 @@ test.describe('SVG Extensions Framework', () => {
     }
   });
 
-  test('Extensions popover opens with 5 built-in packs', async ({ page }) => {
+  test('Extensions popover opens with 7 built-in packs', async ({ page }) => {
     await openExtensions(page);
 
-    // Check for the 5 built-in packs in the popover
+    // Check for the 7 built-in packs in the popover
     // Use force-visible checks since popover may extend beyond viewport
     const networkPack = page.locator('text=Network & Infrastructure').first();
     await expect(networkPack).toBeAttached({ timeout: 5000 });
@@ -71,6 +71,12 @@ test.describe('SVG Extensions Framework', () => {
 
     const dataPack = page.locator('text=Data & Analytics').first();
     await expect(dataPack).toBeAttached();
+
+    const cloudPack = page.locator('text=Cloud & DevOps').first();
+    await expect(cloudPack).toBeAttached();
+
+    const securityPack = page.locator('text=Security & Compliance').first();
+    await expect(securityPack).toBeAttached();
   });
 
   test('Pin a pack and see it in the palette', async ({ page }) => {

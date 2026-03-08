@@ -4,6 +4,8 @@ import { uxWireframePack } from './uxWireframe';
 import { peopleTeamsPack } from './peopleTeams';
 import { businessProcessPack } from './businessProcess';
 import { dataAnalyticsPack } from './dataAnalytics';
+import { cloudDevopsPack } from './cloudDevops';
+import { securityCompliancePack } from './securityCompliance';
 
 export const builtInPacks: ExtensionPack[] = [
   networkInfraPack,
@@ -11,4 +13,6 @@ export const builtInPacks: ExtensionPack[] = [
   peopleTeamsPack,
   businessProcessPack,
   dataAnalyticsPack,
+  cloudDevopsPack,
+  securityCompliancePack,
 ];

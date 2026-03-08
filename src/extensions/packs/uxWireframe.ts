@@ -327,5 +327,58 @@ export const uxWireframePack: ExtensionPack = {
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 8 A24 24 0 1 1 8 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M32 8 A24 24 0 0 0 8 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.2"/></svg>',
     },
+    {
+      id: 'ux-file-upload',
+      name: 'File Upload',
+      viewBox: '0 0 64 64',
+      defaultWidth: 80,
+      defaultHeight: 60,
+      tags: ['file', 'upload', 'dropzone', 'attach', 'input'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<rect x="6" y="12" width="52" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="6 4"/>' +
+        '<line x1="32" y1="42" x2="32" y2="22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<polyline points="22,30 32,22 42,30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</svg>',
+    },
+    {
+      id: 'ux-date-picker',
+      name: 'Date Picker',
+      viewBox: '0 0 64 64',
+      defaultWidth: 70,
+      defaultHeight: 70,
+      tags: ['date', 'picker', 'calendar', 'time', 'input'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<rect x="8" y="12" width="48" height="44" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<line x1="8" y1="24" x2="56" y2="24" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="18" y1="8" x2="18" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<line x1="46" y1="8" x2="46" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<rect x="16" y="30" width="8" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>' +
+        '<rect x="28" y="30" width="8" height="7" rx="1" fill="currentColor" opacity="0.7"/>' +
+        '<rect x="40" y="30" width="8" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>' +
+        '<rect x="16" y="42" width="8" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>' +
+        '<rect x="28" y="42" width="8" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>' +
+        '</svg>',
+    },
+    {
+      id: 'ux-color-picker',
+      name: 'Color Picker',
+      viewBox: '0 0 64 64',
+      defaultWidth: 64,
+      defaultHeight: 64,
+      tags: ['color', 'picker', 'palette', 'swatch', 'design'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<circle cx="32" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="46" cy="22" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="46" cy="40" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="32" cy="50" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="18" cy="40" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="18" cy="22" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="32" cy="32" r="6" fill="currentColor"/>' +
+        '</svg>',
+    },
   ],
 };

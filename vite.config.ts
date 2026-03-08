@@ -123,6 +123,8 @@ export default defineConfig({
             './src/extensions/packs/peopleTeams.ts',
             './src/extensions/packs/businessProcess.ts',
             './src/extensions/packs/dataAnalytics.ts',
+            './src/extensions/packs/cloudDevops.ts',
+            './src/extensions/packs/securityCompliance.ts',
           ],
         },
       },

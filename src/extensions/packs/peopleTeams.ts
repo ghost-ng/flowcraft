@@ -429,5 +429,85 @@ export const peopleTeamsPack: ExtensionPack = {
         '<path d="M44 42 L50 48 L44 54" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
         '</svg>',
     },
+    {
+      id: 'ppl-team-lead',
+      name: 'Team Lead',
+      viewBox: '0 0 64 64',
+      defaultWidth: 64,
+      defaultHeight: 80,
+      tags: ['team lead', 'lead', 'leader', 'captain', 'supervisor'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<circle cx="32" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M14 56 Q14 40 32 38 Q50 40 50 56" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        // Crown above head
+        '<polygon points="24,8 28,4 32,8 36,4 40,8" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
+        '</svg>',
+    },
+    {
+      id: 'ppl-vendor',
+      name: 'Vendor',
+      viewBox: '0 0 64 64',
+      defaultWidth: 70,
+      defaultHeight: 80,
+      tags: ['vendor', 'contractor', 'supplier', 'third party', 'external'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<circle cx="22" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M6 56 Q6 40 22 38 Q38 40 38 56" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        // Briefcase
+        '<rect x="40" y="24" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M46 24 V20 A4 4 0 0 1 54 20 V24" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="40" y1="32" x2="60" y2="32" stroke="currentColor" stroke-width="1.5"/>' +
+        '</svg>',
+    },
+    {
+      id: 'ppl-client',
+      name: 'Client',
+      viewBox: '0 0 64 64',
+      defaultWidth: 64,
+      defaultHeight: 80,
+      tags: ['client', 'customer', 'user', 'buyer', 'end user'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<circle cx="32" cy="18" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M14 54 Q14 38 32 36 Q50 38 50 54" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        // Star badge
+        '<polygon points="50,12 52,8 54,12 58,12 55,15 56,19 52,17 48,19 49,15 46,12" fill="currentColor" opacity="0.7"/>' +
+        '</svg>',
+    },
+    {
+      id: 'ppl-consultant',
+      name: 'Consultant',
+      viewBox: '0 0 64 64',
+      defaultWidth: 70,
+      defaultHeight: 80,
+      tags: ['consultant', 'advisor', 'expert', 'specialist', 'coach'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<circle cx="26" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M8 56 Q8 40 26 38 Q44 40 44 56" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        // Lightbulb (expertise)
+        '<circle cx="52" cy="20" r="8" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<line x1="52" y1="28" x2="52" y2="32" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<line x1="48" y1="30" x2="56" y2="30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '</svg>',
+    },
+    {
+      id: 'ppl-trainee',
+      name: 'Trainee',
+      viewBox: '0 0 64 64',
+      defaultWidth: 64,
+      defaultHeight: 80,
+      tags: ['trainee', 'intern', 'junior', 'apprentice', 'student'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<circle cx="32" cy="22" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        '<path d="M14 56 Q14 40 32 38 Q50 40 50 56" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
+        // Graduation cap
+        '<polygon points="20,10 32,4 44,10 32,16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
+        '<line x1="44" y1="10" x2="44" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '</svg>',
+    },
   ],
 };

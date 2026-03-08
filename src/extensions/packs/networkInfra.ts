@@ -663,5 +663,25 @@ export const networkInfraPack: ExtensionPack = {
         '<polygon points="36,18 26,34 32,34 28,48 40,30 34,30" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
         '</svg>',
     },
+    {
+      id: 'net-kubernetes',
+      name: 'Kubernetes',
+      viewBox: '0 0 64 64',
+      defaultWidth: 80,
+      defaultHeight: 80,
+      tags: ['kubernetes', 'k8s', 'orchestration', 'container', 'cluster'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<polygon points="32,6 54,18 54,46 32,58 10,46 10,18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<circle cx="32" cy="32" r="10" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<line x1="32" y1="22" x2="32" y2="6" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="41" y1="27" x2="54" y2="18" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="41" y1="37" x2="54" y2="46" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="32" y1="42" x2="32" y2="58" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="23" y1="37" x2="10" y2="46" stroke="currentColor" stroke-width="1.5"/>' +
+        '<line x1="23" y1="27" x2="10" y2="18" stroke="currentColor" stroke-width="1.5"/>' +
+        '<circle cx="32" cy="32" r="3" fill="currentColor"/>' +
+        '</svg>',
+    },
   ],
 };
