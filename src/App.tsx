@@ -199,6 +199,60 @@ const App: React.FC = () => {
     createLinkGroup(selectedNodes);
   }, []);
 
+  // Ungroup selected node (visual group or link group)
+  const handleUngroup = useCallback(() => {
+    const { selectedNodes, nodes, setNodes, removeNodeFromLinkGroup } = useFlowStore.getState();
+    if (selectedNodes.length !== 1) return;
+    const nodeId = selectedNodes[0];
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    if (node.type === 'groupNode') {
+      // Ungroup: convert children to absolute positions and remove group
+      const updatedNodes = nodes
+        .filter((n) => n.id !== nodeId) // remove group node
+        .map((n) => {
+          if (n.parentId === nodeId) {
+            return {
+              ...n,
+              parentId: undefined,
+              extent: undefined,
+              position: {
+                x: n.position.x + node.position.x,
+                y: n.position.y + node.position.y,
+              },
+              data: { ...n.data, groupId: undefined },
+            };
+          }
+          return n;
+        });
+      setNodes(updatedNodes);
+    } else if (node.parentId) {
+      // Remove this node from its visual group
+      const parent = nodes.find((n) => n.id === node.parentId);
+      if (!parent) return;
+      const updatedNodes = nodes.map((n) => {
+        if (n.id === nodeId) {
+          return {
+            ...n,
+            parentId: undefined,
+            extent: undefined,
+            position: {
+              x: n.position.x + parent.position.x,
+              y: n.position.y + parent.position.y,
+            },
+            data: { ...n.data, groupId: undefined },
+          };
+        }
+        return n;
+      });
+      setNodes(updatedNodes);
+    } else if (node.data.linkGroupId) {
+      // Remove from link group
+      removeNodeFromLinkGroup(nodeId);
+    }
+  }, []);
+
   // Mirror / Rotate helpers
   const applyPositions = useCallback((positions: Map<string, { x: number; y: number }>) => {
     const { updateNodePosition } = useFlowStore.getState();
@@ -537,6 +591,7 @@ const App: React.FC = () => {
     onToggleDarkMode: toggleDarkMode,
     onGroup: handleGroup,
     onLinkGroup: handleLinkGroup,
+    onUngroup: handleUngroup,
     onMirrorHorizontal: handleMirrorH,
     onMirrorVertical: handleMirrorV,
     onBringForward: handleBringForward,

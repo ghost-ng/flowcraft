@@ -48,6 +48,8 @@ export interface KeyboardShortcutCallbacks {
   onToggleDarkMode?: () => void;
   /** Ctrl+Shift+G - link group selected */
   onLinkGroup?: () => void;
+  /** Ctrl+Shift+U - ungroup selected */
+  onUngroup?: () => void;
   /** Ctrl+Shift+H - mirror horizontal */
   onMirrorHorizontal?: () => void;
   /** Ctrl+Alt+V - mirror vertical (flip) */
@@ -214,6 +216,11 @@ export function useKeyboardShortcuts(
           case 'a':
             e.preventDefault();
             callbacks.onToggleAI?.();
+            return;
+          case 'U':
+          case 'u':
+            e.preventDefault();
+            callbacks.onUngroup?.();
             return;
           case ']':
           case '}':
