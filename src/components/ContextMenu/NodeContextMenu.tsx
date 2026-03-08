@@ -16,6 +16,7 @@ import {
   Circle,
   MousePointerClick,
   Link,
+  Unlink,
   AlignLeft,
   AlignCenterHorizontal,
   AlignRight,
@@ -78,6 +79,12 @@ export interface NodeContextMenuProps {
   isInLinkGroup?: boolean;
   /** Open the link group editor for this node's group */
   onEditLinkGroup?: () => void;
+  /** Whether the node is inside a visual group (has parentId) */
+  isInVisualGroup?: boolean;
+  /** Remove the node from its visual group */
+  onRemoveFromVisualGroup?: () => void;
+  /** Remove the node from its link group */
+  onRemoveFromLinkGroup?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +219,9 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   hasMultipleSelected,
   isInLinkGroup,
   onEditLinkGroup,
+  isInVisualGroup,
+  onRemoveFromVisualGroup,
+  onRemoveFromLinkGroup,
 }) => {
   const darkMode = useStyleStore((s) => s.darkMode);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
@@ -641,6 +651,29 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
               icon={<Ungroup size={14} />}
               label="Ungroup"
               onClick={() => { onUngroup(); onClose(); }}
+              darkMode={darkMode}
+            />
+          </>
+        )}
+
+        {isInVisualGroup && onRemoveFromVisualGroup && (
+          <>
+            <MenuDivider darkMode={darkMode} />
+            <MenuItem
+              icon={<Ungroup size={14} />}
+              label="Remove from Group"
+              onClick={() => { onRemoveFromVisualGroup(); onClose(); }}
+              darkMode={darkMode}
+            />
+          </>
+        )}
+        {isInLinkGroup && onRemoveFromLinkGroup && (
+          <>
+            {!isInVisualGroup && <MenuDivider darkMode={darkMode} />}
+            <MenuItem
+              icon={<Unlink size={14} />}
+              label="Remove from Link Group"
+              onClick={() => { onRemoveFromLinkGroup(); onClose(); }}
               darkMode={darkMode}
             />
           </>

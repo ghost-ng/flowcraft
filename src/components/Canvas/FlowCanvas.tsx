@@ -1869,6 +1869,28 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
               closeContextMenus();
             }
           }}
+          isInVisualGroup={!!nodes.find((n) => n.id === nodeMenu.nodeId)?.parentId}
+          onRemoveFromVisualGroup={() => {
+            const nd = nodes.find((n) => n.id === nodeMenu.nodeId);
+            if (!nd?.parentId) return;
+            const parent = nodes.find((n) => n.id === nd.parentId);
+            if (!parent) return;
+            const absX = nd.position.x + parent.position.x;
+            const absY = nd.position.y + parent.position.y;
+            const store = useFlowStore.getState();
+            store.setNodes(
+              store.nodes.map((n) =>
+                n.id === nodeMenu.nodeId
+                  ? { ...n, parentId: undefined, extent: undefined, position: { x: absX, y: absY }, data: { ...n.data, groupId: undefined } }
+                  : n
+              )
+            );
+            closeContextMenus();
+          }}
+          onRemoveFromLinkGroup={() => {
+            useFlowStore.getState().removeNodeFromLinkGroup(nodeMenu.nodeId);
+            closeContextMenus();
+          }}
         />
       )}
 
