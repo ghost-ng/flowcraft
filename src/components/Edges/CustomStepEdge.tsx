@@ -15,6 +15,7 @@ import EdgeLabel from './EdgeLabel';
 import EdgeTypeDragHandle from './EdgeTypeDragHandle';
 import EdgeReconnectIndicator from './EdgeReconnectIndicator';
 import WaypointHandle from './WaypointHandle';
+import SegmentHandle from './SegmentHandle';
 import { buildWaypointPath, computeStepElbows } from './waypointPath';
 import { useAddWaypoint } from './useAddWaypoint';
 
@@ -158,14 +159,58 @@ const CustomStepEdge: React.FC<EdgeProps> = ({
           <EdgeReconnectIndicator cx={sourceX} cy={sourceY} position={sourcePosition} color={strokeColor} />
           <EdgeReconnectIndicator cx={targetX} cy={targetY} position={targetPosition} color={strokeColor} />
           {/* Waypoint handles — stored waypoints or auto-computed elbows */}
-          {waypoints && waypoints.length > 0
-            ? waypoints.map((wp, i) => (
-                <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
-              ))
-            : autoElbowsRef.current.map((wp, i) => (
-                <WaypointHandle key={`auto-${i}`} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} isAutoElbow autoElbows={autoElbowsRef.current} />
-              ))
-          }
+          {(() => {
+            const wps = waypoints && waypoints.length > 0 ? waypoints : autoElbowsRef.current;
+            const isAuto = !(waypoints && waypoints.length > 0);
+            if (wps.length === 0) return null;
+
+            // Build full point list: source → waypoints → target
+            const allPts = [
+              { x: sourceX, y: sourceY },
+              ...wps,
+              { x: targetX, y: targetY },
+            ];
+
+            return (
+              <>
+                {/* Elbow corner handles */}
+                {wps.map((wp, i) =>
+                  isAuto ? (
+                    <WaypointHandle key={`auto-${i}`} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} isAutoElbow autoElbows={autoElbowsRef.current} />
+                  ) : (
+                    <WaypointHandle key={i} edgeId={id} index={i} cx={wp.x} cy={wp.y} color={strokeColor} />
+                  )
+                )}
+                {/* Segment arm handles (midpoint of each segment between consecutive waypoints) */}
+                {wps.length >= 2 && allPts.map((pt, i) => {
+                  if (i >= allPts.length - 1) return null;
+                  const next = allPts[i + 1];
+                  // Only show segment handles between waypoint pairs (skip source→wp0 and wpN→target)
+                  if (i === 0 || i >= allPts.length - 2) return null;
+                  const midX = (pt.x + next.x) / 2;
+                  const midY = (pt.y + next.y) / 2;
+                  const isHoriz = Math.abs(pt.y - next.y) < Math.abs(pt.x - next.x);
+                  // startIdx/endIdx refer to waypoint indices (allPts index - 1 for the offset from source)
+                  const wpStartIdx = i - 1;
+                  const wpEndIdx = i;
+                  return (
+                    <SegmentHandle
+                      key={`seg-${i}`}
+                      edgeId={id}
+                      startIdx={wpStartIdx}
+                      endIdx={wpEndIdx}
+                      cx={midX}
+                      cy={midY}
+                      orientation={isHoriz ? 'horizontal' : 'vertical'}
+                      color={strokeColor}
+                      isAutoElbow={isAuto || undefined}
+                      autoElbows={isAuto ? autoElbowsRef.current : undefined}
+                    />
+                  );
+                })}
+              </>
+            );
+          })()}
         </>
       )}
 

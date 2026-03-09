@@ -338,7 +338,6 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                         backgroundColor: puck.color || '#94a3b8',
                         borderColor: puck.borderColor || '#000000',
                       }}
-                      data-tooltip-left={`${puck.status} — click to select`}
                     />
                     {/* Remove button on hover */}
                     <button
@@ -418,7 +417,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="color"
                     value={selectedPuck.color || '#94a3b8'}
                     onChange={(e) => handleUpdatePuck({ color: e.target.value })}
-                    className="w-8 h-8 rounded border border-border cursor-pointer"
+                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -512,7 +511,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="color"
                     value={selectedPuck.borderColor || '#000000'}
                     onChange={(e) => handleUpdatePuck({ borderColor: e.target.value })}
-                    className="w-8 h-8 rounded border border-border cursor-pointer"
+                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -819,7 +818,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="color"
                 value={toHexColor(fillColor, '#3b82f6')}
                 onChange={(e) => update({ color: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
+                className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
@@ -865,7 +864,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="color"
                 value={toHexColor(borderColor, '#334155')}
                 onChange={(e) => update({ borderColor: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
+                className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
@@ -890,16 +889,26 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 min={0}
                 max={1}
                 step={0.05}
-                value={data.borderOpacity ?? 1}
-                onChange={(e) => update({ borderOpacity: Number(e.target.value) })}
+                value={borderColor === 'transparent' ? 0 : (data.borderOpacity ?? 1)}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val === 0) {
+                    update({ borderColor: 'transparent', borderOpacity: 0 });
+                  } else if (borderColor === 'transparent') {
+                    // Restore a visible border color when raising opacity from 0
+                    update({ borderColor: '#334155', borderOpacity: val });
+                  } else {
+                    update({ borderOpacity: val });
+                  }
+                }}
                 className="flex-1 accent-primary"
               />
               <span className="text-xs text-muted dark:text-dk-muted w-10 text-right">
-                {Math.round((data.borderOpacity ?? 1) * 100)}%
+                {borderColor === 'transparent' ? '0%' : `${Math.round((data.borderOpacity ?? 1) * 100)}%`}
               </span>
               <ResetIcon
-                visible={(data.borderOpacity ?? 1) < 1}
-                onReset={() => update({ borderOpacity: undefined })}
+                visible={borderColor === 'transparent' || (data.borderOpacity ?? 1) < 1}
+                onReset={() => update({ borderOpacity: undefined, borderColor: undefined })}
               />
             </div>
           </Field>
@@ -966,7 +975,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="color"
                 value={toHexColor(textColor, '#ffffff')}
                 onChange={(e) => update({ textColor: e.target.value })}
-                className="w-8 h-8 rounded border border-border cursor-pointer"
+                className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
@@ -2407,7 +2416,7 @@ const BulkPuckEditor: React.FC = () => {
             type="color"
             value={representativePuck.color || '#94a3b8'}
             onChange={(e) => handleUpdate({ color: e.target.value })}
-            className="w-8 h-8 rounded border border-border cursor-pointer"
+            className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
           />
           <input
             type="text"
@@ -2499,7 +2508,7 @@ const BulkPuckEditor: React.FC = () => {
             type="color"
             value={representativePuck.borderColor || '#000000'}
             onChange={(e) => handleUpdate({ borderColor: e.target.value })}
-            className="w-8 h-8 rounded border border-border cursor-pointer"
+            className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
           />
           <input
             type="text"

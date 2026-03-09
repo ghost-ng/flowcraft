@@ -226,7 +226,7 @@ const connectorTypes: ConnectorTypeDef[] = [
   },
   {
     type: 'step',
-    label: 'Step',
+    label: 'Straight Step',
     icon: mkIcon(
       <>
         <path d="M4 24 L4 16 L28 16 L28 8" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -282,7 +282,7 @@ const ShapeItem: React.FC<ShapeItemProps> = React.memo(({ shape, isSelected, onS
       data-tooltip-right={shape.label}
       style={{ cursor: pressing ? CURSOR_DRAG_ACTIVE : CURSOR_OPEN_HAND }}
       className={`
-        relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+        relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
         transition-all duration-100 group
         hover:bg-primary/10 hover:scale-105 active:scale-95
         ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15' : ''}
@@ -327,7 +327,10 @@ const MarkerColorPicker: React.FC<MarkerColorPickerProps> = ({ anchorRect, onClo
         className={`fixed z-50 rounded-lg shadow-lg border p-2 w-44 ${
           darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-border'
         }`}
-        style={{ top: anchorRect.top, left: anchorRect.right + 8 }}
+        style={{
+          top: Math.max(8, Math.min(anchorRect.top, window.innerHeight - 200)),
+          left: anchorRect.right + 8,
+        }}
       >
         <div className="text-xs font-semibold mb-1.5 text-text-muted dark:text-dk-muted">Marker Color</div>
         <div className="flex flex-wrap gap-1.5 mb-2">
@@ -407,7 +410,10 @@ const ExtensionsPopover: React.FC<ExtensionsPopoverProps> = ({ anchorRect, onClo
         className={`fixed z-50 rounded-lg shadow-lg border p-2 w-56 max-h-80 overflow-y-auto ${
           darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-border'
         }`}
-        style={{ top: anchorRect.top, left: anchorRect.right + 8 }}
+        style={{
+          top: Math.max(8, Math.min(anchorRect.top, window.innerHeight - 340)),
+          left: anchorRect.right + 8,
+        }}
       >
         <div className="text-xs font-semibold mb-1.5 text-text-muted dark:text-dk-muted">Extension Packs</div>
 
@@ -558,9 +564,9 @@ const ShapePalette: React.FC = () => {
             darkMode ? 'bg-surface-alt-dark' : 'bg-white'
           }`}
         >
-          {/* Shape list — no scroll, items shrink to fit */}
-          <div className="flex-1 py-1">
-            <div className="flex flex-col items-center gap-0 px-1 h-full">
+          {/* Shape list — scrolls when viewport is too short */}
+          <div className="flex-1 min-h-0 py-1 overflow-y-auto overflow-x-hidden scrollbar-none">
+            <div className="flex flex-col items-center gap-0 px-1">
               {shapes.map((shape) => (
                 <ShapeItem key={shape.type} shape={shape} isSelected={selectedPaletteShape === shape.type} onSelect={handleShapeSelect} />
               ))}
@@ -587,7 +593,7 @@ const ShapePalette: React.FC = () => {
                   data-tooltip-right={ct.label}
                   style={{ cursor: CURSOR_OPEN_HAND }}
                   className={`
-                    relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                    relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
                     transition-all duration-100
                     hover:bg-primary/10 hover:scale-105 active:scale-95
                     ${defaultEdgeType === ct.type
@@ -612,7 +618,7 @@ const ShapePalette: React.FC = () => {
                   setMarkerPickerOpen(true);
                 }}
                 data-tooltip-right="Marker (hold for options)"
-                className={`relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                className={`relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
                            transition-all duration-100 cursor-pointer
                            hover:bg-primary/10 hover:scale-105
                            ${drawingMode ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15 text-blue-600 dark:text-blue-400' : 'text-text-muted hover:text-primary'}`}
@@ -650,7 +656,7 @@ const ShapePalette: React.FC = () => {
                 }}
                 data-tooltip-right="Group"
                 style={{ cursor: CURSOR_OPEN_HAND }}
-                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                className="relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
                            transition-all duration-100 group
                            hover:bg-primary/10 hover:scale-105 active:scale-95"
               >
@@ -679,7 +685,7 @@ const ShapePalette: React.FC = () => {
                 }}
                 data-tooltip-right="Click: add lanes · Drag: new container"
                 style={{ cursor: CURSOR_OPEN_HAND }}
-                className="relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                className="relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
                            transition-all duration-100 group
                            hover:bg-primary/10 hover:scale-105 active:scale-95"
               >
@@ -694,7 +700,7 @@ const ShapePalette: React.FC = () => {
                 ref={extensionsBtnRef}
                 onClick={() => setExtensionsOpen(!extensionsOpen)}
                 data-tooltip-right="Extensions"
-                className={`relative flex items-center justify-center w-10 min-h-0 flex-1 max-h-10 rounded-lg
+                className={`relative flex items-center justify-center w-10 h-10 shrink-0 rounded-lg
                            transition-all duration-100 cursor-pointer
                            hover:bg-primary/10 hover:scale-105
                            ${extensionsOpen ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-800/15 text-blue-600 dark:text-blue-400' : 'text-text-muted hover:text-primary'}`}

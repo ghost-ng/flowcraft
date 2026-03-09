@@ -185,6 +185,8 @@ interface EdgeMenuState {
   edgeId: string;
   /** Which end of the edge the click was closest to */
   closestEnd: 'source' | 'target';
+  /** Snapshot of selected edges at the time the menu was opened */
+  selectedEdgeIds: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -829,7 +831,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         const edgeId = (node.data as FlowNodeData).connectorEdgeId as string | undefined;
         const role = (node.data as FlowNodeData).endpointRole as 'source' | 'target' | undefined;
         if (edgeId) {
-          setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId, closestEnd: role ?? 'source' });
+          setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId, closestEnd: role ?? 'source', selectedEdgeIds: useFlowStore.getState().selectedEdges });
           setNodeMenu(null);
           setCanvasMenu(null);
           setSelectionMenu(null);
@@ -880,7 +882,13 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
         closestEnd = distSource < distTarget ? 'source' : 'target';
       }
 
-      setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId: edge.id, closestEnd });
+      // Capture selected edges from both the store AND edge.selected flags (in case store hasn't synced yet)
+      const storeSelected = new Set(store.selectedEdges);
+      for (const e of store.edges) {
+        if (e.selected) storeSelected.add(e.id);
+      }
+      storeSelected.add(edge.id);
+      setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId: edge.id, closestEnd, selectedEdgeIds: Array.from(storeSelected) });
       setCanvasMenu(null);
       setNodeMenu(null);
       setSelectionMenu(null);
@@ -1090,29 +1098,41 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   // ---- Edge context menu handlers -------------------------------------------
 
+  /** Get all edge IDs that should be affected: the right-clicked edge + any other selected edges (snapshot from menu open) */
+  const getTargetEdgeIds = useCallback(() => {
+    if (!edgeMenu) return [];
+    const ids = new Set(edgeMenu.selectedEdgeIds);
+    ids.add(edgeMenu.edgeId);
+    return Array.from(ids);
+  }, [edgeMenu]);
+
   const handleEdgeChangeType = useCallback(
     (type: string) => {
       if (!edgeMenu) return;
+      const targetIds = new Set(getTargetEdgeIds());
       const currentEdges = useFlowStore.getState().edges;
       const updated = currentEdges.map((e) =>
-        e.id === edgeMenu.edgeId ? { ...e, type } : e,
+        targetIds.has(e.id) ? { ...e, type } : e,
       );
       useFlowStore.getState().setEdges(updated);
     },
-    [edgeMenu],
+    [edgeMenu, getTargetEdgeIds],
   );
 
   const handleEdgeChangeColor = useCallback(
     (color: string) => {
       if (!edgeMenu) return;
-      const edge = useFlowStore.getState().getEdge(edgeMenu.edgeId);
-      const existing = (edge?.data as Record<string, unknown>)?.styleOverrides as Record<string, unknown> | undefined;
-      useFlowStore.getState().updateEdgeData(edgeMenu.edgeId, {
-        color,
-        styleOverrides: { ...existing, stroke: color },
-      });
+      const store = useFlowStore.getState();
+      for (const eid of getTargetEdgeIds()) {
+        const edge = store.getEdge(eid);
+        const existing = (edge?.data as Record<string, unknown>)?.styleOverrides as Record<string, unknown> | undefined;
+        store.updateEdgeData(eid, {
+          color,
+          styleOverrides: { ...existing, stroke: color },
+        });
+      }
     },
-    [edgeMenu],
+    [edgeMenu, getTargetEdgeIds],
   );
 
   const handleEdgeEditLabel = useCallback(() => {
@@ -1130,54 +1150,55 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   const handleEdgeDelete = useCallback(() => {
     if (!edgeMenu) return;
+    const targetIds = new Set(getTargetEdgeIds());
     const currentEdges = useFlowStore.getState().edges;
-    useFlowStore.getState().setEdges(currentEdges.filter((e) => e.id !== edgeMenu.edgeId));
-  }, [edgeMenu]);
+    useFlowStore.getState().setEdges(currentEdges.filter((e) => !targetIds.has(e.id)));
+  }, [edgeMenu, getTargetEdgeIds]);
 
   const handleEdgeStraighten = useCallback(() => {
     if (!edgeMenu) return;
     const store = useFlowStore.getState();
-    const edge = store.getEdge(edgeMenu.edgeId);
-    if (!edge) return;
-    const sourceNode = store.getNode(edge.source);
-    const targetNode = store.getNode(edge.target);
-    if (!sourceNode || !targetNode) return;
+    for (const eid of getTargetEdgeIds()) {
+      const edge = store.getEdge(eid);
+      if (!edge) continue;
+      const sourceNode = store.getNode(edge.source);
+      const targetNode = store.getNode(edge.target);
+      if (!sourceNode || !targetNode) continue;
 
-    const srcW = (sourceNode.data as Record<string, unknown>).width as number || 160;
-    const srcH = (sourceNode.data as Record<string, unknown>).height as number || 60;
-    const tgtW = (targetNode.data as Record<string, unknown>).width as number || 160;
-    const tgtH = (targetNode.data as Record<string, unknown>).height as number || 60;
+      const srcW = (sourceNode.data as Record<string, unknown>).width as number || 160;
+      const srcH = (sourceNode.data as Record<string, unknown>).height as number || 60;
+      const tgtW = (targetNode.data as Record<string, unknown>).width as number || 160;
+      const tgtH = (targetNode.data as Record<string, unknown>).height as number || 60;
 
-    // Determine direction from handle positions; infer from node positions if no handles
-    const sh = edge.sourceHandle || '';
-    const th = edge.targetHandle || '';
-    let isVertical: boolean;
-    if (sh || th) {
-      isVertical = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
-    } else {
-      const srcCx = sourceNode.position.x + srcW / 2;
-      const srcCy = sourceNode.position.y + srcH / 2;
-      const tgtCx = targetNode.position.x + tgtW / 2;
-      const tgtCy = targetNode.position.y + tgtH / 2;
-      isVertical = Math.abs(tgtCy - srcCy) >= Math.abs(tgtCx - srcCx);
+      // Determine direction from handle positions; infer from node positions if no handles
+      const sh = edge.sourceHandle || '';
+      const th = edge.targetHandle || '';
+      let isVertical: boolean;
+      if (sh || th) {
+        isVertical = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+      } else {
+        const srcCx = sourceNode.position.x + srcW / 2;
+        const srcCy = sourceNode.position.y + srcH / 2;
+        const tgtCx = targetNode.position.x + tgtW / 2;
+        const tgtCy = targetNode.position.y + tgtH / 2;
+        isVertical = Math.abs(tgtCy - srcCy) >= Math.abs(tgtCx - srcCx);
+      }
+
+      if (isVertical) {
+        const srcCenterX = sourceNode.position.x + srcW / 2;
+        store.updateNodePosition(targetNode.id, {
+          x: srcCenterX - tgtW / 2,
+          y: targetNode.position.y,
+        });
+      } else {
+        const srcCenterY = sourceNode.position.y + srcH / 2;
+        store.updateNodePosition(targetNode.id, {
+          x: targetNode.position.x,
+          y: srcCenterY - tgtH / 2,
+        });
+      }
     }
-
-    if (isVertical) {
-      // Align target X center to source X center
-      const srcCenterX = sourceNode.position.x + srcW / 2;
-      store.updateNodePosition(targetNode.id, {
-        x: srcCenterX - tgtW / 2,
-        y: targetNode.position.y,
-      });
-    } else {
-      // Align target Y center to source Y center
-      const srcCenterY = sourceNode.position.y + srcH / 2;
-      store.updateNodePosition(targetNode.id, {
-        x: targetNode.position.x,
-        y: srcCenterY - tgtH / 2,
-      });
-    }
-  }, [edgeMenu]);
+  }, [edgeMenu, getTargetEdgeIds]);
 
   /** Check if the right-clicked node is a group node */
   const isNodeMenuGroupNode = nodeMenu
@@ -1315,12 +1336,13 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       }
 
       const lgId = (node.data as FlowNodeData).linkGroupId;
+      const allNodes = useFlowStore.getState().nodes;
+
       if (!lgId) {
         linkGroupDragRef.current = null;
         return;
       }
       // Store start positions of all siblings in this link group
-      const allNodes = useFlowStore.getState().nodes;
       const startPositions = new Map<string, { x: number; y: number }>();
       for (const n of allNodes) {
         if ((n.data as FlowNodeData).linkGroupId === lgId && n.id !== node.id) {
@@ -1440,6 +1462,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
       // Clear alignment and distance guides
       setAlignmentGuides({ vertical: [], horizontal: [] });
       setDistanceGuides({ gaps: [] });
+
     },
     [],
   );
@@ -1880,6 +1903,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
           x={edgeMenu.x}
           y={edgeMenu.y}
           edgeId={edgeMenu.edgeId}
+          selectedEdgeIds={edgeMenu.selectedEdgeIds}
           closestEnd={edgeMenu.closestEnd}
           onClose={closeContextMenus}
           onChangeType={handleEdgeChangeType}

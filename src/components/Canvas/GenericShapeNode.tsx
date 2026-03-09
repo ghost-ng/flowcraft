@@ -12,6 +12,8 @@ import { resolveNodeStyle } from '../../utils/themeResolver';
 import { useStyleStore } from '../../store/styleStore';
 import { diagramStyles } from '../../styles/diagramStyles';
 import { CURSOR_SELECT } from '../../assets/cursors/cursors';
+import { ColorSwatchSidebar } from '../ContextMenu/menuUtils';
+import { resolveActivePalette } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
 // Shape SVG paths (clip-path / outline)
@@ -283,8 +285,13 @@ function computePuckPosition(
 const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string; indexInGroup: number; onUpdatePosition?: (position: string) => void; onUpdateSize?: (size: number) => void }> = ({ statusIndicator, nodeId, puckId, shape, indexInGroup, onUpdatePosition, onUpdateSize }) => {
   const isSelected = useUIStore((s) => s.selectedPuckIds.includes(puckId));
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const puckMenuRef = useRef<HTMLDivElement>(null);
   const selectionColor = useUIStore((s) => s.selectionColor);
   const presentationMode = useUIStore((s) => s.presentationMode);
+  const darkMode = useStyleStore((s) => s.darkMode);
+  const activePaletteId = useStyleStore((s) => s.activePaletteId);
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const puckQuickColors = resolveActivePalette(activePaletteId, activeStyleId).colors ?? ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#6b7280','#0ea5e9','#10b981'];
 
   if (!statusIndicator || statusIndicator.status === 'none') return null;
 
@@ -423,7 +430,33 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
 
       if (isResize) return;
 
-      // Snap to the closest corner using a fresh bounding rect
+      // Temporarily hide badge hit zone so elementFromPoint hits the node underneath
+      badge.style.pointerEvents = 'none';
+      badge.style.display = 'none';
+      const dropTarget = document.elementFromPoint(upE.clientX, upE.clientY);
+      badge.style.display = '';
+      badge.style.pointerEvents = '';
+      const targetNodeEl = dropTarget?.closest('.react-flow__node') as HTMLElement | null;
+      const targetNodeId = targetNodeEl?.dataset?.id ?? targetNodeEl?.getAttribute('data-id');
+
+      if (targetNodeId && targetNodeId !== nodeId) {
+        // Move puck to the target node
+        const store = useFlowStore.getState();
+        const srcNode = store.nodes.find(n => n.id === nodeId);
+        if (srcNode) {
+          const puck = getStatusIndicators(srcNode.data as FlowNodeData).find(p => p.id === puckId);
+          if (puck) {
+            // Determine corner on target node
+            const tgtRect = targetNodeEl!.getBoundingClientRect();
+            const newPos = getSnapCorner(upE.clientX, upE.clientY, tgtRect);
+            store.removeStatusPuck(nodeId, puckId);
+            store.addStatusPuck(targetNodeId, { ...puck, position: newPos });
+          }
+        }
+        return;
+      }
+
+      // Snap to the closest corner on the same node
       const freshRect = nodeEl.getBoundingClientRect();
       const newPosition = getSnapCorner(upE.clientX, upE.clientY, freshRect);
       if (onUpdatePosition) {
@@ -549,50 +582,59 @@ const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: string;
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setCtxMenu(null)} onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }} />
           <div
-            className="fixed z-[9999] min-w-[180px] rounded-lg shadow-xl border bg-white dark:bg-dk-panel dark:border-dk-border py-1 text-xs"
+            ref={puckMenuRef}
+            className="fixed z-[9999] min-w-[180px] rounded-lg shadow-xl border bg-white dark:bg-dk-panel border-slate-200 dark:border-dk-border p-1 text-xs"
             style={{ left: ctxMenu.x, top: ctxMenu.y }}
           >
-            <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 dark:text-dk-faint uppercase tracking-wide">Select All Pucks</div>
+            <div className="px-2.5 py-0.5 text-[9px] font-semibold text-slate-400 dark:text-dk-faint uppercase tracking-wide">Select All Pucks</div>
             <button
               onClick={selectAllOnNode}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
+              className="flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer transition-colors duration-75"
             >
-              <span className="w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: bgColor }} />
+              <span className="shrink-0 w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: bgColor }} />
               On this node
             </button>
             <button
               onClick={selectAllByColor}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
+              className="flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer transition-colors duration-75"
             >
-              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: bgColor }} />
+              <span className="shrink-0 w-3 h-3 rounded-full" style={{ backgroundColor: bgColor }} />
               Same color
             </button>
             <button
               onClick={selectAllByBorder}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
+              className="flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer transition-colors duration-75"
             >
-              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'transparent', border: borderStr }} />
+              <span className="shrink-0 w-3 h-3 rounded-full" style={{ backgroundColor: 'transparent', border: borderStr }} />
               Same outline
             </button>
-            <div className="h-px bg-slate-200 dark:bg-dk-border my-0.5" />
+            <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
             <button
               onClick={selectAllGlobal}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer"
+              className="flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded hover:bg-slate-100 dark:hover:bg-dk-hover text-slate-700 dark:text-dk-text cursor-pointer transition-colors duration-75"
             >
               All pucks (global)
             </button>
-            <div className="h-px bg-slate-200 dark:bg-dk-border my-0.5" />
+            <div className="my-1 h-px bg-slate-200 dark:bg-dk-border" />
             <button
               onClick={() => {
                 useFlowStore.getState().removeStatusPuck(nodeId, puckId);
                 useUIStore.getState().clearPuckSelection();
                 setCtxMenu(null);
               }}
-              className="flex items-center gap-2 w-full px-3 py-1.5 text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 cursor-pointer"
+              className="flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 cursor-pointer transition-colors duration-75"
             >
               Delete Puck
             </button>
           </div>
+          <ColorSwatchSidebar
+            darkMode={darkMode}
+            menuRef={puckMenuRef}
+            colors={puckQuickColors}
+            onSelectColor={(c) => {
+              useFlowStore.getState().updateStatusPuck(nodeId, puckId, { color: c });
+            }}
+          />
         </>,
         document.body,
       )}
@@ -834,6 +876,21 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     ? '0 0 0 2px #3b82f6, 0 0 6px 1px #3b82f640'
     : '';
 
+  // Group sibling highlight: show dotted outline when a fellow group member is selected
+  const isGroupSiblingSelected = useFlowStore((s) => {
+    if (isSelected) return false; // don't highlight self
+    const gId = nodeData.groupId;
+    const lgId = nodeData.linkGroupId;
+    if (!gId && !lgId) return false;
+    return s.selectedNodes.some((selId) => {
+      if (selId === id) return false;
+      const n = s.nodes.find((nd) => nd.id === selId);
+      if (!n) return false;
+      const nd = n.data as FlowNodeData;
+      return (gId && nd.groupId === gId) || (lgId && nd.linkGroupId === lgId);
+    });
+  });
+
   // Visual transforms
   const rotation = nodeData.rotation || 0;
   const flipH = nodeData.flipH || false;
@@ -984,6 +1041,21 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
         }}
       />
+
+      {/* Group sibling dotted outline when a fellow group member is selected */}
+      {isGroupSiblingSelected && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: -3,
+            border: `1.5px dashed ${selectionColor}`,
+            borderRadius: noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8),
+            pointerEvents: 'none',
+            zIndex: 49,
+            opacity: 0.7,
+          }}
+        />
+      )}
 
       {/* Rotation handle — visible only when selected */}
       {isSelected && (

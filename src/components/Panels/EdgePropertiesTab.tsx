@@ -70,7 +70,7 @@ const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
 const EDGE_TYPES = [
   { value: 'smoothstep', label: 'SmoothStep' },
   { value: 'bezier', label: 'Bezier' },
-  { value: 'step', label: 'Step' },
+  { value: 'step', label: 'Straight Step' },
   { value: 'straight', label: 'Straight' },
 ] as const;
 

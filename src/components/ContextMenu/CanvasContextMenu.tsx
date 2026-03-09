@@ -61,7 +61,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, dar
     onMouseEnter={onMouseEnter}
     disabled={disabled}
     className={`
-      flex items-center gap-2.5 w-full px-3 py-1.5 text-left text-sm rounded
+      flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded
       transition-colors duration-75 cursor-pointer
       disabled:opacity-40 disabled:cursor-not-allowed
       ${darkMode
@@ -70,11 +70,11 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, disabled, dar
       }
     `}
   >
-    <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
+    <span className="shrink-0 w-3.5 h-3.5 flex items-center justify-center text-slate-400 dark:text-dk-faint">
       {icon}
     </span>
     <span className="flex-1">{label}</span>
-    {hasSubmenu && <span className="text-slate-400 dark:text-dk-faint text-xs ml-2">&rsaquo;</span>}
+    {hasSubmenu && <span className="text-slate-400 dark:text-dk-faint text-[10px] ml-1.5">&rsaquo;</span>}
   </button>
 );
 
@@ -194,7 +194,7 @@ const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
           <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
             <button
               onClick={() => { setCanvasColorOverride(null); onClose(); }}
-              className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-sm rounded cursor-pointer ${
+              className={`flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded cursor-pointer ${
                 darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
               }`}
             >

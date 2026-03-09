@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useMenuPosition, SubMenu } from './menuUtils';
+import { useMenuPosition, SubMenu, ColorSwatchSidebar } from './menuUtils';
 import {
   Trash2,
   LayoutGrid,
@@ -11,7 +11,6 @@ import {
   AlignEndVertical,
   ArrowRightLeft,
   ArrowUpDown,
-  Palette,
   Shapes,
   Group,
   FlipHorizontal2,
@@ -22,7 +21,6 @@ import {
 } from 'lucide-react';
 
 import { useFlowStore, type FlowNode, type FlowNodeData, type NodeShape } from '../../store/flowStore';
-import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
 import * as alignment from '../../utils/alignmentUtils';
@@ -101,7 +99,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
     onMouseLeave={onMouseLeave}
     disabled={disabled}
     className={`
-      flex items-center gap-2.5 w-full px-3 py-1.5 text-left text-sm rounded
+      flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded
       transition-colors duration-75 cursor-pointer
       disabled:opacity-40 disabled:cursor-not-allowed
       ${darkMode
@@ -110,15 +108,15 @@ const MenuItem: React.FC<MenuItemProps> = ({
       }
     `}
   >
-    <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
+    <span className="shrink-0 w-3.5 h-3.5 flex items-center justify-center text-slate-400 dark:text-dk-faint">
       {icon}
     </span>
     <span className="flex-1">{label}</span>
     {shortcut && (
-      <span className="text-[10px] text-slate-400 dark:text-dk-faint ml-auto font-mono">{shortcut}</span>
+      <span className="text-[9px] text-slate-400 dark:text-dk-faint ml-auto font-mono">{shortcut}</span>
     )}
     {hasSubmenu && (
-      <span className="text-slate-400 dark:text-dk-faint text-xs ml-2">&rsaquo;</span>
+      <span className="text-slate-400 dark:text-dk-faint text-[10px] ml-1.5">&rsaquo;</span>
     )}
   </button>
 );
@@ -145,10 +143,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   const [submenu, setSubmenu] = useState<'align' | 'distribute' | 'shape' | 'group' | 'mirror' | 'rotate' | null>(null);
   const { applyLayout } = useAutoLayout();
 
-  // Close on click-outside or Escape
+  // Close on click-outside or Escape (but not when clicking the color sidebar)
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      if (target.closest?.('[data-color-sidebar]')) return;
+      if (menuRef.current && !menuRef.current.contains(target)) {
         onClose();
       }
     };
@@ -219,8 +219,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     for (const id of nodeIds) {
       updateNodeData(id, { color });
     }
-    onClose();
-  }, [nodeIds, onClose]);
+  }, [nodeIds]);
 
   // ---- Change shape for all selected nodes --------------------------------
   const handleChangeShape = useCallback((shape: NodeShape) => {
@@ -298,24 +297,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     onClose();
   }, [nodeIds, onClose]);
 
-  // Check if all selected nodes share the same link group
-  const sharedLinkGroupId = (() => {
-    const { nodes } = useFlowStore.getState();
-    const idSet = new Set(nodeIds);
-    const selected = nodes.filter((n) => idSet.has(n.id));
-    if (selected.length === 0) return null;
-    const first = selected[0].data.linkGroupId;
-    if (!first) return null;
-    return selected.every((n) => n.data.linkGroupId === first) ? first : null;
-  })();
-
-  const handleEditLinkGroup = useCallback(() => {
-    if (sharedLinkGroupId) {
-      useUIStore.getState().setLinkGroupEditorId(sharedLinkGroupId);
-      onClose();
-    }
-  }, [sharedLinkGroupId, onClose]);
-
   const handleResetToTheme = useCallback(() => {
     const { nodes, updateNodeData } = useFlowStore.getState();
     for (const nid of nodeIds) {
@@ -343,17 +324,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
         `}
       >
         <MenuItem
-          icon={<Trash2 size={14} />}
-          label="Delete Selected"
-          onClick={handleDeleteSelected}
-          darkMode={darkMode}
-          shortcut="Del"
-          onMouseEnter={() => setSubmenu(null)}
-        />
-
-        <MenuDivider darkMode={darkMode} />
-
-        <MenuItem
           icon={<LayoutGrid size={14} />}
           label="Auto-Format Selected"
           onClick={handleAutoFormat}
@@ -362,41 +332,28 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           onMouseEnter={() => setSubmenu(null)}
         />
 
+        <MenuDivider darkMode={darkMode} />
+
         <div className="relative" onMouseLeave={() => setSubmenu(null)}>
           <MenuItem
-            icon={<Group size={14} />}
-            label="Group"
-            onClick={() => setSubmenu(submenu === 'group' ? null : 'group')}
+            icon={<Shapes size={14} />}
+            label="Change Shape"
+            onClick={() => setSubmenu(submenu === 'shape' ? null : 'shape')}
             darkMode={darkMode}
             hasSubmenu
-            onMouseEnter={() => setSubmenu('group')}
-            disabled={nodeIds.length < 2}
+            onMouseEnter={() => setSubmenu('shape')}
           />
-          {submenu === 'group' && (
-            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
-              <MenuItem
-                icon={<Group size={14} />}
-                label="Arrange in Region"
-                onClick={handleGroup}
-                darkMode={darkMode}
-              />
-              <MenuItem
-                icon={<Link size={14} />}
-                label="Link Group"
-                onClick={handleLinkGroup}
-                darkMode={darkMode}
-              />
-              {sharedLinkGroupId && (
-                <>
-                  <MenuDivider darkMode={darkMode} />
-                  <MenuItem
-                    icon={<Link size={14} />}
-                    label="Edit Link Group"
-                    onClick={handleEditLinkGroup}
-                    darkMode={darkMode}
-                  />
-                </>
-              )}
+          {submenu === 'shape' && (
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
+              {shapeOptions.map(({ value, label }) => (
+                <MenuItem
+                  key={value}
+                  icon={<Shapes size={14} />}
+                  label={label}
+                  onClick={() => handleChangeShape(value)}
+                  darkMode={darkMode}
+                />
+              ))}
             </SubMenu>
           )}
         </div>
@@ -447,6 +404,34 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
 
         <div className="relative" onMouseLeave={() => setSubmenu(null)}>
           <MenuItem
+            icon={<Group size={14} />}
+            label="Group"
+            onClick={() => setSubmenu(submenu === 'group' ? null : 'group')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('group')}
+            disabled={nodeIds.length < 2}
+          />
+          {submenu === 'group' && (
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
+              <MenuItem
+                icon={<Group size={14} />}
+                label="Arrange in Region"
+                onClick={handleGroup}
+                darkMode={darkMode}
+              />
+              <MenuItem
+                icon={<Link size={14} />}
+                label="Link Group"
+                onClick={handleLinkGroup}
+                darkMode={darkMode}
+              />
+            </SubMenu>
+          )}
+        </div>
+
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
             icon={<FlipHorizontal2 size={14} />}
             label="Mirror"
             onClick={() => setSubmenu(submenu === 'mirror' ? null : 'mirror')}
@@ -482,32 +467,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           )}
         </div>
 
-        <MenuDivider darkMode={darkMode} />
-
-        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
-          <MenuItem
-            icon={<Shapes size={14} />}
-            label="Change Shape"
-            onClick={() => setSubmenu(submenu === 'shape' ? null : 'shape')}
-            darkMode={darkMode}
-            hasSubmenu
-            onMouseEnter={() => setSubmenu('shape')}
-          />
-          {submenu === 'shape' && (
-            <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
-              {shapeOptions.map(({ value, label }) => (
-                <MenuItem
-                  key={value}
-                  icon={<Shapes size={14} />}
-                  label={label}
-                  onClick={() => handleChangeShape(value)}
-                  darkMode={darkMode}
-                />
-              ))}
-            </SubMenu>
-          )}
-        </div>
-
         {activeStyleId && (
           <>
             <MenuDivider darkMode={darkMode} />
@@ -521,30 +480,26 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           </>
         )}
 
-        {/* Inline color swatches */}
-        <div className="px-3 py-1.5" onMouseEnter={() => setSubmenu(null)}>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 dark:text-dk-faint">
-              <Palette size={14} />
-            </span>
-            <span className={`text-sm ${darkMode ? 'text-dk-text' : 'text-slate-700'}`}>Color</span>
-          </div>
-          <div className="grid grid-cols-5 gap-1.5 ml-6">
-            {quickColors.map((color) => (
-              <button
-                key={color}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleChangeColor(color);
-                }}
-                className="w-6 h-6 rounded-md border-2 border-transparent hover:border-white hover:scale-110 transition-all cursor-pointer"
-                style={{ backgroundColor: color }}
-                title={color}
-              />
-            ))}
-          </div>
-        </div>
+        <MenuDivider darkMode={darkMode} />
+
+        <MenuItem
+          icon={<Trash2 size={14} />}
+          label="Delete Selected"
+          onClick={handleDeleteSelected}
+          darkMode={darkMode}
+          shortcut="Del"
+          onMouseEnter={() => setSubmenu(null)}
+        />
+
       </div>
+
+      {/* Color swatches sidebar */}
+      <ColorSwatchSidebar
+        darkMode={darkMode}
+        menuRef={menuRef}
+        colors={quickColors}
+        onSelectColor={(color) => { handleChangeColor(color); }}
+      />
     </div>
   );
 };

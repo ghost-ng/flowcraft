@@ -60,11 +60,14 @@ import {
   PointerOff,
   BoxSelect,
   Spline,
+  Group,
+  Ungroup,
+  Link,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
 import { useStyleStore } from '../../store/styleStore';
-import { useFlowStore } from '../../store/flowStore';
+import { useFlowStore, type FlowNodeData } from '../../store/flowStore';
 import { useBannerStore } from '../../store/bannerStore';
 import { useExportStore } from '../../store/exportStore';
 import { copySvgToClipboard, copySvgForPaste, importFromJson, exportAsJson } from '../../utils/exportUtils';
@@ -76,12 +79,15 @@ import { useAutoLayout } from '../../hooks/useAutoLayout';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import * as alignment from '../../utils/alignmentUtils';
 import { mirrorHorizontal, mirrorVertical, rotateArrangement } from '../../utils/transformUtils';
+import { computeBoundingBox } from '../../utils/groupUtils';
 import DiagramStylePicker from '../StylePicker/DiagramStylePicker';
 import ImportJsonDialog from '../Import/ImportJsonDialog';
 import OrderModal from './OrderModal';
 import AIButton from '../AI/AIButton';
 // import { CollabToolbarButton } from '../Collaboration'; // WIP: needs self-hosted signaling server
 import { log } from '../../utils/logger';
+import { resolveNodeStyle, resolveEdgeStyle } from '../../utils/themeResolver';
+import { diagramStyles } from '../../styles/diagramStyles';
 
 // ---------------------------------------------------------------------------
 // Toolbar button
@@ -647,6 +653,77 @@ const Toolbar: React.FC<ToolbarProps> = ({
     setNodes([...rest, ...selected]);
   }, [selectedNodes, setNodes]);
 
+  // ---- Group / Ungroup / Edit Link Group ---------------------------------
+
+  const handleGroupSelected = useCallback(() => {
+    const { nodes, addNode, setNodes: setN } = useFlowStore.getState();
+    if (selectedNodes.length < 2) return;
+    const selected = nodes.filter((n) => selectedNodes.includes(n.id));
+    const bbox = computeBoundingBox(selected, 30, 25);
+    const groupId = `group_${Date.now()}`;
+    addNode({
+      id: groupId,
+      type: 'groupNode',
+      position: { x: bbox.x, y: bbox.y },
+      data: { label: 'Group', shape: 'group', width: bbox.width, height: bbox.height, color: '#f1f5f9', borderColor: '#94a3b8' },
+    });
+    const cur = useFlowStore.getState().nodes;
+    const childIds = new Set(selectedNodes);
+    const others = cur.filter((n) => n.id !== groupId && !childIds.has(n.id));
+    const grp = cur.find((n) => n.id === groupId)!;
+    const children = cur.filter((n) => childIds.has(n.id)).map((n) => ({
+      ...n, parentId: groupId, extent: 'parent' as const,
+      position: { x: n.position.x - bbox.x, y: n.position.y - bbox.y },
+      data: { ...n.data, groupId },
+    }));
+    setN([...others, grp, ...children]);
+  }, [selectedNodes]);
+
+  const handleUngroupSelected = useCallback(() => {
+    const { nodes, setNodes: setN, removeNodeFromLinkGroup } = useFlowStore.getState();
+    if (selectedNodes.length !== 1) return;
+    const nodeId = selectedNodes[0];
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    if (node.type === 'groupNode') {
+      setN(nodes.filter((n) => n.id !== nodeId).map((n) => {
+        if (n.parentId === nodeId) {
+          return { ...n, parentId: undefined, extent: undefined,
+            position: { x: n.position.x + node.position.x, y: n.position.y + node.position.y },
+            data: { ...n.data, groupId: undefined },
+          };
+        }
+        return n;
+      }));
+    } else if (node.parentId) {
+      const parent = nodes.find((n) => n.id === node.parentId);
+      if (parent) {
+        setN(nodes.map((n) => n.id === nodeId ? {
+          ...n, parentId: undefined, extent: undefined,
+          position: { x: n.position.x + parent.position.x, y: n.position.y + parent.position.y },
+          data: { ...n.data, groupId: undefined },
+        } : n));
+      }
+    } else if ((node.data as FlowNodeData).linkGroupId) {
+      removeNodeFromLinkGroup(nodeId);
+    }
+  }, [selectedNodes]);
+
+  const handleEditLinkGroup = useCallback(() => {
+    const { nodes } = useFlowStore.getState();
+    if (selectedNodes.length === 0) return;
+    const node = nodes.find((n) => n.id === selectedNodes[0]);
+    const lgId = (node?.data as FlowNodeData)?.linkGroupId;
+    if (lgId) useUIStore.getState().setLinkGroupEditorId(lgId);
+  }, [selectedNodes]);
+
+  // Check if selected node is in a link group (for toolbar button visibility)
+  const selectedNodeInLinkGroup = selectedNodes.length > 0 && (() => {
+    const node = useFlowStore.getState().nodes.find((n) => n.id === selectedNodes[0]);
+    return !!(node?.data as FlowNodeData)?.linkGroupId;
+  })();
+
   const handleSave = useCallback(() => {
     exportAsJson({ includeViewport: true, includeStyles: true, includeMetadata: true, pretty: true });
   }, []);
@@ -695,26 +772,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
   const activateFormatPainter = useCallback(() => {
     const { nodes, edges } = useFlowStore.getState();
+    const activeStyleId = useStyleStore.getState().activeStyleId;
+    const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
     if (selectedNodes.length > 0) {
       const node = nodes.find((n) => n.id === selectedNodes[0]);
       if (node) {
         const d = node.data;
-        // Resolve actual visual values — use explicit data, fall back to shape defaults
-        const shapeDefaults: Record<string, string> = {
-          rectangle: '#3b82f6', roundedRectangle: '#3b82f6', diamond: '#f59e0b',
-          circle: '#10b981', parallelogram: '#8b5cf6', hexagon: '#ef4444',
-          document: '#ec4899', cloud: '#6366f1', stickyNote: '#fbbf24',
-          blockArrow: '#3b82f6', chevronArrow: '#8b5cf6', doubleArrow: '#f59e0b',
-          circularArrow: '#10b981',
-        };
-        const resolvedColor = d.color || shapeDefaults[d.shape as string] || '#3b82f6';
+        // Use the theme resolver to get the actual rendered colors
+        const resolved = resolveNodeStyle(
+          d as unknown as Record<string, unknown>,
+          d.shape || 'rectangle',
+          activeStyle,
+        );
         setFormatPainterNodeStyle({
-          color: resolvedColor,
-          borderColor: d.borderColor || undefined,
-          textColor: d.textColor || undefined,
-          fontSize: d.fontSize ?? undefined,
-          fontWeight: d.fontWeight ?? undefined,
-          fontFamily: d.fontFamily || undefined,
+          color: resolved.fill,
+          borderColor: resolved.borderColor,
+          textColor: resolved.textColor,
+          fontSize: resolved.fontSize,
+          fontWeight: resolved.fontWeight,
+          fontFamily: resolved.fontFamily || undefined,
           borderStyle: d.borderStyle || undefined,
           borderWidth: d.borderWidth ?? undefined,
           borderRadius: d.borderRadius ?? undefined,
@@ -727,9 +803,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
       const edge = edges.find((e) => e.id === selectedEdges[0]);
       if (edge) {
         const d = (edge.data || {}) as Record<string, unknown>;
+        const resolved = resolveEdgeStyle(d, activeStyle);
         setFormatPainterEdgeStyle({
-          color: d.color as string | undefined,
-          thickness: d.thickness as number | undefined,
+          color: resolved.stroke,
+          thickness: resolved.strokeWidth,
           opacity: d.opacity as number | undefined,
           strokeDasharray: d.strokeDasharray as string | undefined,
           labelColor: d.labelColor as string | undefined,
@@ -1158,6 +1235,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ZOrderButton icon={<ChevronDown size={iconSize} />} tooltip={"Send Backward (Ctrl+[)\nHold for Send to Back"} onClick={handleSendBackward} onSendAll={handleSendToBack} sendAllLabel="Send to Back" disabled={selectedNodes.length === 0} />
         <ZOrderButton icon={<ChevronUp size={iconSize} />} tooltip={"Bring Forward (Ctrl+])\nHold for Bring to Front"} onClick={handleBringForward} onSendAll={handleSendToFront} sendAllLabel="Bring to Front" disabled={selectedNodes.length === 0} />
         <ToolbarButton icon={<Layers size={iconSize} />} tooltip="Element Order" onClick={() => setOrderModalOpen(true)} />
+        <ToolbarButton icon={<Group size={iconSize} />} tooltip="Group Selected (Ctrl+G)" onClick={handleGroupSelected} disabled={selectedNodes.length < 2} />
+        <ToolbarButton icon={<Ungroup size={iconSize} />} tooltip="Ungroup (Ctrl+Shift+U)" onClick={handleUngroupSelected} disabled={selectedNodes.length !== 1} />
+        {selectedNodeInLinkGroup && (
+          <ToolbarButton icon={<Link size={iconSize} />} tooltip="Edit Link Group" onClick={handleEditLinkGroup} />
+        )}
       </>
     ),
 
@@ -1214,7 +1296,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 {([
                   { value: 'smoothstep', label: 'Smooth Step' },
                   { value: 'bezier', label: 'Bezier' },
-                  { value: 'step', label: 'Step' },
+                  { value: 'step', label: 'Straight Step' },
                   { value: 'straight', label: 'Straight' },
                 ] as const).map((opt) => (
                   <button

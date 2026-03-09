@@ -158,12 +158,23 @@ const ScreenshotOverlay: React.FC = () => {
         );
       });
 
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob }),
-      ]);
-
-      useUIStore.getState().showToast('Screenshot copied to clipboard', 'success');
-    } catch (_e) {
+      if (navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob }),
+        ]);
+        useUIStore.getState().showToast('Screenshot copied to clipboard', 'success');
+      } else {
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `screenshot-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        useUIStore.getState().showToast('Screenshot saved (clipboard unavailable)', 'success');
+      }
+    } catch (err) {
+      console.error('[Screenshot] capture failed:', err);
       useUIStore.getState().showToast('Failed to capture screenshot', 'error');
     }
   }, [dragging, rect, setScreenshotMode]);

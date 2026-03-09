@@ -103,10 +103,9 @@ export const businessProcessPack: ExtensionPack = {
       tags: ['notification', 'bell', 'alert', 'reminder'],
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
-        '<path d="M24 8 A8 8 0 0 1 40 8 L42 36 L22 36 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>' +
-        '<line x1="14" y1="36" x2="50" y2="36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
-        '<path d="M26 40 Q26 48 32 48 Q38 48 38 40" fill="none" stroke="currentColor" stroke-width="2"/>' +
-        '<circle cx="32" cy="6" r="2" fill="currentColor"/>' +
+        '<path d="M32 10 C26 10 22 15 22 22 L22 30 Q22 36 16 36 L48 36 Q42 36 42 30 L42 22 C42 15 38 10 32 10 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M27 40 Q27 47 32 47 Q37 47 37 40" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<circle cx="32" cy="8" r="2" fill="currentColor"/>' +
         '</svg>',
     },
 
@@ -203,7 +202,7 @@ export const businessProcessPack: ExtensionPack = {
       svgContent:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
         '<circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-        '<path d="M24 22 Q24 16 32 16 Q40 16 40 22 Q40 28 32 28 Q24 28 24 34 Q24 40 32 40 Q40 40 40 34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<path d="M38 21 Q38 16 32 16 Q26 16 26 21 Q26 26 32 28 Q38 30 38 35 Q38 40 32 40 Q26 40 26 35" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>' +
         '<line x1="32" y1="12" x2="32" y2="16" stroke="currentColor" stroke-width="2"/>' +
         '<line x1="32" y1="40" x2="32" y2="44" stroke="currentColor" stroke-width="2"/>' +
         '</svg>',
