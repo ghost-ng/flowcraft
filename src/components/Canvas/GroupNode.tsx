@@ -218,11 +218,15 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           </div>
         )}
 
-        {/* Connection handles */}
-        <Handle type="target" position={Position.Top} />
-        <Handle type="source" position={Position.Bottom} />
-        <Handle type="target" position={Position.Left} />
-        <Handle type="source" position={Position.Right} />
+        {/* Connection handles — both target+source on each side */}
+        <Handle type="target" position={Position.Top} id="top" className="charthero-handle" />
+        <Handle type="source" position={Position.Top} id="top" className="charthero-handle" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="charthero-handle" />
+        <Handle type="target" position={Position.Bottom} id="bottom" className="charthero-handle" />
+        <Handle type="target" position={Position.Left} id="left" className="charthero-handle" />
+        <Handle type="source" position={Position.Left} id="left" className="charthero-handle" />
+        <Handle type="source" position={Position.Right} id="right" className="charthero-handle" />
+        <Handle type="target" position={Position.Right} id="right" className="charthero-handle" />
       </div>
 
       <NodeResizer

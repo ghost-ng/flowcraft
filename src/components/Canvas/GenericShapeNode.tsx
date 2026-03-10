@@ -414,16 +414,23 @@ export const StatusBadge: React.FC<StatusBadgeProps & { nodeId: string; puckId: 
       if (ghost) { ghost.remove(); ghost = null; }
       badge.style.opacity = ''; // restore original
 
-      // Click (no drag) → select puck only (deselect everything else)
+      // Click (no drag) → select puck, keep parent node selected
       if (!didDrag && !isResize) {
         if (isMultiSelect) {
           useUIStore.getState().togglePuckSelection(puckId, nodeId);
         } else {
           useUIStore.getState().selectPuck(puckId, nodeId);
         }
-        // Deselect all nodes and edges so only the puck is selected
-        const { selectedNodes, selectedEdges, setSelectedNodes, setSelectedEdges } = useFlowStore.getState();
-        if (selectedNodes.length > 0) setSelectedNodes([]);
+        // Keep the parent node selected so NodePropsTab stays visible;
+        // deselect other nodes and all edges.
+        const { setSelectedNodes, setSelectedEdges, selectedEdges } = useFlowStore.getState();
+        // Update React Flow node selection — mark only parent as selected
+        useFlowStore.setState((draft: any) => {
+          for (const n of draft.nodes) {
+            n.selected = n.id === nodeId;
+          }
+        });
+        setSelectedNodes([nodeId]);
         if (selectedEdges.length > 0) setSelectedEdges([]);
         return;
       }

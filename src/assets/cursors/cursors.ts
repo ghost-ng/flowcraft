@@ -23,16 +23,16 @@ export const CURSOR_DEFAULT = `url(${imgDefault}) 3 1, default`;
 export const CURSOR_SELECT = `url(${imgSelect}) 7 2, pointer`;
 
 /** Grab hand — panning the canvas (Ctrl+drag / middle-click). */
-export const CURSOR_DRAG = `url(${imgDrag}) 14 14, grab`;
+export const CURSOR_DRAG = `url(${imgDrag}) 10 10, grab`;
 
 /** Grab hand (active) — actively dragging / panning. */
-export const CURSOR_DRAG_ACTIVE = `url(${imgDrag}) 14 14, grabbing`;
+export const CURSOR_DRAG_ACTIVE = `url(${imgDrag}) 10 10, grabbing`;
 
 /** Crosshair — creating connections from node handles. */
 export const CURSOR_CROSSHAIR = `url(${imgCrosshair}) 14 14, crosshair`;
 
 /** Open hand — hover over draggable elements (nodes, palette items). */
-export const CURSOR_OPEN_HAND = `url(${imgOpenHand}) 8 8, grab`;
+export const CURSOR_OPEN_HAND = `url(${imgOpenHand}) 10 10, grab`;
 
 /** Elbow-move — drag-to-cycle connector type on edge midpoint (32×32). */
 export const CURSOR_ELBOW_MOVE = `url(${imgElbowMove}) 16 16, grab`;

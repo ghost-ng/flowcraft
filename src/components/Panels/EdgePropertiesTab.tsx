@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ClipboardPaste, Copy } from 'lucide-react';
 import { useFlowStore, type FlowEdgeData } from '../../store/flowStore';
 
 // ---------------------------------------------------------------------------
@@ -59,6 +59,63 @@ const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
       data-tooltip-left={copied ? 'Copied!' : 'Copy hex'}
     >
       {copied ? <Check size={12} /> : <Copy size={12} />}
+    </button>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// PasteHexButton — paste hex color from clipboard (validates before applying)
+// ---------------------------------------------------------------------------
+
+/** Match #rgb, #rrggbb, or #rrggbbaa; also bare hex without # */
+const normalizeHex = (raw: string): string | null => {
+  let t = raw.trim();
+  if (t.startsWith('#')) t = t.slice(1);
+  if (/^[0-9a-fA-F]{3,4}$/.test(t) || /^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(t)) {
+    return `#${t.toLowerCase()}`;
+  }
+  return null;
+};
+
+const PasteHexButton: React.FC<{ onPaste: (hex: string) => void }> = ({ onPaste }) => {
+  const [status, setStatus] = React.useState<'idle' | 'ok' | 'bad' | 'denied'>('idle');
+  return (
+    <button
+      className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer ${
+        status === 'ok' ? 'text-green-500' : status === 'bad' || status === 'denied' ? 'text-red-400' : 'text-slate-400 hover:text-slate-600 dark:text-dk-muted dark:hover:text-dk-text'
+      }`}
+      onClick={async () => {
+        try {
+          if (navigator.permissions) {
+            const perm = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+            if (perm.state === 'denied') {
+              setStatus('denied');
+              setTimeout(() => setStatus('idle'), 2000);
+              return;
+            }
+          }
+          const text = await navigator.clipboard.readText();
+          const hex = normalizeHex(text);
+          if (hex) {
+            onPaste(hex);
+            setStatus('ok');
+          } else {
+            setStatus('bad');
+          }
+          setTimeout(() => setStatus('idle'), 1200);
+        } catch {
+          setStatus('denied');
+          setTimeout(() => setStatus('idle'), 2000);
+        }
+      }}
+      data-tooltip-left={
+        status === 'ok' ? 'Pasted!'
+          : status === 'denied' ? 'Allow clipboard access in browser'
+          : status === 'bad' ? 'Not a hex color'
+          : 'Paste hex'
+      }
+    >
+      {status === 'ok' ? <Check size={12} /> : <ClipboardPaste size={12} />}
     </button>
   );
 };
@@ -382,6 +439,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
                 <CopyHexButton value={strokeColor} />
+                <PasteHexButton onPaste={(hex) => update({ color: hex })} />
               </div>
             </Field>
 
@@ -538,6 +596,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'} />
+                  <PasteHexButton onPaste={(hex) => update({ labelColor: hex } as Partial<FlowEdgeData>)} />
                 </div>
               </Field>
             )}
@@ -581,6 +640,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
                   <CopyHexButton value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'} />
+                  <PasteHexButton onPaste={(hex) => update({ labelBgColor: hex } as Partial<FlowEdgeData>)} />
                 </div>
               </Field>
             )}

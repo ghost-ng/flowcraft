@@ -24,6 +24,7 @@ import {
   Type,
   Palette,
   RotateCcw,
+  ClipboardPaste,
   icons,
 } from 'lucide-react';
 
@@ -120,6 +121,66 @@ const CopyHexButton: React.FC<{ value: string }> = ({ value }) => {
       data-tooltip-left={copied ? 'Copied!' : 'Copy hex'}
     >
       {copied ? <Check size={12} /> : <Copy size={12} />}
+    </button>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// PasteHexButton — paste hex color from clipboard (validates before applying)
+// ---------------------------------------------------------------------------
+
+/** Match #rgb, #rrggbb, or #rrggbbaa; also bare hex without # */
+const normalizeHex = (raw: string): string | null => {
+  let t = raw.trim();
+  // Strip leading # if present
+  if (t.startsWith('#')) t = t.slice(1);
+  // Accept 3, 4, 6, or 8 hex digits
+  if (/^[0-9a-fA-F]{3,4}$/.test(t) || /^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(t)) {
+    return `#${t.toLowerCase()}`;
+  }
+  return null;
+};
+
+const PasteHexButton: React.FC<{ onPaste: (hex: string) => void }> = ({ onPaste }) => {
+  const [status, setStatus] = useState<'idle' | 'ok' | 'bad' | 'denied'>('idle');
+  return (
+    <button
+      className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-dk-hover transition-colors cursor-pointer ${
+        status === 'ok' ? 'text-green-500' : status === 'bad' || status === 'denied' ? 'text-red-400' : 'text-slate-400 hover:text-slate-600 dark:text-dk-muted dark:hover:text-dk-text'
+      }`}
+      onClick={async () => {
+        try {
+          // Query permission first — triggers browser prompt if needed
+          if (navigator.permissions) {
+            const perm = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+            if (perm.state === 'denied') {
+              setStatus('denied');
+              setTimeout(() => setStatus('idle'), 2000);
+              return;
+            }
+          }
+          const text = await navigator.clipboard.readText();
+          const hex = normalizeHex(text);
+          if (hex) {
+            onPaste(hex);
+            setStatus('ok');
+          } else {
+            setStatus('bad');
+          }
+          setTimeout(() => setStatus('idle'), 1200);
+        } catch {
+          setStatus('denied');
+          setTimeout(() => setStatus('idle'), 2000);
+        }
+      }}
+      data-tooltip-left={
+        status === 'ok' ? 'Pasted!'
+          : status === 'denied' ? 'Allow clipboard access in browser'
+          : status === 'bad' ? 'Not a hex color'
+          : 'Paste hex'
+      }
+    >
+      {status === 'ok' ? <Check size={12} /> : <ClipboardPaste size={12} />}
     </button>
   );
 };
@@ -427,6 +488,8 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
+                  <CopyHexButton value={selectedPuck.color || '#94a3b8'} />
+                  <PasteHexButton onPaste={(hex) => handleUpdatePuck({ color: hex })} />
                 </div>
               </Field>
 
@@ -521,6 +584,8 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
+                  <CopyHexButton value={selectedPuck.borderColor || '#000000'} />
+                  <PasteHexButton onPaste={(hex) => handleUpdatePuck({ borderColor: hex })} />
                 </div>
               </Field>
 
@@ -573,6 +638,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
+  const selectedPuckIds = useUIStore((s) => s.selectedPuckIds);
+  const isEditingNode = useUIStore((s) => s.isEditingNode);
   const toggleSection = useCallback((section: string) => {
     // When allExpanded override is active, sync individual states first
     if (allExpanded !== null) {
@@ -594,15 +661,50 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
   // Auto-expand relevant sections based on node properties when selection changes
   useEffect(() => {
     const pucks = getStatusIndicators(data);
+    const hasIcon = !!data.icon;
+    const isIconOnly = !!data.iconOnly;
     setAllExpanded(null);
-    setCollapsedSections({
-      block: false,  // always expanded
-      bodyStyle: false,  // always expanded
-      label: false,  // always expanded (has text settings)
-      status: pucks.length === 0,  // expanded only if node has pucks
-      icon: !data.icon,  // expanded only if node has an icon
-    });
+    if (isIconOnly) {
+      // Icon-only node: focus on icon section
+      setCollapsedSections({ block: true, bodyStyle: true, label: true, icon: false, status: true });
+    } else {
+      setCollapsedSections({
+        block: false,      // expanded by default
+        bodyStyle: false,  // expanded by default
+        label: true,       // collapsed by default
+        status: pucks.length === 0,  // expanded only if node has pucks
+        icon: !hasIcon,    // expanded if node already has an icon
+      });
+    }
   }, [nodeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-focus: when a puck is selected, expand status and collapse others
+  useEffect(() => {
+    if (selectedPuckIds.length > 0) {
+      setAllExpanded(null);
+      setCollapsedSections({
+        block: true,
+        bodyStyle: true,
+        label: true,
+        icon: true,
+        status: false, // expand pucks
+      });
+    }
+  }, [selectedPuckIds.length]);
+
+  // Auto-focus: when label editing starts, expand label and collapse others
+  useEffect(() => {
+    if (isEditingNode === nodeId) {
+      setAllExpanded(null);
+      setCollapsedSections({
+        block: true,
+        bodyStyle: true,
+        label: false, // expand label
+        icon: true,
+        status: true,
+      });
+    }
+  }, [isEditingNode, nodeId]);
 
   // Compute effective collapsed state: allExpanded overrides individual sections
   const isSectionCollapsed = useCallback((section: string) => {
@@ -829,6 +931,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <CopyHexButton value={fillColor} />
+              <PasteHexButton onPaste={(hex) => update({ color: hex })} />
               <ResetIcon
                 visible={anyHasColorOverride}
                 onReset={() => update({ color: undefined })}
@@ -875,6 +978,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <CopyHexButton value={borderColor} />
+              <PasteHexButton onPaste={(hex) => update({ borderColor: hex })} />
               <ResetIcon
                 visible={anyHasBorderColorOverride}
                 onReset={() => update({ borderColor: undefined })}
@@ -986,6 +1090,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                            focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
               <CopyHexButton value={textColor} />
+              <PasteHexButton onPaste={(hex) => update({ textColor: hex })} />
               <ResetIcon
                 visible={!!activeStyleId && !!data.textColor}
                 onReset={() => update({ textColor: undefined })}
@@ -1222,15 +1327,12 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
-                  {data.iconColor && (
-                    <button
-                      onClick={() => update({ iconColor: undefined })}
-                      className="text-xs text-red-500 hover:text-red-700 cursor-pointer shrink-0"
-                      data-tooltip-left="Reset to default"
-                    >
-                      Reset
-                    </button>
-                  )}
+                  <CopyHexButton value={data.iconColor || textColor} />
+                  <PasteHexButton onPaste={(hex) => update({ iconColor: hex })} />
+                  <ResetIcon
+                    visible={!!data.iconColor}
+                    onReset={() => update({ iconColor: undefined })}
+                  />
                 </div>
               </Field>
 
@@ -1251,15 +1353,12 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   />
-                  {data.iconBgColor && (
-                    <button
-                      onClick={() => update({ iconBgColor: undefined })}
-                      className="text-xs text-red-500 hover:text-red-700 cursor-pointer shrink-0"
-                      data-tooltip-left="Remove background"
-                    >
-                      Clear
-                    </button>
-                  )}
+                  <CopyHexButton value={data.iconBgColor || ''} />
+                  <PasteHexButton onPaste={(hex) => update({ iconBgColor: hex })} />
+                  <ResetIcon
+                    visible={!!data.iconBgColor}
+                    onReset={() => update({ iconBgColor: undefined })}
+                  />
                 </div>
               </Field>
 
@@ -1279,6 +1378,12 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     onChange={(e) => update({ iconBorderColor: e.target.value || undefined })}
                     className="flex-1 min-w-0 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                  <CopyHexButton value={data.iconBorderColor || ''} />
+                  <PasteHexButton onPaste={(hex) => update({ iconBorderColor: hex })} />
+                  <ResetIcon
+                    visible={!!data.iconBorderColor}
+                    onReset={() => update({ iconBorderColor: undefined })}
                   />
                 </div>
               </Field>
@@ -1990,7 +2095,9 @@ const SwimlanePanel: React.FC = React.memo(() => {
                 onChange={(e) => updateTitleConfig({ titleColor: e.target.value })}
                 className="w-7 h-7 rounded border border-border cursor-pointer shrink-0"
               />
-              <span className="text-xs text-text-muted">{config.titleColor ?? 'Auto'}</span>
+              <span className="flex-1 text-xs text-text-muted">{config.titleColor ?? 'Auto'}</span>
+              <CopyHexButton value={config.titleColor ?? '#0f172a'} />
+              <PasteHexButton onPaste={(hex) => updateTitleConfig({ titleColor: hex })} />
             </div>
           </Field>
           <Field label="Title Font">
@@ -2226,6 +2333,8 @@ const SwimlanePanel: React.FC = React.memo(() => {
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+                <CopyHexButton value={config.containerBorder?.color ?? '#94a3b8'} />
+                <PasteHexButton onPaste={(hex) => updateContainerBorder({ color: hex })} />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-text-muted w-10">Width</span>
@@ -2273,6 +2382,8 @@ const SwimlanePanel: React.FC = React.memo(() => {
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+                <CopyHexButton value={config.dividerStyle?.color || '#94a3b8'} />
+                <PasteHexButton onPaste={(hex) => updateDividerStyle({ color: hex })} />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-text-muted w-10">Width</span>
@@ -2428,6 +2539,8 @@ const BulkPuckEditor: React.FC = () => {
             className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
+          <CopyHexButton value={representativePuck.color || '#94a3b8'} />
+          <PasteHexButton onPaste={(hex) => handleUpdate({ color: hex })} />
         </div>
       </Field>
 
@@ -2520,6 +2633,8 @@ const BulkPuckEditor: React.FC = () => {
             className="flex-1 px-2 py-1.5 text-xs font-mono rounded border border-border bg-white dark:bg-dk-input dark:text-dk-text dark:border-dk-border
                        focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
+          <CopyHexButton value={representativePuck.borderColor || '#000000'} />
+          <PasteHexButton onPaste={(hex) => handleUpdate({ borderColor: hex })} />
         </div>
       </Field>
 
