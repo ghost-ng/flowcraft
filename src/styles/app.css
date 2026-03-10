@@ -253,6 +253,32 @@ input[type="range"] {
   opacity: 1 !important;
 }
 
+/* NodeResizer edge hit zones — wider for easier targeting (default is 1px) */
+.react-flow__resize-control.line.left,
+.react-flow__resize-control.line.right {
+  width: 8px !important;
+}
+.react-flow__resize-control.line.top,
+.react-flow__resize-control.line.bottom {
+  height: 8px !important;
+}
+
+/* NodeResizer custom cursors — uses CSS vars injected by cursors.ts */
+.react-flow__resize-control.left,
+.react-flow__resize-control.right {
+  cursor: var(--cursor-resize-width, ew-resize) !important;
+}
+.react-flow__resize-control.top,
+.react-flow__resize-control.bottom {
+  cursor: var(--cursor-resize-height, ns-resize) !important;
+}
+.react-flow__resize-control.top.left,
+.react-flow__resize-control.top.right,
+.react-flow__resize-control.bottom.left,
+.react-flow__resize-control.bottom.right {
+  cursor: var(--cursor-resize-corner, nwse-resize) !important;
+}
+
 /* Rotation handle – custom cursor */
 .charthero-rotate-handle {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-6.219-8.56'/%3E%3Cpolyline points='21 3 21 9 15 9'/%3E%3C/svg%3E") 12 12, grab;

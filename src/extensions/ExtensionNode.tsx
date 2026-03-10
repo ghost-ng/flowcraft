@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { useFlowStore, type FlowNodeData } from '../store/flowStore';
 import { useUIStore } from '../store/uiStore';
 import { useSettingsStore } from '../store/settingsStore';
@@ -11,14 +11,23 @@ import { DependencyBadge } from '../components/Dependencies';
 import { StatusBadge } from '../components/Canvas/GenericShapeNode';
 import { getStatusIndicators } from '../store/flowStore';
 import chroma from 'chroma-js';
+import {
+  CURSOR_RESIZE_WIDTH,
+  CURSOR_RESIZE_HEIGHT,
+  CURSOR_RESIZE_CORNER,
+} from '../assets/cursors/cursors';
 
 // ---------------------------------------------------------------------------
 // ExtensionNode — renders extension SVG shapes with recoloring and labels
 // ---------------------------------------------------------------------------
 
+const MIN_WIDTH = 40;
+const MIN_HEIGHT = 30;
+
 const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const nodeData = data as FlowNodeData;
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const updateNodePosition = useFlowStore((s) => s.updateNodePosition);
   const activeStyleId = useStyleStore((s) => s.activeStyleId);
   const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
   const isEditingNode = useUIStore((s) => s.isEditingNode);
@@ -27,6 +36,7 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const selectionThickness = useUIStore((s) => s.selectionThickness);
   const presentationMode = useUIStore((s) => s.presentationMode);
   const defaultFontFamily = useSettingsStore((s) => s.nodeDefaults.fontFamily);
+  const reactFlowInstance = useReactFlow();
 
   const isSelected = selected && !presentationMode;
   const isEditing = isEditingNode === id;
@@ -162,6 +172,80 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       document.addEventListener('mouseup', onUp);
     },
     [id, nodeData.rotation, updateNodeData],
+  );
+
+  // ---- Custom resize handles ----
+  // Tracks which edges are being resized: 'left'|'right'|'top'|'bottom' or combos
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent, edges: ('left' | 'right' | 'top' | 'bottom')[]) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const node = reactFlowInstance.getNode(id);
+      if (!node) return;
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startW = nodeData.width || 80;
+      const startH = nodeData.height || 80;
+      const startPos = { x: node.position.x, y: node.position.y };
+      const zoom = reactFlowInstance.getZoom();
+
+      const onMove = (me: MouseEvent) => {
+        const deltaX = (me.clientX - startX) / zoom;
+        const deltaY = (me.clientY - startY) / zoom;
+
+        let newW = startW;
+        let newH = startH;
+        let newX = startPos.x;
+        let newY = startPos.y;
+
+        for (const edge of edges) {
+          if (edge === 'right') {
+            newW = Math.max(MIN_WIDTH, startW + deltaX);
+          } else if (edge === 'left') {
+            const proposed = startW - deltaX;
+            newW = Math.max(MIN_WIDTH, proposed);
+            // Move position to keep right edge fixed
+            newX = startPos.x + (startW - newW);
+          } else if (edge === 'bottom') {
+            newH = Math.max(MIN_HEIGHT, startH + deltaY);
+          } else if (edge === 'top') {
+            const proposed = startH - deltaY;
+            newH = Math.max(MIN_HEIGHT, proposed);
+            newY = startPos.y + (startH - newH);
+          }
+        }
+
+        updateNodeData(id, { width: newW, height: newH });
+        updateNodePosition(id, { x: newX, y: newY });
+
+        // Broadcast resize for swimlane/group tracking
+        window.dispatchEvent(new CustomEvent('charthero:node-resize', {
+          detail: { nodeId: id, x: newX, y: newY, width: newW, height: newH },
+        }));
+
+        // Propagate to multi-selected nodes
+        const { selectedNodes } = useFlowStore.getState();
+        if (selectedNodes.length > 1) {
+          for (const nid of selectedNodes) {
+            if (nid !== id) {
+              updateNodeData(nid, { width: newW, height: newH });
+            }
+          }
+        }
+      };
+
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
+      };
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    },
+    [id, nodeData.width, nodeData.height, reactFlowInstance, updateNodeData, updateNodePosition],
   );
 
   // ---- Bake opacity into colors ----
@@ -308,37 +392,106 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   return (
     <div ref={wrapperRef} style={wrapperStyle} onDoubleClick={handleDoubleClick}>
-      <NodeResizer
-        isVisible={!!isSelected}
-        minWidth={40}
-        minHeight={30}
-        lineStyle={{ borderColor: selectionColor, borderWidth: selectionThickness * 0.5 }}
-        handleStyle={{
-          width: 12,
-          height: 12,
-          borderRadius: 6,
-          backgroundColor: 'white',
-          border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
-          zIndex: 50,
-        }}
-        onResize={(_event, params) => {
-          updateNodeData(id, { width: params.width, height: params.height });
-          const { selectedNodes } = useFlowStore.getState();
-          if (selectedNodes.length > 1) {
-            for (const nid of selectedNodes) {
-              if (nid !== id) {
-                updateNodeData(nid, { width: params.width, height: params.height });
-              }
-            }
-          }
-          window.dispatchEvent(new CustomEvent('charthero:node-resize', {
-            detail: { nodeId: id, x: params.x, y: params.y, width: params.width, height: params.height },
-          }));
-        }}
-        onResizeEnd={() => {
-          window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
-        }}
-      />
+      {/* Custom resize handles + selection border */}
+      {isSelected && (
+        <>
+          {/* Selection outline border */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: -1,
+              border: `${selectionThickness * 0.75}px solid ${selectionColor}`,
+              borderRadius: 4,
+              pointerEvents: 'none',
+              zIndex: 40,
+            }}
+          />
+
+          {/* ---- Edge handles (constrained to one dimension) ---- */}
+          {/* Top edge → height only */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', top: -5, left: 6, right: 6, height: 10,
+              cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['top'])}
+          />
+          {/* Bottom edge → height only */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', bottom: -5, left: 6, right: 6, height: 10,
+              cursor: CURSOR_RESIZE_HEIGHT, zIndex: 45,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['bottom'])}
+          />
+          {/* Left edge → width only */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', left: -5, top: 6, bottom: 6, width: 10,
+              cursor: CURSOR_RESIZE_WIDTH, zIndex: 45,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['left'])}
+          />
+          {/* Right edge → width only */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', right: -5, top: 6, bottom: 6, width: 10,
+              cursor: CURSOR_RESIZE_WIDTH, zIndex: 45,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['right'])}
+          />
+
+          {/* ---- Corner handles (both dimensions) ---- */}
+          {/* Top-left */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', top: -7, left: -7, width: 14, height: 14,
+              cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
+              backgroundColor: 'white', borderRadius: 7,
+              border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['top', 'left'])}
+          />
+          {/* Top-right */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', top: -7, right: -7, width: 14, height: 14,
+              cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
+              backgroundColor: 'white', borderRadius: 7,
+              border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['top', 'right'])}
+          />
+          {/* Bottom-left */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', bottom: -7, left: -7, width: 14, height: 14,
+              cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
+              backgroundColor: 'white', borderRadius: 7,
+              border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['bottom', 'left'])}
+          />
+          {/* Bottom-right */}
+          <div
+            className="nodrag nopan"
+            style={{
+              position: 'absolute', bottom: -7, right: -7, width: 14, height: 14,
+              cursor: CURSOR_RESIZE_CORNER, zIndex: 50,
+              backgroundColor: 'white', borderRadius: 7,
+              border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, ['bottom', 'right'])}
+          />
+        </>
+      )}
 
       {/* Rotation handle -- visible only when selected */}
       {isSelected && (

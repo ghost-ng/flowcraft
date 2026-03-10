@@ -4,7 +4,7 @@ export const networkInfraPack: ExtensionPack = {
   id: 'network-infra',
   name: 'Network & Infrastructure',
   builtIn: true,
-  icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="20" r="12" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="50" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="24" y1="29" x2="18" y2="43" stroke="currentColor" stroke-width="1.5"/><line x1="40" y1="29" x2="46" y2="43" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="50" x2="42" y2="50" stroke="currentColor" stroke-width="1.5"/></svg>',
+  icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="6" y="18" width="52" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="13" y="26" width="6" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="23" y="26" width="6" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="33" y="26" width="6" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="43" y="26" width="6" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="50" cy="40" r="2" fill="currentColor"/><circle cx="44" cy="40" r="2" fill="currentColor"/></svg>',
   items: [
     // -----------------------------------------------------------------------
     // Core Networking
@@ -210,6 +210,52 @@ export const networkInfraPack: ExtensionPack = {
         // Gear/settings indicator
         '<line x1="44" y1="43" x2="50" y2="43" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
         '<line x1="44" y1="47" x2="50" y2="47" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '</svg>',
+    },
+
+    {
+      id: 'net-vmware',
+      name: 'VMware',
+      viewBox: '0 0 64 64',
+      defaultWidth: 80,
+      defaultHeight: 80,
+      tags: ['vmware', 'esxi', 'vsphere', 'hypervisor', 'virtualization'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        // Diamond / rhombus outline representing the hypervisor
+        '<polygon points="32,6 58,32 32,58 6,32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>' +
+        // Stacked VM layers inside the diamond
+        '<rect x="22" y="22" width="20" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<rect x="22" y="33" width="20" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        // Small dots representing VM activity
+        '<circle cx="26" cy="26" r="1.5" fill="currentColor"/>' +
+        '<circle cx="26" cy="37" r="1.5" fill="currentColor"/>' +
+        // Lines representing VM resources
+        '<line x1="30" y1="26" x2="38" y2="26" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '<line x1="30" y1="37" x2="38" y2="37" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '</svg>',
+    },
+    {
+      id: 'net-virtualbox',
+      name: 'VirtualBox',
+      viewBox: '0 0 64 64',
+      defaultWidth: 80,
+      defaultHeight: 80,
+      tags: ['virtualbox', 'vbox', 'oracle', 'virtualization', 'vm'],
+      svgContent:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        // Outer cube (host machine) - front face
+        '<path d="M8 18 L32 6 L56 18 L56 46 L32 58 L8 46 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>' +
+        // Top face divider
+        '<line x1="32" y1="6" x2="32" y2="58" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>' +
+        '<line x1="8" y1="18" x2="56" y2="18" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>' +
+        // Inner nested box (VM) - smaller box inside
+        '<rect x="20" y="24" width="24" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        // VM indicator lines inside inner box
+        '<line x1="25" y1="30" x2="39" y2="30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '<line x1="25" y1="35" x2="35" y2="35" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        // Connection dots between outer and inner
+        '<circle cx="32" cy="48" r="2" fill="currentColor"/>' +
         '</svg>',
     },
 

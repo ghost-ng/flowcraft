@@ -1027,8 +1027,8 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         minWidth={40}
         minHeight={30}
         keepAspectRatio={isCircle}
-        lineStyle={{ borderColor: selectionColor, borderWidth: selectionThickness * 0.5 }}
-        handleStyle={{ width: 12, height: 12, borderRadius: 6, backgroundColor: 'white', border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`, zIndex: 50 }}
+        lineStyle={{ borderColor: 'transparent', borderWidth: 0 }}
+        handleStyle={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'white', border: `${Math.max(1.5, selectionThickness)}px solid ${selectionColor}`, zIndex: 50 }}
         onResizeStart={() => {
           // Snapshot initial dimensions + puck/border sizes for proportional scaling
           resizeStartRef.current = {
@@ -1077,6 +1077,20 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           window.dispatchEvent(new CustomEvent('charthero:node-resize-end'));
         }}
       />
+
+      {/* Selection outline rendered OUTSIDE the node border */}
+      {isSelected && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: -(selectionThickness * 0.75 + 1),
+            border: `${selectionThickness * 0.75}px solid ${selectionColor}`,
+            borderRadius: noBox ? 4 : (userBorderRadius ?? (shapeStyles[shape] as Record<string, unknown>)?.borderRadius as number ?? 8) + 2,
+            pointerEvents: 'none',
+            zIndex: 40,
+          }}
+        />
+      )}
 
       {/* Group sibling dotted outline when a fellow group member is selected */}
       {isGroupSiblingSelected && (

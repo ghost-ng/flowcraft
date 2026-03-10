@@ -28,8 +28,15 @@ export function recolorSvg(
     }
   }
 
+  // Allow the SVG to stretch freely with its container (no locked aspect ratio).
+  // Individual resize handles on ExtensionNode control which axes scale.
+  const root = doc.documentElement;
+  root.setAttribute('preserveAspectRatio', 'none');
+  root.setAttribute('width', '100%');
+  root.setAttribute('height', '100%');
+
   const serializer = new XMLSerializer();
-  return serializer.serializeToString(doc.documentElement);
+  return serializer.serializeToString(root);
 }
 
 /**

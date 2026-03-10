@@ -4,7 +4,7 @@ export const businessProcessPack: ExtensionPack = {
   id: 'business-process',
   name: 'Business Process',
   builtIn: true,
-  icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="4" y="22" width="20" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="24" y1="32" x2="40" y2="32" stroke="currentColor" stroke-width="2"/><polygon points="38,28 44,32 38,36" fill="currentColor"/><rect x="40" y="22" width="20" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>',
+  icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M35.5 8h-7l-1 6.5a18 18 0 0 0-4.3 2.5L18 14.5l-5 8.6 5.2 4a18 18 0 0 0 0 5L13 36.9l5 8.6 5.2-2.5a18 18 0 0 0 4.3 2.5l1 6.5h7l1-6.5a18 18 0 0 0 4.3-2.5l5.2 2.5 5-8.6-5.2-4a18 18 0 0 0 0-5l5.2-4.8-5-8.6-5.2 2.5a18 18 0 0 0-4.3-2.5Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>',
   items: [
     // -----------------------------------------------------------------------
     // Documents & Forms
