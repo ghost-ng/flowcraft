@@ -181,7 +181,7 @@ export const ColorSwatchSidebar: React.FC<{
         <div className="flex items-start gap-1">
           {/* Fill opacity slider */}
           {onFillOpacityChange && (
-            <div className="flex flex-col items-center" style={{ paddingTop: 24 }} data-tooltip="Fill Opacity">
+            <div className="flex flex-col items-center" style={{ paddingTop: 20 }} data-tooltip="Fill Opacity">
               <input
                 type="range"
                 min={0}
@@ -193,28 +193,28 @@ export const ColorSwatchSidebar: React.FC<{
                   writingMode: 'vertical-lr',
                   direction: 'rtl',
                   width: 14,
-                  height: colors.length * 24 - 4,
+                  height: colors.length * 20 - 4,
                 }}
               />
             </div>
           )}
           {/* Fill column */}
           <div className="flex flex-col items-center gap-1">
-            <span className={`flex items-center justify-center w-5 h-5 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} data-tooltip="Fill Color">
+            <span className={`flex items-center justify-center w-4 h-4 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} data-tooltip="Fill Color">
               <PaintBucket size={11} />
             </span>
             {colors.map((color) => (
               <button
                 key={`fill-${color}`}
                 onClick={(e) => { e.stopPropagation(); onSelectColor(color); }}
-                className="w-5 h-5 rounded border border-black/10 hover:scale-125 transition-transform cursor-pointer"
+                className="w-4 h-4 rounded border border-black/10 hover:scale-125 transition-transform cursor-pointer"
                 style={{ backgroundColor: color }}
               />
             ))}
             {onResetFill && (
               <button
                 onClick={(e) => { e.stopPropagation(); onResetFill(); }}
-                className={`flex items-center justify-center w-5 h-5 rounded cursor-pointer transition-colors ${darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                className={`flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-colors ${darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                 data-tooltip="Reset Fill"
               >
                 <RotateCcw size={10} />
@@ -223,21 +223,21 @@ export const ColorSwatchSidebar: React.FC<{
           </div>
           {/* Border column */}
           <div className="flex flex-col items-center gap-1">
-            <span className={`flex items-center justify-center w-5 h-5 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} data-tooltip="Border Color">
+            <span className={`flex items-center justify-center w-4 h-4 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} data-tooltip="Border Color">
               <SquareDashed size={11} />
             </span>
             {colors.map((color) => (
               <button
                 key={`border-${color}`}
                 onClick={(e) => { e.stopPropagation(); onSelectColor2(color); }}
-                className="w-5 h-5 rounded border border-black/10 hover:scale-125 transition-transform cursor-pointer"
+                className="w-4 h-4 rounded border border-black/10 hover:scale-125 transition-transform cursor-pointer"
                 style={{ backgroundColor: color }}
               />
             ))}
             {onResetBorder && (
               <button
                 onClick={(e) => { e.stopPropagation(); onResetBorder(); }}
-                className={`flex items-center justify-center w-5 h-5 rounded cursor-pointer transition-colors ${darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                className={`flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-colors ${darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                 data-tooltip="Reset Border"
               >
                 <RotateCcw size={10} />
@@ -246,7 +246,7 @@ export const ColorSwatchSidebar: React.FC<{
           </div>
           {/* Border opacity slider */}
           {onBorderOpacityChange && (
-            <div className="flex flex-col items-center" style={{ paddingTop: 24 }} data-tooltip="Border Opacity">
+            <div className="flex flex-col items-center" style={{ paddingTop: 20 }} data-tooltip="Border Opacity">
               <input
                 type="range"
                 min={0}
@@ -258,7 +258,7 @@ export const ColorSwatchSidebar: React.FC<{
                   writingMode: 'vertical-lr',
                   direction: 'rtl',
                   width: 14,
-                  height: colors.length * 24 - 4,
+                  height: colors.length * 20 - 4,
                 }}
               />
             </div>
@@ -273,7 +273,7 @@ export const ColorSwatchSidebar: React.FC<{
                 e.stopPropagation();
                 onSelectColor(color);
               }}
-              className="w-5 h-5 rounded border border-black/10 hover:scale-125 transition-transform cursor-pointer"
+              className="w-4 h-4 rounded border border-black/10 hover:scale-125 transition-transform cursor-pointer"
               style={{ backgroundColor: color }}
             />
           ))}

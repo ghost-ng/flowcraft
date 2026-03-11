@@ -377,7 +377,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                   type="color"
                   value={strokeColor}
                   onChange={(e) => update({ color: e.target.value })}
-                  className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                  className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                 />
                 <input
                   type="text"
@@ -533,7 +533,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                     type="color"
                     value={(edgeData as Record<string, unknown>).labelColor as string || '#475569'}
                     onChange={(e) => update({ labelColor: e.target.value } as Partial<FlowEdgeData>)}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -576,7 +576,7 @@ const EdgePropertiesTab: React.FC<EdgePropertiesTabProps> = React.memo(
                     type="color"
                     value={(edgeData as Record<string, unknown>).labelBgColor as string || '#ffffff'}
                     onChange={(e) => update({ labelBgColor: e.target.value } as Partial<FlowEdgeData>)}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"

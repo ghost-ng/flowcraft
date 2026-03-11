@@ -111,6 +111,11 @@ Chart Hero uses custom cursors on the canvas to indicate the current interaction
 | ![drag](../../assets/wiki-cursor-drag.png) | **Drag** | While panning (Ctrl+drag or middle-click drag) or moving a node |
 | ![crosshair](../../assets/wiki-cursor-crosshair.png) | **Crosshair** | Hovering a connection handle on a node |
 | ![elbow-move](../../assets/wiki-cursor-elbow-move.png) | **Elbow-move** | Hovering the type-cycle diamond on a connector |
+| | **Resize Width** | Dragging left or right edge resize handles |
+| | **Resize Height** | Dragging top or bottom edge resize handles |
+| | **Resize Corner (NW-SE)** | Dragging top-left or bottom-right corner resize handles |
+| | **Resize Corner (NE-SW)** | Dragging top-right or bottom-left corner resize handles |
+| | **Open Hand** | Hovering draggable elements (nodes, palette items) |
 
 ---
 

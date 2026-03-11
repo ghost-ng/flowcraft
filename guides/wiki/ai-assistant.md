@@ -1,6 +1,6 @@
 # AI Assistant
 
-Chart Hero includes a built-in AI chat assistant that can create, modify, and style diagrams using natural language. The AI has access to 31 specialized tools organized into 8 categories, and it can chain multiple tool calls per message to perform complex operations in a single conversation turn.
+Chart Hero includes a built-in AI chat assistant that can create, modify, and style diagrams using natural language. The AI has access to 33 specialized tools organized into 9 categories, and it can chain multiple tool calls per message to perform complex operations in a single conversation turn.
 
 ![AI Chat Panel](../../assets/wiki-ai-panel.png)
 
@@ -60,7 +60,7 @@ For providers that expose a `/models` endpoint (OpenAI, OpenRouter, Groq, Custom
 
 ## Tool Reference
 
-The AI has access to 31 tools across 8 categories. You do not need to call tools by name -- simply describe what you want in natural language and the AI selects the appropriate tools automatically.
+The AI has access to 33 tools across 9 categories. You do not need to call tools by name -- simply describe what you want in natural language and the AI selects the appropriate tools automatically.
 
 ### Canvas Operations (3 tools)
 
@@ -108,14 +108,14 @@ The AI has access to 31 tools across 8 categories. You do not need to call tools
 
 | Tool | Key Parameters | Description |
 |------|---------------|-------------|
-| `set_diagram_style` | style_id | Apply one of 19 visual themes to the entire diagram. |
+| `set_diagram_style` | style_id | Apply one of 29 visual themes to the entire diagram. |
 | `set_color_palette` | palette_id | Switch the active color palette used for node coloring. |
 | `set_node_color` | node_ids[], color | Set the fill color on one or more nodes. |
 | `toggle_dark_mode` | enabled (optional) | Toggle dark mode on or off. Omit the parameter to toggle. |
 
-**Diagram styles:** default, blueprint, neon, pastel, corporate, minimalist, retro, watercolor, darkModern, sketch, gradient, terminal, whiteboard, elegant, vibrant, monochrome, nature, ocean, sunset.
+**Diagram styles (29):** cleanMinimal, corporateProfessional, blueprint, whiteboardSketch, neonDark, pastelSoft, flatMaterial, monochromeInk, retroTerminal, watercolor, glassMorphism, wireframe, militaryC2, infographicBold, colorfulGradient, darkNeonGlow, notebook, gradientCards, cyberC2, zincModern, softGradient, midnightLuxe, paperPrint, auroraBorealis, neonGlass, osxAqua, solarizedDark, claudeAI, openAI.
 
-**Color palettes:** default, pastel, earth, ocean, sunset, neon, monochrome, forest, berry, autumn, ice.
+**Color palettes (21):** ocean, berry, forest, sunset, grayscale, cyber, pastelDream, earthTone, military, accessible, cyberC2, midnightAurora, roseGold, nordicFrost, terracotta, lavenderFields, tropical, candyPop, tokyoNight, coralReef, vintageSage.
 
 ### Swimlane Operations (4 tools)
 
@@ -133,6 +133,13 @@ The AI has access to 31 tools across 8 categories. You do not need to call tools
 | `align_nodes` | node_ids[], alignment | Align nodes along an axis: left, center-h, right, top, center-v, or bottom. Uses the current selection if no IDs are specified. |
 | `distribute_nodes` | node_ids[], direction | Distribute nodes evenly along a horizontal or vertical axis. |
 
+### Legend Operations (2 tools)
+
+| Tool | Key Parameters | Description |
+|------|---------------|-------------|
+| `generate_legend` | -- | Auto-generate a legend by scanning the diagram for unique colors, border styles, and puck colors. |
+| `configure_legend` | position, background, fontSize, opacity | Configure legend overlay appearance and positioning. |
+
 ### Status, Dependencies, and Export (3 tools)
 
 | Tool | Key Parameters | Description |
@@ -140,6 +147,12 @@ The AI has access to 31 tools across 8 categories. You do not need to call tools
 | `set_status_puck` | node_id, status, position, color, icon | Add or update a status indicator badge on a node. Statuses: none, not-started, in-progress, completed, blocked, review. Position defaults to top-right. |
 | `add_dependency` | source_id, target_id, type | Create a dependency relationship between two nodes. Types: depends-on (default), blocks, related. |
 | `export_diagram` | format | Export the diagram. Formats: png, svg, pdf, pptx, json. |
+
+### Web Search (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `web_search` | Search the web for information to help inform diagram creation. |
 
 ---
 

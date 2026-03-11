@@ -1,8 +1,8 @@
 # Chart Hero User Guide
 
-**Version 0.7.0**
+**Version 0.15.0**
 
-Chart Hero is a free, browser-based professional diagramming application for flowcharts, architecture diagrams, swimlane workflows, dependency maps, and more. There are no sign-ups, no subscriptions, and no server -- everything runs entirely in your browser. Built on React Flow with 26 shapes, 19 diagram themes, 11 color palettes, an AI assistant with 31 tools, and full offline PWA support, Chart Hero gives you the power of enterprise diagramming tools without the price tag.
+Chart Hero is a free, browser-based professional diagramming application for flowcharts, architecture diagrams, swimlane workflows, dependency maps, and more. There are no sign-ups, no subscriptions, and no server -- everything runs entirely in your browser. Built on React Flow with 27 shapes, 29 diagram themes, 21 color palettes, an AI assistant with 33 tools, and full offline PWA support, Chart Hero gives you the power of enterprise diagramming tools without the price tag.
 
 ![Chart Hero in action](../../assets/hero-light.png)
 
@@ -14,7 +14,7 @@ Most teams reach for PowerPoint, Visio, or Draw.io when they need a diagram. Cha
 
 | Capability | Chart Hero | PowerPoint / Slides | Visio | Draw.io |
 |---|---|---|---|---|
-| **AI-powered editing** (31 tools, natural language) | Yes | No | No | No |
+| **AI-powered editing** (33 tools, natural language) | Yes | No | No | No |
 | **Snap-to-grid** (4 / 8 / 16 / 32 px snap distance) | Yes | Limited | Yes | Limited |
 | **Auto-arrange** (Dagre layout, 4 directions) | Yes | No | Basic | Basic |
 | **Auto-straighten edges** | Yes | No | No | No |
@@ -24,8 +24,8 @@ Most teams reach for PowerPoint, Visio, or Draw.io when they need a diagram. Cha
 | **Format painter** | Yes | Yes | Yes | No |
 | **Legend auto-generation** | Yes | No | No | No |
 | **JSON round-trip** for AI and automation workflows | Yes | No | No | Partial |
-| **19 diagram themes** (one-click visual makeover) | Yes | Limited | Limited | Limited |
-| **11 color palettes** (number keys 1-9 to color nodes) | Yes | No | No | No |
+| **29 diagram themes** (one-click visual makeover) | Yes | Limited | Limited | Limited |
+| **21 color palettes** (number keys 1-9 to color nodes) | Yes | No | No | No |
 | **Presentation mode** with pen, highlighter, eraser | Yes | Separate app | No | No |
 | **PWA / offline** (installable desktop app) | Yes | Requires install | Requires install | Requires internet |
 | **Real-time collaboration** (P2P, no server) | Yes | Cloud only | Cloud only | Cloud only |
@@ -37,12 +37,12 @@ Most teams reach for PowerPoint, Visio, or Draw.io when they need a diagram. Cha
 
 1. [Getting Started](getting-started.md) -- Interface tour and creating your first diagram
 2. [Canvas and Viewport](canvas-viewport.md) -- Grid, snap, rulers, zoom, pan, minimap
-3. [Shapes and Nodes](shapes-nodes.md) -- All 27 shapes and node properties
+3. [Shapes and Nodes](shapes-nodes.md) -- All shapes and node properties
 4. [Connectors and Edges](connectors-edges.md) -- Edge types, labels, arrowheads
 5. [Properties Panel](properties-panel.md) -- Complete panel reference with every input
 6. [Toolbar Reference](toolbar-reference.md) -- Every button, dropdown, and menu
-7. [AI Assistant](ai-assistant.md) -- Setup, providers, and 35-tool reference
-8. [Styles and Themes](styles-themes.md) -- 19 styles, 11 palettes, dark mode
+7. [AI Assistant](ai-assistant.md) -- Setup, providers, and 33-tool reference
+8. [Styles and Themes](styles-themes.md) -- 29 styles, 21 palettes, dark mode
 9. [Swimlanes and Banners](swimlanes-banners.md) -- Swimlane creation, matrix mode, banners
 10. [Status Pucks and Dependencies](status-pucks-dependencies.md) -- Puck system, dependency chains, walk mode
 11. [Legends and Layers](legends-layers.md) -- Legend overlays and layer management

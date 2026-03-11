@@ -162,7 +162,7 @@ Nodes can be layered in front of or behind other nodes. Use the following shortc
 
 ### Palette Number Keys
 
-Press number keys `1` through `9` with nodes selected to instantly apply colors from the active color palette. Chart Hero ships with 11 built-in palettes, and the active palette can be changed from the Style section of the toolbar.
+Press number keys `1` through `9` with nodes selected to instantly apply colors from the active color palette. Chart Hero ships with 21 built-in palettes, and the active palette can be changed from the Style section of the toolbar.
 
 ### Context Menu Color Picker
 
@@ -195,12 +195,16 @@ Right-clicking a node opens a context menu with quick access to common operation
 
 | Option | Description |
 |--------|-------------|
-| **Quick colors** | 10-color row for instant fill color changes |
-| **Change Shape** | Switch to one of 8 common shapes without recreating the node |
-| **Change Font** | Pick from 12 frequently used fonts |
-| **Add Status Puck** | Attach a status indicator badge |
-| **Copy / Cut / Paste** | Clipboard operations |
-| **Duplicate** | Create a copy offset from the original |
+| **Quick actions** | Icon row for Edit, Copy, Duplicate, Paste, Reset to Theme |
+| **Color sidebar** | Fill and border color columns with opacity sliders (appears alongside the menu) |
+| **Change Shape** | Switch to one of 8 common shapes (each with its own shape icon) |
+| **Add Status** | Attach a status indicator badge |
+| **Change Font** | Scrollable list of 12 fonts (max 6 visible) |
+| **Label Font Size** | Inline slider (6--32 px) with reset button |
+| **Border Size** | Inline slider (0--10 px) with reset button |
+| **Border Type** | Inline toggle buttons for Solid / Dashed / Dotted |
+| **Align / Transform** | Alignment, flip, rotate, and z-ordering icon rows |
+| **Select** | Submenu to select by same fill, border, shape, font, or connected nodes |
 | **Delete** | Remove the node from the canvas |
 
 ![Add Status Menu](../../assets/wiki-add-status-menu.png)
@@ -220,7 +224,15 @@ The Change Shape submenu in the context menu offers these shapes for quick switc
 
 ## Resizing Nodes
 
-Drag the resize handles on the edges and corners of a selected node to change its width and height. The node dimensions update in real time and are reflected in the Properties Panel.
+When you select a node, custom resize handles appear on the edges and corners of the selection outline. Drag any handle to change the node's width and/or height. The node dimensions update in real time and are reflected in the Properties Panel.
+
+| Handle | Location | Cursor | Behavior |
+|--------|----------|--------|----------|
+| **Corner** | Each of the 4 corners | Diagonal resize (NW-SE or NE-SW) | Resizes both width and height simultaneously |
+| **Edge (top/bottom)** | Top and bottom borders | Vertical resize | Resizes height only |
+| **Edge (left/right)** | Left and right borders | Horizontal resize | Resizes width only |
+
+**Hold Shift** while dragging any resize handle to maintain the node's aspect ratio. Circles always maintain their aspect ratio regardless of Shift.
 
 ---
 

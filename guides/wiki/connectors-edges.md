@@ -162,6 +162,28 @@ Right-click any connector to open its context menu with the following options:
 
 ---
 
+## Waypoints
+
+Waypoints let you add custom bends and reshape connector paths by inserting draggable control points along an edge.
+
+### Adding a Waypoint
+
+**Double-click** on any connector to add a waypoint at that position. A small handle appears at the waypoint location.
+
+### Moving a Waypoint
+
+**Click and drag** a waypoint handle to reshape the connector path. Step and SmoothStep connectors create polyline segments through waypoints. Bezier connectors create smooth curves through waypoints.
+
+### Removing a Waypoint
+
+**Double-click** a waypoint handle to remove it. The connector path snaps back to the default routing between the remaining points.
+
+### Endpoint Nodes
+
+When you drag a connector from a node handle and release on empty canvas, Chart Hero creates a small **endpoint node** (a 12px dot) at the drop location. Endpoint dots are only visible when the edge or endpoint is selected. Deleting an edge also removes its endpoint nodes, and deleting an endpoint removes the connected edge and its peer endpoint.
+
+---
+
 ## Straightening Edges
 
 Over time, as you move nodes around manually, connectors can develop unnecessary bends and detours. Chart Hero provides two ways to clean them up.

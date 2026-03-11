@@ -164,11 +164,11 @@ To uninstall, right-click the Chart Hero icon in your taskbar or app launcher an
 Now that you know the basics, explore the rest of the guide to master every feature:
 
 - [Canvas and Viewport](canvas-viewport.md) -- Grid types, snap settings, rulers, zoom, and minimap
-- [Shapes and Nodes](shapes-nodes.md) -- All 27 shapes, sizing, icons, and node styling
-- [Connectors and Edges](connectors-edges.md) -- 6 connector types, arrowheads, labels
+- [Shapes and Nodes](shapes-nodes.md) -- All shapes, sizing, icons, and node styling
+- [Connectors and Edges](connectors-edges.md) -- 4 connector types, arrowheads, labels, waypoints
 - [Properties Panel](properties-panel.md) -- Deep dive into every property and control
 - [AI Assistant](ai-assistant.md) -- Set up your API key and use natural language to build diagrams
-- [Styles and Themes](styles-themes.md) -- 19 themes, 11 palettes, dark mode
+- [Styles and Themes](styles-themes.md) -- 29 themes, 21 palettes, dark mode
 - [Keyboard Shortcuts](keyboard-shortcuts.md) -- Speed up your workflow with shortcuts
 - [Export and Import](export-import.md) -- PNG, SVG, PDF, PPTX, JSON, and clipboard export
 

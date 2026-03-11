@@ -28,6 +28,14 @@ export function recolorSvg(
     }
   }
 
+  // Find the maximum stroke-width across all shape elements so we can pad
+  // the viewBox to prevent strokes from being clipped at the edges.
+  let maxStroke = 0;
+  for (const el of shapeEls) {
+    const sw = parseFloat(el.getAttribute('stroke-width') || '0');
+    if (sw > maxStroke) maxStroke = sw;
+  }
+
   // Allow the SVG to stretch freely with its container (no locked aspect ratio).
   // Individual resize handles on ExtensionNode control which axes scale.
   const root = doc.documentElement;
@@ -35,6 +43,22 @@ export function recolorSvg(
   root.setAttribute('width', '100%');
   root.setAttribute('height', '100%');
   root.setAttribute('overflow', 'hidden');
+
+  // Expand the viewBox by the max stroke-width on all sides so strokes
+  // (including mitered joins) stay within the clipped area.
+  if (maxStroke > 0) {
+    const vb = root.getAttribute('viewBox');
+    if (vb) {
+      const parts = vb.split(/[\s,]+/).map(Number);
+      if (parts.length === 4) {
+        const pad = maxStroke;
+        root.setAttribute(
+          'viewBox',
+          `${parts[0] - pad} ${parts[1] - pad} ${parts[2] + pad * 2} ${parts[3] + pad * 2}`,
+        );
+      }
+    }
+  }
 
   const serializer = new XMLSerializer();
   return serializer.serializeToString(root);

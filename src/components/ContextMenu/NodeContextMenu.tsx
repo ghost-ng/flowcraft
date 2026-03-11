@@ -28,6 +28,11 @@ import {
   Square,
   SquareDashed,
   AArrowDown,
+  Diamond,
+  Hexagon,
+  File,
+  Cloud,
+  RectangleHorizontal,
 } from 'lucide-react';
 
 import { useStyleStore } from '../../store/styleStore';
@@ -93,15 +98,15 @@ export interface NodeContextMenuProps {
 // Shape options
 // ---------------------------------------------------------------------------
 
-const shapeOptions: { value: NodeShape; label: string }[] = [
-  { value: 'rectangle', label: 'Rectangle' },
-  { value: 'roundedRectangle', label: 'Rounded Rect' },
-  { value: 'diamond', label: 'Diamond' },
-  { value: 'circle', label: 'Circle' },
-  { value: 'parallelogram', label: 'Parallelogram' },
-  { value: 'hexagon', label: 'Hexagon' },
-  { value: 'document', label: 'Document' },
-  { value: 'cloud', label: 'Cloud' },
+const shapeOptions: { value: NodeShape; label: string; icon: React.ReactNode }[] = [
+  { value: 'rectangle', label: 'Rectangle', icon: <Square size={14} /> },
+  { value: 'roundedRectangle', label: 'Rounded Rect', icon: <RectangleHorizontal size={14} className="[&>rect]:rx-[4]" /> },
+  { value: 'diamond', label: 'Diamond', icon: <Diamond size={14} /> },
+  { value: 'circle', label: 'Circle', icon: <Circle size={14} /> },
+  { value: 'parallelogram', label: 'Parallelogram', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h14l-4 16H2z" /></svg> },
+  { value: 'hexagon', label: 'Hexagon', icon: <Hexagon size={14} /> },
+  { value: 'document', label: 'Document', icon: <File size={14} /> },
+  { value: 'cloud', label: 'Cloud', icon: <Cloud size={14} /> },
 ];
 
 // Fallback colors when no palette is selected
@@ -230,7 +235,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const quickColors = resolveActivePalette(activePaletteId, activeStyleId).colors ?? defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'font' | 'fontSize' | 'borderWidth' | 'borderStyle' | null>(null);
+  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'font' | null>(null);
 
   // Close on click-outside or Escape (but not when clicking the color sidebar)
   useEffect(() => {
@@ -370,10 +375,10 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           />
           {submenu === 'shape' && (
             <SubMenu darkMode={darkMode} className="p-1 min-w-[160px]">
-              {shapeOptions.map(({ value, label }) => (
+              {shapeOptions.map(({ value, label, icon }) => (
                 <MenuItem
                   key={value}
-                  icon={<Shapes size={14} />}
+                  icon={icon}
                   label={label}
                   onClick={() => { onChangeShape(value); onClose(); }}
                   darkMode={darkMode}
@@ -430,7 +435,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onMouseEnter={() => setSubmenu('font')}
           />
           {submenu === 'font' && (
-            <SubMenu darkMode={darkMode} className="p-1 min-w-[200px] max-h-[300px] overflow-y-auto">
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[200px] max-h-[192px] overflow-y-auto">
               {fontOptions.map(({ label, value }) => {
                 const node = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
                 const currentFont = node?.data?.fontFamily || '';
@@ -462,116 +467,109 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           )}
         </div>
 
-        {/* Label Font Size submenu */}
-        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
-          <MenuItem
-            icon={<AArrowDown size={14} />}
-            label="Label Font Size"
-            onClick={() => setSubmenu(submenu === 'fontSize' ? null : 'fontSize')}
-            darkMode={darkMode}
-            hasSubmenu
-            onMouseEnter={() => setSubmenu('fontSize')}
+        {/* Label Font Size — inline slider */}
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+        >
+          <AArrowDown size={14} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
+          <input
+            type="range"
+            min={6}
+            max={32}
+            value={currentFontSize}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              e.stopPropagation();
+              updateNodeData(nodeId, { fontSize: Number(e.target.value) });
+            }}
+            className="flex-1 h-3 cursor-pointer accent-primary"
           />
-          {submenu === 'fontSize' && (
-            <SubMenu darkMode={darkMode} className="p-2 min-w-[160px]">
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min={6}
-                  max={32}
-                  value={currentFontSize}
-                  onChange={(e) => {
-                    updateNodeData(nodeId, { fontSize: Number(e.target.value) });
-                  }}
-                  className="flex-1 h-3 cursor-pointer accent-primary"
-                />
-                <span className={`text-xs w-8 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-                  {currentFontSize}px
-                </span>
-              </div>
-            </SubMenu>
-          )}
+          <span className={`text-[10px] w-7 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            {currentFontSize}px
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); updateNodeData(nodeId, { fontSize: undefined }); }}
+            className={`shrink-0 p-0.5 rounded cursor-pointer transition-colors ${
+              currentFontSize !== 14
+                ? darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                : 'opacity-0 pointer-events-none'
+            }`}
+            data-tooltip="Reset"
+          >
+            <RotateCcw size={10} />
+          </button>
         </div>
 
-        {/* Border Size submenu */}
-        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
-          <MenuItem
-            icon={<Square size={14} />}
-            label="Border Size"
-            onClick={() => setSubmenu(submenu === 'borderWidth' ? null : 'borderWidth')}
-            darkMode={darkMode}
-            hasSubmenu
-            onMouseEnter={() => setSubmenu('borderWidth')}
+        {/* Border Size — inline slider */}
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+        >
+          <Square size={14} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
+          <input
+            type="range"
+            min={0}
+            max={10}
+            value={currentBorderWidth}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              e.stopPropagation();
+              updateNodeData(nodeId, { borderWidth: Number(e.target.value) });
+            }}
+            className="flex-1 h-3 cursor-pointer accent-primary"
           />
-          {submenu === 'borderWidth' && (
-            <SubMenu darkMode={darkMode} className="p-2 min-w-[160px]">
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={10}
-                  value={currentBorderWidth}
-                  onChange={(e) => {
-                    updateNodeData(nodeId, { borderWidth: Number(e.target.value) });
-                  }}
-                  className="flex-1 h-3 cursor-pointer accent-primary"
-                />
-                <span className={`text-xs w-8 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-                  {currentBorderWidth}px
-                </span>
-              </div>
-            </SubMenu>
-          )}
+          <span className={`text-[10px] w-7 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            {currentBorderWidth}px
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); updateNodeData(nodeId, { borderWidth: undefined }); }}
+            className={`shrink-0 p-0.5 rounded cursor-pointer transition-colors ${
+              currentBorderWidth !== 2
+                ? darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                : 'opacity-0 pointer-events-none'
+            }`}
+            data-tooltip="Reset"
+          >
+            <RotateCcw size={10} />
+          </button>
         </div>
 
-        {/* Border Type submenu */}
-        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
-          <MenuItem
-            icon={<SquareDashed size={14} />}
-            label="Border Type"
-            onClick={() => setSubmenu(submenu === 'borderStyle' ? null : 'borderStyle')}
-            darkMode={darkMode}
-            hasSubmenu
-            onMouseEnter={() => setSubmenu('borderStyle')}
-          />
-          {submenu === 'borderStyle' && (
-            <SubMenu darkMode={darkMode} className="p-1 min-w-[140px]">
-              {([
-                { value: 'solid', label: 'Solid' },
-                { value: 'dashed', label: 'Dashed' },
-                { value: 'dotted', label: 'Dotted' },
-              ] as const).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateNodeData(nodeId, { borderStyle: opt.value });
-                    onClose();
+        {/* Border Type — inline toggle buttons */}
+        <div
+          className={`flex items-center gap-2 px-2 py-1.5 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+        >
+          <SquareDashed size={14} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
+          <div className="flex flex-1 gap-2">
+            {([
+              { value: 'solid', label: 'Solid' },
+              { value: 'dashed', label: 'Dashed' },
+              { value: 'dotted', label: 'Dotted' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateNodeData(nodeId, { borderStyle: opt.value });
+                }}
+                className={`
+                  flex-1 flex flex-col items-center py-1 px-1 rounded cursor-pointer transition-colors
+                  ${opt.value === currentBorderStyle
+                    ? 'bg-primary/10'
+                    : darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-100'
+                  }
+                `}
+              >
+                <span
+                  className="w-full h-0 border-t"
+                  style={{
+                    borderStyle: opt.value,
+                    borderColor: opt.value === currentBorderStyle
+                      ? 'var(--color-primary)'
+                      : darkMode ? '#94a3b8' : '#475569',
                   }}
-                  className={`
-                    flex items-center gap-2 w-full px-2.5 py-1 text-left text-xs rounded
-                    transition-colors duration-75 cursor-pointer
-                    ${opt.value === currentBorderStyle
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : darkMode ? 'hover:bg-dk-hover text-dk-text' : 'hover:bg-slate-100 text-slate-700'
-                    }
-                  `}
-                >
-                  <span className="w-8 flex items-center">
-                    <span
-                      className="w-full h-0 border-t-2"
-                      style={{
-                        borderStyle: opt.value,
-                        borderColor: darkMode ? '#94a3b8' : '#475569',
-                      }}
-                    />
-                  </span>
-                  <span>{opt.label}</span>
-                  {opt.value === currentBorderStyle && <span className="ml-auto text-primary text-[10px]">&#10003;</span>}
-                </button>
-              ))}
-            </SubMenu>
-          )}
+                />
+              </button>
+            ))}
+          </div>
         </div>
 
         <MenuDivider darkMode={darkMode} />

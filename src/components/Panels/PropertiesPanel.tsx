@@ -420,7 +420,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="color"
                     value={selectedPuck.color || '#94a3b8'}
                     onChange={(e) => handleUpdatePuck({ color: e.target.value })}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -515,7 +515,7 @@ const StatusPucksSection: React.FC<StatusPucksSectionProps> = ({ nodeId, data, c
                     type="color"
                     value={selectedPuck.borderColor || '#000000'}
                     onChange={(e) => handleUpdatePuck({ borderColor: e.target.value })}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -860,7 +860,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="color"
                 value={toHexColor(fillColor, '#3b82f6')}
                 onChange={(e) => update({ color: e.target.value })}
-                className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
@@ -906,7 +906,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="color"
                 value={toHexColor(borderColor, '#334155')}
                 onChange={(e) => update({ borderColor: e.target.value })}
-                className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
@@ -1017,7 +1017,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                 type="color"
                 value={toHexColor(textColor, '#ffffff')}
                 onChange={(e) => update({ textColor: e.target.value })}
-                className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
               />
               <input
                 type="text"
@@ -1254,7 +1254,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     type="color"
                     value={toHexColor(data.iconColor || textColor, '#ffffff')}
                     onChange={(e) => update({ iconColor: e.target.value })}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -1278,7 +1278,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     type="color"
                     value={toHexColor(data.iconBgColor, '#ffffff')}
                     onChange={(e) => update({ iconBgColor: e.target.value })}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -1303,7 +1303,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     type="color"
                     value={toHexColor(data.iconBorderColor, '#94a3b8')}
                     onChange={(e) => update({ iconBorderColor: e.target.value })}
-                    className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+                    className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
                   />
                   <input
                     type="text"
@@ -2026,7 +2026,7 @@ const SwimlanePanel: React.FC = React.memo(() => {
                 type="color"
                 value={config.titleColor ?? '#0f172a'}
                 onChange={(e) => updateTitleConfig({ titleColor: e.target.value })}
-                className="w-7 h-7 rounded border border-border cursor-pointer shrink-0"
+                className="w-6 h-6 rounded border border-border cursor-pointer shrink-0"
               />
               <span className="flex-1 text-xs text-text-muted">{config.titleColor ?? 'Auto'}</span>
               <CopyHexButton value={config.titleColor ?? '#0f172a'} />
@@ -2460,7 +2460,7 @@ const BulkPuckEditor: React.FC = () => {
             type="color"
             value={representativePuck.color || '#94a3b8'}
             onChange={(e) => handleUpdate({ color: e.target.value })}
-            className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+            className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
           />
           <input
             type="text"
@@ -2553,7 +2553,7 @@ const BulkPuckEditor: React.FC = () => {
             type="color"
             value={representativePuck.borderColor || '#000000'}
             onChange={(e) => handleUpdate({ borderColor: e.target.value })}
-            className="w-8 h-8 shrink-0 rounded border border-border cursor-pointer"
+            className="w-6 h-6 shrink-0 rounded border border-border cursor-pointer"
           />
           <input
             type="text"
