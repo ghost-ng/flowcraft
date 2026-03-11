@@ -33,7 +33,7 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const width = nodeData.width || 300;
   const height = nodeData.height || 200;
   const borderWidth = nodeData.borderWidth ?? 2;
-  const borderStyle = selected ? 'solid' : (nodeData.borderStyle || 'dashed');
+  const borderStyle = nodeData.borderStyle || 'dashed';
   const borderRadius = nodeData.borderRadius ?? 8;
   const fontSize = nodeData.fontSize ?? 12;
   const fontWeight = nodeData.fontWeight ?? 600;
