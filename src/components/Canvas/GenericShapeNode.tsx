@@ -876,9 +876,9 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   // Build box-shadow layers
   // SVG-rendered shapes (parallelogram, hexagon, diamond, etc.) use SVG stroke
   // for selection — skip the rectangular box-shadow selection ring for those.
-  const selectionShadow = (isSelected && !noBox)
-    ? `0 0 0 ${selectionThickness + 0.5}px ${selectionColor}, 0 0 8px 2px ${selectionColor}40`
-    : '';
+  // Selection is rendered via a dedicated outline div with negative inset
+  // (outside the node border) — no box-shadow needed for selection.
+  const selectionShadow = '';
   const isInEditedGroup = !!(linkGroupEditorId && nodeData.linkGroupId === linkGroupEditorId);
   const linkGroupShadow = isInEditedGroup && !isSelected
     ? '0 0 0 2px #3b82f6, 0 0 6px 1px #3b82f640'
