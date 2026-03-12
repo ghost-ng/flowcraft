@@ -1759,8 +1759,15 @@ export function importFromJson(
       }
     }
 
+    // Normalize icon name to PascalCase for lucide-react lookup
+    // (AI models and JSON files may use kebab-case like "alert-triangle" or lowercase like "user")
+    if (nodeData.icon) {
+      const normalized = nodeData.icon.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+      nodeData.icon = normalized;
+    }
+
     // Optional number fields
-    for (const key of ['fontSize', 'fontWeight', 'iconBorderWidth', 'iconSize',
+    for (const key of ['fontSize', 'fontWeight', 'iconBorderWidth', 'iconSize', 'iconPadding',
       'width', 'height', 'opacity', 'fillOpacity', 'borderOpacity', 'borderWidth', 'borderRadius', 'rotation',
       'svgStrokeWidth'] as const) {
       if (typeof rawData[key] === 'number') {

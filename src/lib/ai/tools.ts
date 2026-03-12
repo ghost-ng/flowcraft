@@ -74,7 +74,7 @@ const generate_diagram: ToolDefinition = {
                     fontSize: { type: 'number' },
                     icon: {
                       type: 'string',
-                      description: "Lucide icon name (e.g. 'check', 'alert-triangle')",
+                      description: "Lucide icon name in PascalCase (e.g. 'Check', 'AlertTriangle', 'Shield', 'User')",
                     },
                     width: { type: 'number' },
                     height: { type: 'number' },
@@ -176,7 +176,7 @@ const add_node: ToolDefinition = {
       height: { type: 'number', description: 'Height in pixels' },
       icon: {
         type: 'string',
-        description: "Lucide icon name (e.g. 'check', 'user', 'database')",
+        description: "Lucide icon name in PascalCase (e.g. 'Check', 'User', 'Database', 'ShieldCheck')",
       },
       fontSize: { type: 'number', description: 'Font size in pixels' },
       description: { type: 'string', description: 'Description text for the node' },
@@ -644,7 +644,7 @@ const set_status_puck: ToolDefinition = {
         enum: ['top-right', 'top-left', 'bottom-right', 'bottom-left'],
         description: 'Position on the node. Default: top-right',
       },
-      icon: { type: 'string', description: 'Optional lucide icon name' },
+      icon: { type: 'string', description: 'Lucide icon name in PascalCase (e.g. Check, CircleAlert)' },
     },
     required: ['node_id', 'status'],
   },

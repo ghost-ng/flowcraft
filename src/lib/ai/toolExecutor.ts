@@ -49,6 +49,18 @@ function getViewportCenter(): { x: number; y: number } {
   };
 }
 
+/**
+ * Normalize a Lucide icon name to PascalCase to match the `icons` export from
+ * lucide-react.  Handles kebab-case ("alert-triangle" → "AlertTriangle"),
+ * plain lowercase ("user" → "User"), and already-PascalCase ("User" → "User").
+ */
+function normalizeLucideIcon(name: string): string {
+  return name
+    .split('-')
+    .map((seg) => seg.charAt(0).toUpperCase() + seg.slice(1))
+    .join('');
+}
+
 /** Status-to-color mapping for pucks when no explicit color is provided. */
 const STATUS_COLORS: Record<string, string> = {
   'not-started': '#9ca3af',
@@ -234,7 +246,7 @@ const handlers: Record<string, ToolHandler> = {
     if (args.textColor !== undefined) data.textColor = args.textColor as string;
     if (args.width !== undefined) data.width = args.width as number;
     if (args.height !== undefined) data.height = args.height as number;
-    if (args.icon !== undefined) data.icon = args.icon as string;
+    if (args.icon !== undefined) data.icon = normalizeLucideIcon(args.icon as string);
     if (args.fontSize !== undefined) data.fontSize = args.fontSize as number;
     if (args.description !== undefined) data.description = args.description as string;
     if (args.notes !== undefined) data.notes = args.notes as string;
@@ -289,8 +301,10 @@ const handlers: Record<string, ToolHandler> = {
 
     for (const { key, dataKey } of fields) {
       if (args[key] !== undefined) {
-        (patch as Record<string, unknown>)[dataKey] = args[key];
-        changes.push(`${key} → ${String(args[key])}`);
+        // Normalize icon names to PascalCase for lucide-react lookup
+        const value = key === 'icon' ? normalizeLucideIcon(args[key] as string) : args[key];
+        (patch as Record<string, unknown>)[dataKey] = value;
+        changes.push(`${key} → ${String(value)}`);
       }
     }
 
@@ -995,7 +1009,7 @@ const handlers: Record<string, ToolHandler> = {
 
     const position = (args.position as StatusIndicator['position']) || 'top-right';
     const color = (args.color as string) || STATUS_COLORS[status] || '#9ca3af';
-    const icon = args.icon as string | undefined;
+    const icon = args.icon ? normalizeLucideIcon(args.icon as string) : undefined;
 
     const puck: StatusIndicator = {
       id: newPuckId(),

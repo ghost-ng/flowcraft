@@ -1366,6 +1366,28 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                   )}
                 </div>
               </Field>
+
+              {/* Icon Padding */}
+              <Field label="Padding">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={32}
+                    step={1}
+                    value={data.iconPadding ?? 4}
+                    onChange={(e) => update({ iconPadding: Number(e.target.value) })}
+                    className="flex-1 accent-primary"
+                  />
+                  <span className="text-xs text-text-muted w-8 text-right font-mono">
+                    {data.iconPadding ?? 4}px
+                  </span>
+                  <ResetIcon
+                    visible={data.iconPadding !== undefined}
+                    onReset={() => update({ iconPadding: undefined })}
+                  />
+                </div>
+              </Field>
             </>
           )}
         </>

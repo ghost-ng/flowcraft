@@ -1353,16 +1353,17 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           }
 
           const actualIconSize = nodeData.iconSize || (scaledFontSize + 2);
+          const iconPad = nodeData.iconPadding ?? 4; // default 4px (matches old px-1)
 
           return (
             <div
               ref={labelRef}
-              className={`flex items-center gap-1.5 w-full relative z-10 overflow-hidden px-1 ${isOverlay ? 'h-full' : ''} ${iconPosition === 'right' ? 'flex-row-reverse' : ''} ${
+              className={`flex items-center gap-1.5 w-full relative z-10 overflow-hidden ${isOverlay ? 'h-full' : ''} ${iconPosition === 'right' ? 'flex-row-reverse' : ''} ${
                 (nodeData as Record<string, unknown>).textAlign === 'left' ? 'justify-start' :
                 (nodeData as Record<string, unknown>).textAlign === 'right' ? 'justify-end' :
                 'justify-center'
               }`}
-              style={{ ...labelStyle, fontSize: scaledFontSize }}
+              style={{ ...labelStyle, fontSize: scaledFontSize, padding: `0 ${iconPad}px` }}
             >
               {IconComponent && renderStyledIcon(actualIconSize)}
               {isEditing ? (

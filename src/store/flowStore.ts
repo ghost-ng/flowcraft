@@ -93,6 +93,8 @@ export interface FlowNodeData {
   iconBorderWidth?: number;
   iconSize?: number;
   iconPosition?: 'left' | 'right';
+  /** Padding around the icon+label container inside the node (px) */
+  iconPadding?: number;
   layerId?: string;
   swimlaneId?: string;
   width?: number;

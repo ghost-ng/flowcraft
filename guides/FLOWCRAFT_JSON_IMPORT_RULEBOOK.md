@@ -95,6 +95,7 @@ Each node represents a shape on the canvas.
 | `iconBgColor` | string (hex) | — | Background color behind the icon |
 | `iconBorderColor` | string (hex) | — | Border color around the icon wrapper |
 | `iconBorderWidth` | number | `0` | Border width around the icon wrapper |
+| `iconPadding` | number | `4` | Horizontal padding (px) around the icon+label container inside the node |
 | `iconOnly` | boolean | `false` | If `true`, renders only the icon with no shape background |
 | `groupId` | string | — | ID of the parent group node |
 | `linkGroupId` | string | — | Logical group ID (nodes in the same link group move together) |
