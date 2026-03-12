@@ -498,7 +498,13 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
         darkMode={darkMode}
         menuRef={menuRef}
         colors={quickColors}
-        onSelectColor={(color) => { handleChangeColor(color); }}
+        onSelectFillColor={(color) => { handleChangeColor(color); }}
+        onSelectTextColor={(color) => {
+          const { updateNodeData } = useFlowStore.getState();
+          for (const id of nodeIds) {
+            updateNodeData(id, { textColor: color });
+          }
+        }}
       />
     </div>
   );

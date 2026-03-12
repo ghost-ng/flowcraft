@@ -697,6 +697,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
   }, [selectedNodes, allNodes, data.borderColor]);
   const textColor = data.textColor || resolved.textColor;
   const fontSize = data.fontSize || resolved.fontSize;
+  const maxFontSize = Math.max(12, Math.min(128, Math.round(((data as Record<string, unknown>).height as number) || 60)));
   const fontWeight = data.fontWeight || resolved.fontWeight;
   const textAlign = (data as Record<string, unknown>).textAlign as string || 'center';
 
@@ -1040,8 +1041,8 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
               <input
                 type="range"
                 min={8}
-                max={32}
-                value={fontSize}
+                max={maxFontSize}
+                value={Math.min(fontSize, maxFontSize)}
                 onChange={(e) => {
                   const newSize = Number(e.target.value);
                   update({ fontSize: newSize });
@@ -1063,7 +1064,7 @@ const NodePropsTab: React.FC<NodePropsTabProps> = React.memo(({ nodeId, data, no
                     const node = allNodes.find(n => n.id === nid);
                     if (node) {
                       const currentSize = (node.data as FlowNodeData).fontSize || 14;
-                      bulkUpdate(nid, { fontSize: Math.min(32, currentSize + 1) });
+                      bulkUpdate(nid, { fontSize: Math.min(maxFontSize, currentSize + 1) });
                     }
                   }
                 }}

@@ -27,7 +27,6 @@ import {
   RotateCcw,
   Square,
   SquareDashed,
-  AArrowDown,
   Diamond,
   Hexagon,
   File,
@@ -198,7 +197,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 );
 
 const MenuDivider: React.FC<{ darkMode: boolean }> = ({ darkMode }) => (
-  <div className={`my-1 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
+  <div className={`my-0.5 h-px ${darkMode ? 'bg-dk-hover' : 'bg-slate-200'}`} />
 );
 
 // ---------------------------------------------------------------------------
@@ -272,6 +271,14 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     const n = s.nodes.find(nd => nd.id === nodeId);
     return (n?.data as FlowNodeData | undefined)?.borderStyle || 'solid';
   });
+  // Max font size proportional to the node height so the slider range is useful
+  const maxFontSize = useFlowStore((s) => {
+    const n = s.nodes.find(nd => nd.id === nodeId);
+    const d = n?.data as FlowNodeData | undefined;
+    const h = (d?.height as number) || 60;
+    // Allow up to full height; auto-fit in GenericShapeNode shrinks if text overflows
+    return Math.max(12, Math.min(128, Math.round(h)));
+  });
   const currentFillOpacity = useFlowStore((s) => {
     const n = s.nodes.find(nd => nd.id === nodeId);
     return (n?.data as FlowNodeData | undefined)?.fillOpacity ?? 1;
@@ -325,7 +332,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
       {/* Main menu */}
       <div
         className={`
-          min-w-[180px] rounded-lg shadow-xl border p-1
+          min-w-[140px] rounded-lg shadow-xl border p-1
           ${darkMode ? 'bg-dk-panel border-dk-border' : 'bg-white border-slate-200'}
         `}
       >
@@ -467,30 +474,38 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           )}
         </div>
 
-        {/* Label Font Size — inline slider */}
+        <MenuDivider darkMode={darkMode} />
+
+        {/* Border Color — palette swatches + color picker */}
         <div
-          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+          className="flex items-center gap-1 px-2 py-1"
+          onMouseEnter={() => setSubmenu(null)}
         >
-          <AArrowDown size={14} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
+          <Palette size={12} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
+          <div className="flex flex-wrap gap-0.5 flex-1">
+            {quickColors.map((color) => (
+              <button
+                key={`bc-${color}`}
+                onClick={(e) => { e.stopPropagation(); updateNodeData(nodeId, { borderColor: color }); }}
+                className="w-3.5 h-3.5 rounded-sm border border-black/10 hover:scale-125 transition-transform cursor-pointer"
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
           <input
-            type="range"
-            min={6}
-            max={32}
-            value={currentFontSize}
+            type="color"
+            value={useFlowStore.getState().nodes.find(n => n.id === nodeId)?.data?.borderColor || '#94a3b8'}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
               e.stopPropagation();
-              updateNodeData(nodeId, { fontSize: Number(e.target.value) });
+              updateNodeData(nodeId, { borderColor: e.target.value });
             }}
-            className="flex-1 h-3 cursor-pointer accent-primary"
+            className="w-4 h-4 rounded cursor-pointer border border-black/10 p-0 shrink-0"
           />
-          <span className={`text-[10px] w-7 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
-            {currentFontSize}px
-          </span>
           <button
-            onClick={(e) => { e.stopPropagation(); updateNodeData(nodeId, { fontSize: undefined }); }}
+            onClick={(e) => { e.stopPropagation(); updateNodeData(nodeId, { borderColor: undefined }); }}
             className={`shrink-0 p-0.5 rounded cursor-pointer transition-colors ${
-              currentFontSize !== 14
+              useFlowStore.getState().nodes.find(n => n.id === nodeId)?.data?.borderColor
                 ? darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
                 : 'opacity-0 pointer-events-none'
             }`}
@@ -502,7 +517,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
         {/* Border Size — inline slider */}
         <div
-          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
         >
           <Square size={14} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
           <input
@@ -535,7 +550,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
 
         {/* Border Type — inline toggle buttons */}
         <div
-          className={`flex items-center gap-2 px-2 py-1.5 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+          className={`flex items-center gap-2 px-2 py-1 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
         >
           <SquareDashed size={14} className={`shrink-0 ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`} />
           <div className="flex flex-1 gap-2">
@@ -570,6 +585,40 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Border Opacity — inline slider */}
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1 rounded ${darkMode ? 'hover:bg-dk-hover' : 'hover:bg-slate-50'}`}
+          onMouseEnter={() => setSubmenu(null)}
+        >
+          <span className={`shrink-0 w-3.5 text-center text-[10px] ${darkMode ? 'text-dk-faint' : 'text-slate-400'}`}>Op</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(currentBorderOpacity * 100)}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              e.stopPropagation();
+              updateNodeData(nodeId, { borderOpacity: Number(e.target.value) / 100 });
+            }}
+            className="flex-1 h-3 cursor-pointer accent-primary"
+          />
+          <span className={`text-[10px] w-7 text-right tabular-nums ${darkMode ? 'text-dk-muted' : 'text-slate-500'}`}>
+            {Math.round(currentBorderOpacity * 100)}%
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); updateNodeData(nodeId, { borderOpacity: undefined }); }}
+            className={`shrink-0 p-0.5 rounded cursor-pointer transition-colors ${
+              currentBorderOpacity !== 1
+                ? darkMode ? 'text-dk-faint hover:text-dk-text hover:bg-dk-hover' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                : 'opacity-0 pointer-events-none'
+            }`}
+            data-tooltip="Reset"
+          >
+            <RotateCcw size={10} />
+          </button>
         </div>
 
         <MenuDivider darkMode={darkMode} />
@@ -747,14 +796,16 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
         darkMode={darkMode}
         menuRef={menuRef}
         colors={quickColors}
-        onSelectColor={(color) => { onChangeColor(color); }}
-        onSelectColor2={(color) => { updateNodeData(nodeId, { borderColor: color }); }}
+        onSelectFillColor={(color) => { onChangeColor(color); }}
+        onSelectTextColor={(color) => { updateNodeData(nodeId, { textColor: color }); }}
         fillOpacity={currentFillOpacity}
         onFillOpacityChange={(v) => { updateNodeData(nodeId, { fillOpacity: v }); }}
-        borderOpacity={currentBorderOpacity}
-        onBorderOpacityChange={(v) => { updateNodeData(nodeId, { borderOpacity: v }); }}
+        fontSize={currentFontSize}
+        onFontSizeChange={(v) => { updateNodeData(nodeId, { fontSize: v }); }}
         onResetFill={() => { updateNodeData(nodeId, { color: undefined, fillOpacity: undefined }); }}
-        onResetBorder={() => { updateNodeData(nodeId, { borderColor: undefined, borderOpacity: undefined }); }}
+        onResetText={() => { updateNodeData(nodeId, { textColor: undefined }); }}
+        onResetFontSize={() => { updateNodeData(nodeId, { fontSize: undefined }); }}
+        maxFontSize={maxFontSize}
       />
     </div>
   );

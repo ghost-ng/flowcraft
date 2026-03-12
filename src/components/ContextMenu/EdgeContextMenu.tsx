@@ -13,7 +13,7 @@ import {
 
 import { useStyleStore } from '../../store/styleStore';
 import { useFlowStore } from '../../store/flowStore';
-import { useMenuPosition, SubMenu, ColorSwatchSidebar } from './menuUtils';
+import { useMenuPosition, SubMenu, EdgeColorSidebar } from './menuUtils';
 import { colorPalettes, defaultPaletteId } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
@@ -420,7 +420,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({
       </div>
 
       {/* Color swatches sidebar */}
-      <ColorSwatchSidebar
+      <EdgeColorSidebar
         darkMode={darkMode}
         menuRef={menuRef}
         colors={quickColors}
