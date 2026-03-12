@@ -19,6 +19,9 @@ export const infographicBold: DiagramStyle = {
     fontColor: '#ffffff',
     fontWeight: 700,
   },
+  iconDefaults: {
+    color: '#ffffff',
+  },
   edgeDefaults: {
     stroke: '#3a0ca3',
     strokeWidth: 3,
@@ -26,7 +29,7 @@ export const infographicBold: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#4361ee', '#f72585', '#4cc9f0', '#7209b7', '#4895ef'],
+  accentColors: ['#4361ee', '#f72585', '#4cc9f0', '#7209b7', '#4895ef', '#ff6d00', '#00b4d8'],
   shapeColors: {
     rectangle: '#4361ee',
     roundedRectangle: '#4361ee',
@@ -42,5 +45,7 @@ export const infographicBold: DiagramStyle = {
     chevronArrow: '#7209b7',
     doubleArrow: '#4cc9f0',
     circularArrow: '#4895ef',
+    ellipse: '#4cc9f0',
+    group: '#eef2ff',
   },
 };

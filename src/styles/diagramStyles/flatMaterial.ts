@@ -19,6 +19,9 @@ export const flatMaterial: DiagramStyle = {
     fontColor: '#ffffff',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#ffffff',
+  },
   edgeDefaults: {
     stroke: '#757575',
     strokeWidth: 2,
@@ -26,7 +29,7 @@ export const flatMaterial: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#1565c0', '#2e7d32', '#ef6c00', '#c62828', '#6a1b9a'],
+  accentColors: ['#1565c0', '#2e7d32', '#ef6c00', '#c62828', '#6a1b9a', '#00838f', '#ad1457'],
   shapeColors: {
     rectangle: '#1565c0',
     roundedRectangle: '#1565c0',
@@ -42,5 +45,7 @@ export const flatMaterial: DiagramStyle = {
     chevronArrow: '#c62828',
     doubleArrow: '#2e7d32',
     circularArrow: '#6a1b9a',
+    ellipse: '#4caf50',
+    group: '#e3f2fd',
   },
 };

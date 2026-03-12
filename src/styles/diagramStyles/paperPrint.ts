@@ -19,6 +19,9 @@ export const paperPrint: DiagramStyle = {
     fontColor: '#1a1510',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#1a1510',
+  },
   edgeDefaults: {
     stroke: '#9c9284',
     strokeWidth: 1,
@@ -26,7 +29,7 @@ export const paperPrint: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#8b4513', '#2e5e4e', '#5b3a6b', '#8c6d46', '#3d5a80'],
+  accentColors: ['#8b4513', '#2e5e4e', '#5b3a6b', '#8c6d46', '#3d5a80', '#a0522d', '#4a6f5c'],
   shapeColors: {
     rectangle: '#fefdfb',
     roundedRectangle: '#fefdfb',
@@ -42,6 +45,8 @@ export const paperPrint: DiagramStyle = {
     chevronArrow: '#d4a373',
     doubleArrow: '#a3b18a',
     circularArrow: '#b5838d',
+    ellipse: '#a3b18a',
+    group: '#faf7f2',
   },
   defaultPaletteId: 'earthTone',
 };

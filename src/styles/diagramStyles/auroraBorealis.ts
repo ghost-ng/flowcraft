@@ -20,6 +20,9 @@ export const auroraBorealis: DiagramStyle = {
     fontColor: '#e2e8f0',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#7dd3fc',
+  },
   edgeDefaults: {
     stroke: '#22d3ee',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const auroraBorealis: DiagramStyle = {
     animated: true,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#22d3ee', '#a78bfa', '#34d399', '#f472b6', '#fbbf24'],
+  accentColors: ['#22d3ee', '#a78bfa', '#34d399', '#f472b6', '#fbbf24', '#818cf8', '#fb923c'],
   shapeColors: {
     rectangle: 'rgba(15, 23, 42, 0.75)',
     roundedRectangle: 'rgba(15, 23, 42, 0.75)',
@@ -43,6 +46,8 @@ export const auroraBorealis: DiagramStyle = {
     chevronArrow: '#a78bfa',
     doubleArrow: '#34d399',
     circularArrow: '#f472b6',
+    ellipse: '#34d399',
+    group: 'rgba(15, 23, 42, 0.4)',
   },
   defaultPaletteId: 'midnightAurora',
 };

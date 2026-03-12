@@ -114,7 +114,7 @@ const PaletteSwatch: React.FC<PaletteSwatchProps> = React.memo(
       `}
     >
       <div className="flex gap-0.5">
-        {colors.slice(0, 5).map((c, i) => (
+        {colors.map((c, i) => (
           <div
             key={i}
             className="w-4 h-4 rounded-sm"

@@ -19,6 +19,9 @@ export const whiteboardSketch: DiagramStyle = {
     fontColor: '#3d3529',
     fontWeight: 700,
   },
+  iconDefaults: {
+    color: '#3d3529',
+  },
   edgeDefaults: {
     stroke: '#5c5346',
     strokeWidth: 2,
@@ -26,7 +29,7 @@ export const whiteboardSketch: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#e74c3c', '#2980b9', '#27ae60', '#f39c12', '#8e44ad'],
+  accentColors: ['#e74c3c', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#1abc9c', '#e67e22'],
   shapeColors: {
     rectangle: '#faf8f5',
     roundedRectangle: '#faf8f5',
@@ -42,5 +45,7 @@ export const whiteboardSketch: DiagramStyle = {
     chevronArrow: '#34d399',
     doubleArrow: '#a78bfa',
     circularArrow: '#fb7185',
+    ellipse: '#34d399',
+    group: '#faf8f5',
   },
 };

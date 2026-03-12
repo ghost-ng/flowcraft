@@ -20,6 +20,9 @@ export const neonDark: DiagramStyle = {
     fontColor: '#f0f0ff',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#00fff5',
+  },
   edgeDefaults: {
     stroke: '#ff00aa',
     strokeWidth: 2,
@@ -27,7 +30,7 @@ export const neonDark: DiagramStyle = {
     animated: true,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#00fff5', '#ff00aa', '#7b2ff7', '#39ff14', '#ffea00'],
+  accentColors: ['#00fff5', '#ff00aa', '#7b2ff7', '#39ff14', '#ffea00', '#ff6b35', '#00ccff'],
   shapeColors: {
     rectangle: '#1a1a2e',
     roundedRectangle: '#1a1a2e',
@@ -43,6 +46,8 @@ export const neonDark: DiagramStyle = {
     chevronArrow: '#ff00aa',
     doubleArrow: '#7b2ff7',
     circularArrow: '#39ff14',
+    ellipse: '#00ffff',
+    group: '#0f172a',
   },
   defaultPaletteId: 'cyber',
 };

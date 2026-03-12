@@ -19,6 +19,9 @@ export const colorfulGradient: DiagramStyle = {
     fontColor: '#ffffff',
     fontWeight: 600,
   },
+  iconDefaults: {
+    color: '#ffffff',
+  },
   edgeDefaults: {
     stroke: '#9ca3af',
     strokeWidth: 1,
@@ -51,5 +54,7 @@ export const colorfulGradient: DiagramStyle = {
     chevronArrow: '#3b82f6',
     doubleArrow: '#ec4899',
     circularArrow: '#ef4444',
+    ellipse: '#10b981',
+    group: '#eef2ff',
   },
 };

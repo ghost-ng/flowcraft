@@ -19,6 +19,9 @@ export const zincModern: DiagramStyle = {
     fontColor: '#27272a',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#3f3f46',
+  },
   edgeDefaults: {
     stroke: '#a1a1aa',
     strokeWidth: 1,
@@ -26,7 +29,7 @@ export const zincModern: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#3f3f46', '#71717a', '#0ea5e9', '#8b5cf6', '#f59e0b'],
+  accentColors: ['#3f3f46', '#71717a', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ef4444', '#14b8a6'],
   shapeColors: {
     rectangle: '#ffffff',
     roundedRectangle: '#ffffff',
@@ -42,5 +45,7 @@ export const zincModern: DiagramStyle = {
     chevronArrow: '#71717a',
     doubleArrow: '#a1a1aa',
     circularArrow: '#52525b',
+    ellipse: '#10b981',
+    group: '#fafafa',
   },
 };

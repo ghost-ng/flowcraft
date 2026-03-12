@@ -20,6 +20,9 @@ export const militaryC2: DiagramStyle = {
     fontColor: '#d8e4b8',
     fontWeight: 700,
   },
+  iconDefaults: {
+    color: '#d8e4b8',
+  },
   edgeDefaults: {
     stroke: '#8b9a6b',
     strokeWidth: 2,
@@ -27,7 +30,7 @@ export const militaryC2: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#4a90d9', '#d94a4a', '#5cb85c', '#f0ad4e', '#c8d4a8'],
+  accentColors: ['#4a90d9', '#d94a4a', '#5cb85c', '#f0ad4e', '#c8d4a8', '#8b6914', '#6b8e23'],
   defaultPaletteId: 'military',
   shapeColors: {
     rectangle: '#3d4435',
@@ -44,5 +47,7 @@ export const militaryC2: DiagramStyle = {
     chevronArrow: '#6b8e23',
     doubleArrow: '#4b5320',
     circularArrow: '#3d4435',
+    ellipse: '#4b5320',
+    group: '#2d3328',
   },
 };

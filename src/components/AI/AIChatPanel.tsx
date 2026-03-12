@@ -10,6 +10,7 @@ import { getFullSystemPrompt } from '@/lib/ai/prompts';
 import { executeTool } from '@/lib/ai/toolExecutor';
 import ChatMessage from './ChatMessage';
 import AISettingsDialog from './AISettingsDialog';
+import { generateId } from '@/utils/idGenerator';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -402,7 +403,7 @@ const AIChatPanel: React.FC = () => {
         const base64 = dataUrl.split(',')[1];
         setPendingImages((prev) => [
           ...prev,
-          { id: crypto.randomUUID(), base64, mimeType: file.type },
+          { id: generateId('img'), base64, mimeType: file.type },
         ]);
       };
       reader.readAsDataURL(file);
@@ -421,7 +422,7 @@ const AIChatPanel: React.FC = () => {
         const base64 = dataUrl.split(',')[1];
         setPendingImages((prev) => [
           ...prev,
-          { id: crypto.randomUUID(), base64, mimeType: file.type },
+          { id: generateId('img'), base64, mimeType: file.type },
         ]);
       };
       reader.readAsDataURL(file);

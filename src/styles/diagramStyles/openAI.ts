@@ -20,6 +20,9 @@ export const openAI: DiagramStyle = {
     fontColor: '#ececec',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#ececec',
+  },
   edgeDefaults: {
     stroke: '#10a37f',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const openAI: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#10a37f', '#1a7f64', '#5cead4', '#212121', '#6e6e6e'],
+  accentColors: ['#10a37f', '#1a7f64', '#5cead4', '#212121', '#6e6e6e', '#0d8c6d', '#9e9e9e'],
   shapeColors: {
     rectangle: '#212121',
     roundedRectangle: '#212121',
@@ -43,5 +46,7 @@ export const openAI: DiagramStyle = {
     chevronArrow: '#10a37f',
     doubleArrow: '#2a2a2a',
     circularArrow: '#2a2a2a',
+    ellipse: '#10a37f',
+    group: '#2a2a2a',
   },
 };

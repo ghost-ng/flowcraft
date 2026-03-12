@@ -20,6 +20,9 @@ export const cyberC2: DiagramStyle = {
     fontColor: '#000000',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#000000',
+  },
   edgeDefaults: {
     stroke: '#000000',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const cyberC2: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#8BA5BF', '#A3BAD0', '#C5D4E5', '#D9D9D9', '#FFFFF0'],
+  accentColors: ['#8BA5BF', '#A3BAD0', '#C5D4E5', '#D9D9D9', '#FFFFF0', '#6B8FAD', '#E8E8DC'],
   shapeColors: {
     rectangle: '#FFFFF0',
     roundedRectangle: '#FFFFF0',
@@ -43,6 +46,8 @@ export const cyberC2: DiagramStyle = {
     chevronArrow: '#A3BAD0',
     doubleArrow: '#C5D4E5',
     circularArrow: '#94a3b8',
+    ellipse: '#A3BAD0',
+    group: '#FFFFF0',
   },
   defaultPaletteId: 'cyber',
 };

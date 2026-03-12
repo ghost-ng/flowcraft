@@ -9,5 +9,5 @@ import type { ColorPalette } from '../types';
 export const accessible: ColorPalette = {
   id: 'accessible',
   displayName: 'Accessible (AAA)',
-  colors: ['#0b5394', '#6b3a0a', '#1a6b3c', '#8b1a1a', '#4a2d73'],
+  colors: ['#0b5394', '#6b3a0a', '#1a6b3c', '#8b1a1a', '#4a2d73', '#0d7377', '#b45309'],
 };

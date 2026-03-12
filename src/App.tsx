@@ -670,6 +670,13 @@ const App: React.FC = () => {
       const nodes = saved.nodes as FlowNode[] | undefined;
       const edges = saved.edges as FlowEdge[] | undefined;
       if (nodes && nodes.length > 0) {
+        // Migrate legacy node types — older versions stored shape name as
+        // the React Flow type (e.g. "rectangle") instead of "shapeNode".
+        for (const n of nodes) {
+          if (n.type && n.type !== 'shapeNode' && n.type !== 'endpointNode' && n.type !== 'groupNode') {
+            n.type = 'shapeNode';
+          }
+        }
         useFlowStore.getState().setNodes(nodes);
         useFlowStore.getState().setEdges(edges || []);
       }

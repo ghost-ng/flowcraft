@@ -20,6 +20,9 @@ export const osxAqua: DiagramStyle = {
     fontColor: '#1d1d1f',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#1d1d1f',
+  },
   edgeDefaults: {
     stroke: '#007aff',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const osxAqua: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de'],
+  accentColors: ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#5ac8fa', '#ff2d55'],
   shapeColors: {
     rectangle: '#ffffff',
     roundedRectangle: '#ffffff',
@@ -43,5 +46,7 @@ export const osxAqua: DiagramStyle = {
     chevronArrow: '#e8f5e9',
     doubleArrow: '#f3e5f5',
     circularArrow: '#fff3e0',
+    ellipse: '#e8f5e9',
+    group: '#f5f5f7',
   },
 };

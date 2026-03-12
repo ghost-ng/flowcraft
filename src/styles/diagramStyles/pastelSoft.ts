@@ -19,6 +19,9 @@ export const pastelSoft: DiagramStyle = {
     fontColor: '#2d2347',
     fontWeight: 600,
   },
+  iconDefaults: {
+    color: '#4c1d95',
+  },
   edgeDefaults: {
     stroke: '#c9b8e8',
     strokeWidth: 1.5,
@@ -26,7 +29,7 @@ export const pastelSoft: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#c3aed6', '#a8d8b9', '#f6c6a8', '#f7a8b8', '#a8d4f0'],
+  accentColors: ['#c3aed6', '#a8d8b9', '#f6c6a8', '#f7a8b8', '#a8d4f0', '#f0e68c', '#d4a8f0'],
   shapeColors: {
     rectangle: '#e8dff5',
     roundedRectangle: '#e8dff5',
@@ -42,5 +45,7 @@ export const pastelSoft: DiagramStyle = {
     chevronArrow: '#a8d8b9',
     doubleArrow: '#f6c6a8',
     circularArrow: '#f7a8b8',
+    ellipse: '#6ee7b7',
+    group: '#f3e8ff',
   },
 };

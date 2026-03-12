@@ -20,6 +20,9 @@ export const darkNeonGlow: DiagramStyle = {
     fontColor: '#ffffff',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#ff2d95',
+  },
   edgeDefaults: {
     stroke: '#39ff14',
     strokeWidth: 1.5,
@@ -34,6 +37,7 @@ export const darkNeonGlow: DiagramStyle = {
     '#ffea00',
     '#bf5af2',
     '#ff6b35',
+    '#00e5ff',
   ],
   defaultPaletteId: 'cyber',
   shapeColors: {
@@ -51,5 +55,7 @@ export const darkNeonGlow: DiagramStyle = {
     chevronArrow: '#39ff14',
     doubleArrow: '#00ffff',
     circularArrow: '#ff6b35',
+    ellipse: '#00ff88',
+    group: '#0d1117',
   },
 };

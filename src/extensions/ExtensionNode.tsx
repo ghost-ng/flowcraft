@@ -56,22 +56,30 @@ const ExtensionNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   // Extension SVGs are outline-only (fill="none"), so text must contrast with the
   // canvas background, not the node fill.  The theme fontColor (e.g. #ffffff in
   // Flat Material) assumes filled shapes, so we check contrast against the canvas
-  // before using it.
+  // before using it.  Icon colors follow the same logic via theme iconDefaults.
   const darkMode = useStyleStore((s) => s.darkMode);
   const canvasBg = activeStyle?.canvas?.background || (darkMode ? '#1a1a2e' : '#ffffff');
   const themeFontColor = activeStyle?.nodeDefaults.fontColor;
+  const themeIconColor = activeStyle?.iconDefaults?.color;
   const fallbackTextColor = darkMode ? '#e2e8f0' : '#1e293b';
+
+  const contrastCheck = (color: string): string => {
+    try {
+      const contrast = chroma.contrast(color, canvasBg);
+      return contrast >= 3 ? color : fallbackTextColor;
+    } catch {
+      return fallbackTextColor;
+    }
+  };
+
   let textColor: string;
   if (nodeData.textColor) {
     textColor = nodeData.textColor;
+  } else if (themeIconColor) {
+    // Prefer theme icon color for extension SVGs (they are icon-like)
+    textColor = contrastCheck(themeIconColor);
   } else if (themeFontColor) {
-    // Only use the theme font color if it contrasts with the canvas background
-    try {
-      const contrast = chroma.contrast(themeFontColor, canvasBg);
-      textColor = contrast >= 3 ? themeFontColor : fallbackTextColor;
-    } catch {
-      textColor = fallbackTextColor;
-    }
+    textColor = contrastCheck(themeFontColor);
   } else {
     textColor = fallbackTextColor;
   }

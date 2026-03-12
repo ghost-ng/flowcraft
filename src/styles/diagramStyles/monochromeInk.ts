@@ -19,6 +19,9 @@ export const monochromeInk: DiagramStyle = {
     fontColor: '#000000',
     fontWeight: 600,
   },
+  iconDefaults: {
+    color: '#000000',
+  },
   edgeDefaults: {
     stroke: '#000000',
     strokeWidth: 2,
@@ -26,7 +29,7 @@ export const monochromeInk: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#000000', '#333333', '#555555', '#777777', '#999999'],
+  accentColors: ['#000000', '#333333', '#555555', '#777777', '#999999', '#bbbbbb', '#1a1a1a'],
   shapeColors: {
     rectangle: '#ffffff',
     roundedRectangle: '#ffffff',
@@ -42,5 +45,7 @@ export const monochromeInk: DiagramStyle = {
     chevronArrow: '#3d3d3d',
     doubleArrow: '#4a4a4a',
     circularArrow: '#575757',
+    ellipse: '#595959',
+    group: '#f5f5f5',
   },
 };

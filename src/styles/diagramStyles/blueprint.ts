@@ -20,6 +20,9 @@ export const blueprint: DiagramStyle = {
     fontColor: '#e0f7fa',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#4fc3f7',
+  },
   edgeDefaults: {
     stroke: '#4fc3f7',
     strokeWidth: 1,
@@ -27,7 +30,7 @@ export const blueprint: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#4fc3f7', '#00e5ff', '#0288d1', '#00838f', '#26c6da'],
+  accentColors: ['#4fc3f7', '#00e5ff', '#0288d1', '#00838f', '#26c6da', '#80deea', '#0277bd'],
   shapeColors: {
     rectangle: 'transparent',
     roundedRectangle: 'transparent',
@@ -43,6 +46,8 @@ export const blueprint: DiagramStyle = {
     chevronArrow: '#00e5ff',
     doubleArrow: '#0288d1',
     circularArrow: '#26c6da',
+    ellipse: '#22d3ee',
+    group: 'rgba(79, 195, 247, 0.08)',
   },
   defaultPaletteId: 'cyber',
 };

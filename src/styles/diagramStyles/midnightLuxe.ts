@@ -20,6 +20,9 @@ export const midnightLuxe: DiagramStyle = {
     fontColor: '#f5f0e0',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#d4af37',
+  },
   edgeDefaults: {
     stroke: '#d4af37',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const midnightLuxe: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#d4af37', '#c0a36e', '#8b7355', '#a08060', '#e8d5b5'],
+  accentColors: ['#d4af37', '#c0a36e', '#8b7355', '#a08060', '#e8d5b5', '#b8860b', '#f5e6c8'],
   shapeColors: {
     rectangle: '#18181b',
     roundedRectangle: '#18181b',
@@ -43,6 +46,8 @@ export const midnightLuxe: DiagramStyle = {
     chevronArrow: '#c0a36e',
     doubleArrow: '#8b7355',
     circularArrow: '#a08060',
+    ellipse: '#c0a36e',
+    group: '#1c1c20',
   },
   defaultPaletteId: 'midnightAurora',
 };

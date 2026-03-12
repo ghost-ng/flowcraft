@@ -20,6 +20,9 @@ export const claudeAI: DiagramStyle = {
     fontColor: '#ffffff',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#ffffff',
+  },
   edgeDefaults: {
     stroke: '#d97757',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const claudeAI: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#d97757', '#c4623f', '#a3503a', '#e8a88a', '#8b4332'],
+  accentColors: ['#d97757', '#c4623f', '#a3503a', '#e8a88a', '#8b4332', '#f0c8b0', '#7a3828'],
   shapeColors: {
     rectangle: '#d97757',
     roundedRectangle: '#d97757',
@@ -43,5 +46,7 @@ export const claudeAI: DiagramStyle = {
     chevronArrow: '#d97757',
     doubleArrow: '#a3503a',
     circularArrow: '#e8a88a',
+    ellipse: '#e8a88a',
+    group: '#f5e6dc',
   },
 };

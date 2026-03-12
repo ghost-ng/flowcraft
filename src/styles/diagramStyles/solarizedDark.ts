@@ -20,6 +20,9 @@ export const solarizedDark: DiagramStyle = {
     fontColor: '#93a1a1',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#93a1a1',
+  },
   edgeDefaults: {
     stroke: '#586e75',
     strokeWidth: 1.5,
@@ -27,7 +30,7 @@ export const solarizedDark: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#268bd2', '#2aa198', '#859900', '#b58900', '#cb4b16'],
+  accentColors: ['#268bd2', '#2aa198', '#859900', '#b58900', '#cb4b16', '#d33682', '#6c71c4'],
   shapeColors: {
     rectangle: '#073642',
     roundedRectangle: '#073642',
@@ -43,5 +46,7 @@ export const solarizedDark: DiagramStyle = {
     chevronArrow: '#859900',
     doubleArrow: '#2aa198',
     circularArrow: '#cb4b16',
+    ellipse: '#2aa198',
+    group: '#002b36',
   },
 };

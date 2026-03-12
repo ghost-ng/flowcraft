@@ -8,7 +8,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { DependencyBadge } from '../Dependencies';
 import { ensureReadableText } from '../../utils/colorUtils';
 import chroma from 'chroma-js';
-import { resolveNodeStyle } from '../../utils/themeResolver';
+import { resolveNodeStyle, resolveIconStyle } from '../../utils/themeResolver';
 import { useStyleStore } from '../../store/styleStore';
 import { diagramStyles } from '../../styles/diagramStyles';
 import {
@@ -1314,11 +1314,12 @@ const GenericShapeNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           ? (icons as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[nodeData.icon]
           : null;
 
-        // Icon styling props
-        const iColor = nodeData.iconColor || textColor;
-        const iBgColor = nodeData.iconBgColor;
-        const iBorderColor = nodeData.iconBorderColor;
-        const iBorderWidth = nodeData.iconBorderWidth ?? 0;
+        // Icon styling props — resolved from user overrides → theme → textColor fallback
+        const iconResolved = resolveIconStyle(nodeData as unknown as Record<string, unknown>, textColor, activeStyle);
+        const iColor = iconResolved.color;
+        const iBgColor = iconResolved.bgColor;
+        const iBorderColor = iconResolved.borderColor;
+        const iBorderWidth = iconResolved.borderWidth;
 
         const renderStyledIcon = (iconSz: number) => {
           if (!IconComponent) return null;

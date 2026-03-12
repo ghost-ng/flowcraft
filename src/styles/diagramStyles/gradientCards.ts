@@ -19,6 +19,9 @@ export const gradientCards: DiagramStyle = {
     fontColor: '#334155',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#334155',
+  },
   edgeDefaults: {
     stroke: '#cbd5e1',
     strokeWidth: 1,
@@ -33,6 +36,7 @@ export const gradientCards: DiagramStyle = {
     '#f43f5e',
     '#a855f7',
     '#f97316',
+    '#10b981',
   ],
   shapeColors: {
     rectangle: '#ffffff',
@@ -49,5 +53,7 @@ export const gradientCards: DiagramStyle = {
     chevronArrow: '#0ea5e9',
     doubleArrow: '#a855f7',
     circularArrow: '#14b8a6',
+    ellipse: '#14b8a6',
+    group: '#f8fafc',
   },
 };

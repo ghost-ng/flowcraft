@@ -21,6 +21,9 @@ export const neonGlass: DiagramStyle = {
     fontColor: '#d0ffe8',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#00ffc8',
+  },
   edgeDefaults: {
     stroke: 'rgba(0, 255, 200, 0.5)',
     strokeWidth: 1.5,
@@ -28,7 +31,7 @@ export const neonGlass: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#00ffaa', '#ff00aa', '#00aaff', '#ffaa00', '#aa00ff'],
+  accentColors: ['#00ffaa', '#ff00aa', '#00aaff', '#ffaa00', '#aa00ff', '#ff5555', '#55ff55'],
   defaultPaletteId: 'cyber',
   shapeColors: {
     rectangle: 'rgba(0, 255, 170, 0.08)',
@@ -45,5 +48,7 @@ export const neonGlass: DiagramStyle = {
     chevronArrow: 'rgba(255, 0, 170, 0.15)',
     doubleArrow: 'rgba(0, 170, 255, 0.15)',
     circularArrow: 'rgba(170, 0, 255, 0.15)',
+    ellipse: 'rgba(0, 170, 255, 0.15)',
+    group: 'rgba(0, 255, 170, 0.04)',
   },
 };

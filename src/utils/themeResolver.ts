@@ -10,12 +10,26 @@ export const HARDCODED_SHAPE_COLORS: Record<string, string> = {
   roundedRectangle: '#3b82f6',
   diamond: '#f59e0b',
   circle: '#10b981',
+  ellipse: '#10b981',
   parallelogram: '#8b5cf6',
   hexagon: '#ef4444',
+  triangle: '#f97316',
+  star: '#eab308',
+  arrow: '#3b82f6',
+  callout: '#0ea5e9',
   document: '#ec4899',
   cloud: '#6366f1',
+  predefinedProcess: '#6366f1',
+  manualInput: '#a855f7',
+  preparation: '#14b8a6',
+  data: '#8b5cf6',
+  database: '#0891b2',
+  internalStorage: '#64748b',
+  display: '#e879f9',
   stickyNote: '#fbbf24',
   textbox: 'transparent',
+  group: 'transparent',
+  freehand: 'transparent',
   blockArrow: '#3b82f6',
   chevronArrow: '#8b5cf6',
   doubleArrow: '#f59e0b',
@@ -33,6 +47,13 @@ export interface ResolvedNodeStyle {
   fontFamily: string;
   fontSize: number;
   fontWeight: number;
+}
+
+export interface ResolvedIconStyle {
+  color: string;
+  bgColor: string | undefined;
+  borderColor: string | undefined;
+  borderWidth: number;
 }
 
 export interface ResolvedEdgeStyle {
@@ -96,6 +117,42 @@ export function resolveNodeStyle(
   }
 
   return { fill, borderColor, textColor, fontFamily, fontSize, fontWeight };
+}
+
+// ---------------------------------------------------------------------------
+// Icon resolver
+// ---------------------------------------------------------------------------
+
+export function resolveIconStyle(
+  nodeData: Record<string, unknown>,
+  textColor: string,
+  activeStyle: DiagramStyle | null,
+): ResolvedIconStyle {
+  // Color: user → theme iconDefaults → textColor (from resolved node style)
+  const color =
+    (nodeData.iconColor as string | undefined)
+    || activeStyle?.iconDefaults?.color
+    || textColor;
+
+  // Background: user → theme iconDefaults → undefined (none)
+  const bgColor =
+    (nodeData.iconBgColor as string | undefined)
+    || activeStyle?.iconDefaults?.bgColor
+    || undefined;
+
+  // Border color: user → theme iconDefaults → undefined (none)
+  const borderColor =
+    (nodeData.iconBorderColor as string | undefined)
+    || activeStyle?.iconDefaults?.borderColor
+    || undefined;
+
+  // Border width: user → theme iconDefaults → 0
+  const borderWidth =
+    (nodeData.iconBorderWidth as number | undefined)
+    ?? activeStyle?.iconDefaults?.borderWidth
+    ?? 0;
+
+  return { color, bgColor, borderColor, borderWidth };
 }
 
 // ---------------------------------------------------------------------------

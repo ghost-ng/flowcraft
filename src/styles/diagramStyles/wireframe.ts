@@ -19,6 +19,9 @@ export const wireframe: DiagramStyle = {
     fontColor: '#555555',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#555555',
+  },
   edgeDefaults: {
     stroke: '#aaaaaa',
     strokeWidth: 1,
@@ -26,7 +29,7 @@ export const wireframe: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#555555', '#777777', '#999999', '#bbbbbb', '#dddddd'],
+  accentColors: ['#555555', '#777777', '#999999', '#bbbbbb', '#dddddd', '#444444', '#aaaaaa'],
   shapeColors: {
     rectangle: 'transparent',
     roundedRectangle: 'transparent',
@@ -42,5 +45,7 @@ export const wireframe: DiagramStyle = {
     chevronArrow: 'transparent',
     doubleArrow: 'transparent',
     circularArrow: 'transparent',
+    ellipse: 'transparent',
+    group: 'transparent',
   },
 };

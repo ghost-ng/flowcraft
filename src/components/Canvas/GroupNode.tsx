@@ -4,6 +4,9 @@ import { icons } from 'lucide-react';
 import chroma from 'chroma-js';
 import { useFlowStore, type FlowNodeData, getStatusIndicators } from '../../store/flowStore';
 import { useUIStore } from '../../store/uiStore';
+import { useStyleStore } from '../../store/styleStore';
+import { diagramStyles } from '../../styles/diagramStyles';
+import { resolveNodeStyle, resolveIconStyle } from '../../utils/themeResolver';
 import { StatusBadge } from './GenericShapeNode';
 import {
   CURSOR_RESIZE_WIDTH,
@@ -22,36 +25,44 @@ const GroupNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
   const updateNodePosition = useFlowStore((s) => s.updateNodePosition);
   const reactFlowInstance = useReactFlow();
+  const activeStyleId = useStyleStore((s) => s.activeStyleId);
+  const activeStyle = activeStyleId ? diagramStyles[activeStyleId] ?? null : null;
+
+  // Resolve group styling from theme — groups use 'group' shape key
+  const resolved = resolveNodeStyle(nodeData as unknown as Record<string, unknown>, 'group', activeStyle);
+
   const label = nodeData.label || 'Group';
-  const rawFillColor = nodeData.color || '#f1f5f9';
+  // Groups default to a light translucent fill; theme shapeColors['group'] can override
+  const rawFillColor = nodeData.color || resolved.fill || '#f1f5f9';
   const fillOpacity = nodeData.fillOpacity ?? 1;
   const fillColor = (fillOpacity < 1 && rawFillColor && rawFillColor !== 'transparent')
     ? (() => { try { return chroma(rawFillColor).alpha(fillOpacity).css(); } catch { return rawFillColor; } })()
     : rawFillColor;
-  const borderColor = nodeData.borderColor || '#94a3b8';
-  const textColor = nodeData.textColor || '#475569';
+  const borderColor = nodeData.borderColor || resolved.borderColor || '#94a3b8';
+  const textColor = nodeData.textColor || resolved.textColor || '#475569';
   const width = nodeData.width || 300;
   const height = nodeData.height || 200;
-  const borderWidth = nodeData.borderWidth ?? 2;
+  const borderWidth = nodeData.borderWidth ?? (activeStyle?.nodeDefaults.strokeWidth ?? 2);
   const borderStyle = nodeData.borderStyle || 'dashed';
-  const borderRadius = nodeData.borderRadius ?? 8;
+  const borderRadius = nodeData.borderRadius ?? (activeStyle?.nodeDefaults.borderRadius ?? 8);
   const fontSize = nodeData.fontSize ?? 12;
   const fontWeight = nodeData.fontWeight ?? 600;
-  const fontFamily = nodeData.fontFamily || "'Inter', sans-serif";
+  const fontFamily = nodeData.fontFamily || resolved.fontFamily || "'Inter', sans-serif";
   const textAlign = nodeData.textAlign || 'left';
   const opacity = nodeData.opacity ?? 0.6;
   const rotation = nodeData.rotation || 0;
   const flipH = nodeData.flipH || false;
   const flipV = nodeData.flipV || false;
 
-  // Icon support
+  // Icon support — resolved from user overrides → theme → textColor fallback
   const IconComponent = nodeData.icon
     ? (icons as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[nodeData.icon]
     : null;
-  const iconColor = nodeData.iconColor || textColor;
-  const iconBgColor = nodeData.iconBgColor;
-  const iconBorderColor = nodeData.iconBorderColor;
-  const iconBorderWidth = nodeData.iconBorderWidth ?? 0;
+  const iconResolved = resolveIconStyle(nodeData as unknown as Record<string, unknown>, textColor, activeStyle);
+  const iconColor = iconResolved.color;
+  const iconBgColor = iconResolved.bgColor;
+  const iconBorderColor = iconResolved.borderColor;
+  const iconBorderWidth = iconResolved.borderWidth;
   const iconSize = nodeData.iconSize || (fontSize + 2);
 
   const renderIcon = () => {

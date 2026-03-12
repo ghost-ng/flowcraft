@@ -3,5 +3,5 @@ import type { ColorPalette } from '../types';
 export const sunset: ColorPalette = {
   id: 'sunset',
   displayName: 'Sunset',
-  colors: ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'],
+  colors: ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#ff924c', '#e8315b'],
 };

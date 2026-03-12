@@ -19,6 +19,9 @@ export const softGradient: DiagramStyle = {
     fontColor: '#1f2937',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#374151',
+  },
   edgeDefaults: {
     stroke: '#a78bfa',
     strokeWidth: 1.5,
@@ -26,7 +29,7 @@ export const softGradient: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#a78bfa', '#f472b6', '#38bdf8', '#34d399', '#fb923c'],
+  accentColors: ['#a78bfa', '#f472b6', '#38bdf8', '#34d399', '#fb923c', '#e879f9', '#22d3ee'],
   shapeColors: {
     rectangle: 'rgba(255, 255, 255, 0.85)',
     roundedRectangle: 'rgba(255, 255, 255, 0.85)',
@@ -42,5 +45,7 @@ export const softGradient: DiagramStyle = {
     chevronArrow: '#fbcfe8',
     doubleArrow: '#bae6fd',
     circularArrow: '#a7f3d0',
+    ellipse: '#86efac',
+    group: 'rgba(255, 255, 255, 0.5)',
   },
 };

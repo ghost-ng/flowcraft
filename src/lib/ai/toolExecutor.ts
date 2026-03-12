@@ -241,7 +241,7 @@ const handlers: Record<string, ToolHandler> = {
 
     const node: FlowNode = {
       id,
-      type: shape,
+      type: 'shapeNode',
       position: { x, y },
       data,
     };
@@ -417,7 +417,7 @@ const handlers: Record<string, ToolHandler> = {
 
     const newNode: FlowNode = {
       id: newId,
-      type: source.type,
+      type: 'shapeNode',
       position: {
         x: source.position.x + offsetX,
         y: source.position.y + offsetY,

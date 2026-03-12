@@ -19,6 +19,9 @@ export const watercolor: DiagramStyle = {
     fontColor: '#2a1f15',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#2a1f15',
+  },
   edgeDefaults: {
     stroke: '#a89580',
     strokeWidth: 1.5,
@@ -26,7 +29,7 @@ export const watercolor: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#8fae8b', '#c4926e', '#7d9bb5', '#c9a0a0', '#b5a88f'],
+  accentColors: ['#8fae8b', '#c4926e', '#7d9bb5', '#c9a0a0', '#b5a88f', '#a3c4a8', '#d4b896'],
   shapeColors: {
     rectangle: '#d4c5b0',
     roundedRectangle: '#d4c5b0',
@@ -42,5 +45,7 @@ export const watercolor: DiagramStyle = {
     chevronArrow: '#8fae8b',
     doubleArrow: '#7d9bb5',
     circularArrow: '#c9a0a0',
+    ellipse: '#a3b18a',
+    group: '#ede8e0',
   },
 };

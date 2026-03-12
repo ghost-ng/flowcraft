@@ -1,6 +1,7 @@
 import { create, type StoreApi } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type AIProvider, PROVIDERS } from '../lib/ai/providers';
+import { generateId } from '../utils/idGenerator';
 
 // ---------------------------------------------------------------------------
 // Re-export the AIProvider type for convenience
@@ -146,7 +147,7 @@ export const useAIStore = create<AIState>()(
         ...s.messages,
         {
           ...msg,
-          id: crypto.randomUUID(),
+          id: generateId('msg'),
           timestamp: Date.now(),
         },
       ],

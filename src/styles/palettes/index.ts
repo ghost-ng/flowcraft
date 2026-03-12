@@ -61,7 +61,7 @@ export function resolveActivePalette(paletteId: string, activeStyleId: string | 
       return {
         id: STYLE_PALETTE_ID,
         displayName: 'Style Palette',
-        colors: style.accentColors.slice(0, 5),
+        colors: style.accentColors,
       };
     }
   }

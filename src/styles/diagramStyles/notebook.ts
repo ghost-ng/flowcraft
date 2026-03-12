@@ -19,6 +19,9 @@ export const notebook: DiagramStyle = {
     fontColor: '#1f2937',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#374151',
+  },
   edgeDefaults: {
     stroke: '#4b5563',
     strokeWidth: 1.5,
@@ -33,6 +36,7 @@ export const notebook: DiagramStyle = {
     '#ea580c',
     '#7c3aed',
     '#0891b2',
+    '#ec4899',
   ],
   shapeColors: {
     rectangle: '#ffffff',
@@ -49,5 +53,7 @@ export const notebook: DiagramStyle = {
     chevronArrow: '#a78bfa',
     doubleArrow: '#6ee7b7',
     circularArrow: '#fca5a5',
+    ellipse: '#34d399',
+    group: '#f9fafb',
   },
 };

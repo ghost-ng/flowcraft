@@ -19,6 +19,9 @@ export const corporateProfessional: DiagramStyle = {
     fontColor: '#0f172a',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#1e3a5f',
+  },
   edgeDefaults: {
     stroke: '#475569',
     strokeWidth: 1.5,
@@ -26,7 +29,7 @@ export const corporateProfessional: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#1e3a5f', '#475569', '#0369a1', '#64748b', '#0c4a6e'],
+  accentColors: ['#1e3a5f', '#475569', '#0369a1', '#64748b', '#0c4a6e', '#7c3aed', '#b45309'],
   shapeColors: {
     rectangle: '#ffffff',
     roundedRectangle: '#ffffff',
@@ -42,5 +45,7 @@ export const corporateProfessional: DiagramStyle = {
     chevronArrow: '#0369a1',
     doubleArrow: '#475569',
     circularArrow: '#0c4a6e',
+    ellipse: '#15803d',
+    group: '#f1f5f9',
   },
 };

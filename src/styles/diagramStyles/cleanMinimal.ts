@@ -19,6 +19,9 @@ export const cleanMinimal: DiagramStyle = {
     fontColor: '#1f2937',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#374151',
+  },
   edgeDefaults: {
     stroke: '#9ca3af',
     strokeWidth: 1,
@@ -26,7 +29,7 @@ export const cleanMinimal: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+  accentColors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
   shapeColors: {
     rectangle: '#ffffff',
     roundedRectangle: '#ffffff',
@@ -42,5 +45,7 @@ export const cleanMinimal: DiagramStyle = {
     chevronArrow: '#10b981',
     doubleArrow: '#f59e0b',
     circularArrow: '#ef4444',
+    ellipse: '#10b981',
+    group: '#f1f5f9',
   },
 };

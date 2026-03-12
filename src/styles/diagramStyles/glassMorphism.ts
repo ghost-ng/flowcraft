@@ -21,6 +21,9 @@ export const glassMorphism: DiagramStyle = {
     fontColor: '#f0f0ff',
     fontWeight: 500,
   },
+  iconDefaults: {
+    color: '#c4b5fd',
+  },
   edgeDefaults: {
     stroke: 'rgba(255, 255, 255, 0.4)',
     strokeWidth: 1.5,
@@ -28,7 +31,7 @@ export const glassMorphism: DiagramStyle = {
     animated: false,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#7c3aed', '#0ea5e9', '#db2777', '#059669', '#d97706'],
+  accentColors: ['#7c3aed', '#0ea5e9', '#db2777', '#059669', '#d97706', '#6366f1', '#e11d48'],
   shapeColors: {
     rectangle: 'rgba(255, 255, 255, 0.10)',
     roundedRectangle: 'rgba(255, 255, 255, 0.10)',
@@ -44,5 +47,7 @@ export const glassMorphism: DiagramStyle = {
     chevronArrow: 'rgba(219, 39, 119, 0.25)',
     doubleArrow: 'rgba(14, 165, 233, 0.25)',
     circularArrow: 'rgba(5, 150, 105, 0.25)',
+    ellipse: 'rgba(16, 185, 129, 0.25)',
+    group: 'rgba(255, 255, 255, 0.06)',
   },
 };

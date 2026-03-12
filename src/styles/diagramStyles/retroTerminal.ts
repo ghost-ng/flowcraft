@@ -20,6 +20,9 @@ export const retroTerminal: DiagramStyle = {
     fontColor: '#33ff33',
     fontWeight: 400,
   },
+  iconDefaults: {
+    color: '#33ff33',
+  },
   edgeDefaults: {
     stroke: '#33ff33',
     strokeWidth: 1,
@@ -27,7 +30,7 @@ export const retroTerminal: DiagramStyle = {
     animated: true,
     arrowType: 'arrowclosed',
   },
-  accentColors: ['#33ff33', '#ffb833', '#33ffff', '#ff3333', '#ffffff'],
+  accentColors: ['#33ff33', '#ffb833', '#33ffff', '#ff3333', '#ffffff', '#ff33ff', '#33ff99'],
   defaultPaletteId: 'cyber',
   shapeColors: {
     rectangle: '#0a0a0a',
@@ -44,5 +47,7 @@ export const retroTerminal: DiagramStyle = {
     chevronArrow: '#00d900',
     doubleArrow: '#33ff33',
     circularArrow: '#009900',
+    ellipse: '#00cc00',
+    group: '#0a0a0a',
   },
 };
