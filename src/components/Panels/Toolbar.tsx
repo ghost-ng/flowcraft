@@ -63,6 +63,7 @@ import {
   Group,
   Ungroup,
   Link,
+  Unlink,
 } from 'lucide-react';
 
 import { useUIStore } from '../../store/uiStore';
@@ -656,9 +657,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // ---- Group / Ungroup / Edit Link Group ---------------------------------
 
   const handleGroupSelected = useCallback(() => {
-    const { nodes, addNode, setNodes: setN } = useFlowStore.getState();
-    if (selectedNodes.length < 2) return;
-    const selected = nodes.filter((n) => selectedNodes.includes(n.id));
+    const { nodes, selectedNodes: selNodes, addNode, setNodes: setN } = useFlowStore.getState();
+    if (selNodes.length < 2) return;
+    const selected = nodes.filter((n) => selNodes.includes(n.id));
     const bbox = computeBoundingBox(selected, 30, 25);
     const groupId = `group_${Date.now()}`;
     addNode({
@@ -668,7 +669,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       data: { label: 'Group', shape: 'group', width: bbox.width, height: bbox.height, color: '#f1f5f9', borderColor: '#94a3b8' },
     });
     const cur = useFlowStore.getState().nodes;
-    const childIds = new Set(selectedNodes);
+    const childIds = new Set(selNodes);
     const others = cur.filter((n) => n.id !== groupId && !childIds.has(n.id));
     const grp = cur.find((n) => n.id === groupId)!;
     const children = cur.filter((n) => childIds.has(n.id)).map((n) => ({
@@ -677,12 +678,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
       data: { ...n.data, groupId },
     }));
     setN([...others, grp, ...children]);
-  }, [selectedNodes]);
+    useFlowStore.getState().setSelectedNodes([groupId]);
+  }, []);
+
+  const handleLinkGroupSelected = useCallback(() => {
+    const { selectedNodes: selNodes, createLinkGroup } = useFlowStore.getState();
+    if (selNodes.length < 2) return;
+    createLinkGroup(selNodes);
+  }, []);
 
   const handleUngroupSelected = useCallback(() => {
-    const { nodes, setNodes: setN, removeNodeFromLinkGroup } = useFlowStore.getState();
-    if (selectedNodes.length !== 1) return;
-    const nodeId = selectedNodes[0];
+    const { nodes, selectedNodes: selNodes, setNodes: setN, removeNodeFromLinkGroup } = useFlowStore.getState();
+    if (selNodes.length !== 1) return;
+    const nodeId = selNodes[0];
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return;
 
@@ -708,21 +716,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
     } else if ((node.data as FlowNodeData).linkGroupId) {
       removeNodeFromLinkGroup(nodeId);
     }
-  }, [selectedNodes]);
+  }, []);
 
-  const handleEditLinkGroup = useCallback(() => {
-    const { nodes } = useFlowStore.getState();
-    if (selectedNodes.length === 0) return;
-    const node = nodes.find((n) => n.id === selectedNodes[0]);
-    const lgId = (node?.data as FlowNodeData)?.linkGroupId;
-    if (lgId) useUIStore.getState().setLinkGroupEditorId(lgId);
-  }, [selectedNodes]);
-
-  // Check if selected node is in a link group (for toolbar button visibility)
-  const selectedNodeInLinkGroup = selectedNodes.length > 0 && (() => {
-    const node = useFlowStore.getState().nodes.find((n) => n.id === selectedNodes[0]);
+  // Check if selected node is in a link group or visual group (reactive subscription)
+  const selectedNodeInLinkGroup = useFlowStore((s) => {
+    if (s.selectedNodes.length !== 1) return false;
+    const node = s.nodes.find((n) => n.id === s.selectedNodes[0]);
     return !!(node?.data as FlowNodeData)?.linkGroupId;
-  })();
+  });
+  const selectedNodeCanUngroup = useFlowStore((s) => {
+    if (s.selectedNodes.length !== 1) return false;
+    const node = s.nodes.find((n) => n.id === s.selectedNodes[0]);
+    if (!node) return false;
+    return node.type === 'groupNode' || !!node.parentId || !!(node.data as FlowNodeData)?.linkGroupId;
+  });
 
   const handleSave = useCallback(() => {
     exportAsJson({ includeViewport: true, includeStyles: true, includeMetadata: true, pretty: true });
@@ -1235,11 +1242,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ZOrderButton icon={<ChevronDown size={iconSize} />} tooltip={"Send Backward (Ctrl+[)\nHold for Send to Back"} onClick={handleSendBackward} onSendAll={handleSendToBack} sendAllLabel="Send to Back" disabled={selectedNodes.length === 0} />
         <ZOrderButton icon={<ChevronUp size={iconSize} />} tooltip={"Bring Forward (Ctrl+])\nHold for Bring to Front"} onClick={handleBringForward} onSendAll={handleSendToFront} sendAllLabel="Bring to Front" disabled={selectedNodes.length === 0} />
         <ToolbarButton icon={<Layers size={iconSize} />} tooltip="Element Order" onClick={() => setOrderModalOpen(true)} />
-        <ToolbarButton icon={<Group size={iconSize} />} tooltip="Group Selected (Ctrl+G)" onClick={handleGroupSelected} disabled={selectedNodes.length < 2} />
-        <ToolbarButton icon={<Ungroup size={iconSize} />} tooltip="Ungroup (Ctrl+Shift+U)" onClick={handleUngroupSelected} disabled={selectedNodes.length !== 1} />
-        {selectedNodeInLinkGroup && (
-          <ToolbarButton icon={<Link size={iconSize} />} tooltip="Edit Link Group" onClick={handleEditLinkGroup} />
-        )}
+        <ToolbarButton icon={<Group size={iconSize} />} tooltip="Section Group (Ctrl+G)" onClick={handleGroupSelected} disabled={selectedNodes.length < 2} />
+        <ToolbarButton icon={<Link size={iconSize} />} tooltip="Link Group (Ctrl+Shift+G)" onClick={handleLinkGroupSelected} disabled={selectedNodes.length < 2} />
+        <ToolbarButton icon={<Ungroup size={iconSize} />} tooltip="Ungroup (Ctrl+Shift+U)" onClick={handleUngroupSelected} disabled={!selectedNodeCanUngroup} />
+        <ToolbarButton icon={<Unlink size={iconSize} />} tooltip="Unlink from Group" onClick={() => {
+          if (selectedNodes.length !== 1) return;
+          useFlowStore.getState().removeNodeFromLinkGroup(selectedNodes[0]);
+        }} disabled={!selectedNodeInLinkGroup} />
       </>
     ),
 

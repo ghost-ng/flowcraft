@@ -214,6 +214,7 @@ const App: React.FC = () => {
         data: { ...n.data, groupId },
       }));
     setNodes([...otherNodes, theGroup, ...childNodes]);
+    useFlowStore.getState().setSelectedNodes([groupId]);
   }, []);
 
   // Link group selected nodes (logical, no container)

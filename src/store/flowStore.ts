@@ -451,6 +451,26 @@ export const useFlowStore = create<FlowState>()(
           }
         }
 
+        // Before removing group nodes, detach children so they stay on the canvas
+        for (const removeId of idsToRemove) {
+          const rmNode = state.nodes.find(n => n.id === removeId);
+          if (rmNode?.type === 'groupNode') {
+            for (const child of state.nodes) {
+              if (child.parentId === removeId) {
+                child.position = {
+                  x: child.position.x + rmNode.position.x,
+                  y: child.position.y + rmNode.position.y,
+                };
+                child.parentId = undefined;
+                child.extent = undefined;
+                if (child.data.groupId === removeId) {
+                  child.data = { ...child.data, groupId: undefined };
+                }
+              }
+            }
+          }
+        }
+
         state.nodes = state.nodes.filter((n) => !idsToRemove.has(n.id));
         // Also remove connected edges
         state.edges = state.edges.filter(

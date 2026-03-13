@@ -13,11 +13,13 @@ import {
   ArrowUpDown,
   Shapes,
   Group,
+  Ungroup,
   FlipHorizontal2,
   FlipVertical2,
   RotateCw,
   RotateCcw,
   Link,
+  Unlink,
 } from 'lucide-react';
 
 import { useFlowStore, type FlowNode, type FlowNodeData, type NodeShape } from '../../store/flowStore';
@@ -288,6 +290,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
         data: { ...n.data, groupId },
       }));
     setNodes([...otherNodes, theGroup, ...childNodes]);
+    useFlowStore.getState().setSelectedNodes([groupId]);
     onClose();
   }, [nodeIds, onClose]);
 
@@ -296,6 +299,73 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     useFlowStore.getState().createLinkGroup(nodeIds);
     onClose();
   }, [nodeIds, onClose]);
+
+  // ---- Ungroup / Remove from group handlers --------------------------------
+  const handleUngroupSelected = useCallback(() => {
+    const { nodes, setNodes: setN } = useFlowStore.getState();
+    // Find group nodes among selected and ungroup them
+    for (const nid of nodeIds) {
+      const node = nodes.find((n) => n.id === nid);
+      if (node?.type === 'groupNode') {
+        const cur = useFlowStore.getState().nodes;
+        setN(cur.filter((n) => n.id !== nid).map((n) => {
+          if (n.parentId === nid) {
+            return {
+              ...n,
+              parentId: undefined,
+              extent: undefined,
+              position: { x: n.position.x + node.position.x, y: n.position.y + node.position.y },
+              data: { ...n.data, groupId: undefined },
+            };
+          }
+          return n;
+        }));
+      }
+    }
+    onClose();
+  }, [nodeIds, onClose]);
+
+  const handleRemoveFromSection = useCallback(() => {
+    const { nodes, setNodes: setN } = useFlowStore.getState();
+    setN(nodes.map((n) => {
+      if (nodeIds.includes(n.id) && n.parentId) {
+        const parent = nodes.find((p) => p.id === n.parentId);
+        if (parent) {
+          return {
+            ...n,
+            parentId: undefined,
+            extent: undefined,
+            position: { x: n.position.x + parent.position.x, y: n.position.y + parent.position.y },
+            data: { ...n.data, groupId: undefined },
+          };
+        }
+      }
+      return n;
+    }));
+    onClose();
+  }, [nodeIds, onClose]);
+
+  const handleRemoveFromLinkGroup = useCallback(() => {
+    const { removeNodeFromLinkGroup } = useFlowStore.getState();
+    for (const nid of nodeIds) {
+      removeNodeFromLinkGroup(nid);
+    }
+    onClose();
+  }, [nodeIds, onClose]);
+
+  // Derived state for conditional group items
+  const hasGroupNodes = nodeIds.some((nid) => {
+    const node = useFlowStore.getState().nodes.find((n) => n.id === nid);
+    return node?.type === 'groupNode';
+  });
+  const hasNodesInVisualGroup = nodeIds.some((nid) => {
+    const node = useFlowStore.getState().nodes.find((n) => n.id === nid);
+    return !!node?.parentId;
+  });
+  const hasNodesInLinkGroup = nodeIds.some((nid) => {
+    const node = useFlowStore.getState().nodes.find((n) => n.id === nid);
+    return !!(node?.data as FlowNodeData)?.linkGroupId;
+  });
 
   const handleResetToTheme = useCallback(() => {
     const { nodes, updateNodeData } = useFlowStore.getState();
@@ -414,18 +484,17 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           />
           {submenu === 'group' && (
             <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
-              <MenuItem
-                icon={<Group size={14} />}
-                label="Arrange in Region"
-                onClick={handleGroup}
-                darkMode={darkMode}
-              />
-              <MenuItem
-                icon={<Link size={14} />}
-                label="Link Group"
-                onClick={handleLinkGroup}
-                darkMode={darkMode}
-              />
+              <MenuItem icon={<Group size={14} />} label="Section Group" shortcut="Ctrl+G" onClick={handleGroup} darkMode={darkMode} />
+              <MenuItem icon={<Link size={14} />} label="Link Group" shortcut="Ctrl+Shift+G" onClick={handleLinkGroup} darkMode={darkMode} />
+              {hasGroupNodes && (
+                <MenuItem icon={<Ungroup size={14} />} label="Ungroup" onClick={handleUngroupSelected} darkMode={darkMode} />
+              )}
+              {hasNodesInVisualGroup && (
+                <MenuItem icon={<Ungroup size={14} />} label="Remove from Section" onClick={handleRemoveFromSection} darkMode={darkMode} />
+              )}
+              {hasNodesInLinkGroup && (
+                <MenuItem icon={<Unlink size={14} />} label="Remove from Link Group" onClick={handleRemoveFromLinkGroup} darkMode={darkMode} />
+              )}
             </SubMenu>
           )}
         </div>

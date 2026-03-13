@@ -13,9 +13,11 @@ import {
   Shapes,
   Palette,
   Ungroup,
+  Group,
   Circle,
   MousePointerClick,
   Unlink,
+  Link,
   AlignLeft,
   AlignCenterHorizontal,
   AlignRight,
@@ -37,8 +39,9 @@ import {
 import { useStyleStore } from '../../store/styleStore';
 import { useUIStore } from '../../store/uiStore';
 import type { NodeShape, StatusIndicator, FlowNodeData } from '../../store/flowStore';
-import { useFlowStore, newPuckId } from '../../store/flowStore';
+import { useFlowStore, newPuckId, type FlowNode } from '../../store/flowStore';
 import * as alignment from '../../utils/alignmentUtils';
+import { computeBoundingBox } from '../../utils/groupUtils';
 import { resolveActivePalette } from '../../styles/palettes';
 
 // ---------------------------------------------------------------------------
@@ -234,7 +237,7 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   const activePaletteId = useStyleStore((s) => s.activePaletteId);
   const quickColors = resolveActivePalette(activePaletteId, activeStyleId).colors ?? defaultQuickColors;
   const menuRef = useRef<HTMLDivElement>(null);
-  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'font' | null>(null);
+  const [submenu, setSubmenu] = useState<'shape' | 'status' | 'align' | 'select' | 'font' | 'group' | null>(null);
 
   // Close on click-outside or Escape (but not when clicking the color sidebar)
   useEffect(() => {
@@ -326,6 +329,45 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     });
     onClose();
   }, [nodeId, onClose]);
+
+  // ---- Group handlers ----
+  const handleGroup = useCallback(() => {
+    const { nodes, selectedNodes, addNode, setNodes } = useFlowStore.getState();
+    if (selectedNodes.length < 2) return;
+    const selected = nodes.filter((n) => selectedNodes.includes(n.id));
+    const bbox = computeBoundingBox(selected, 30, 25);
+    const groupId = `group_${Date.now()}`;
+    const groupNode: FlowNode = {
+      id: groupId,
+      type: 'groupNode',
+      position: { x: bbox.x, y: bbox.y },
+      data: { label: 'Group', shape: 'group', width: bbox.width, height: bbox.height, color: '#f1f5f9', borderColor: '#94a3b8' },
+    };
+    addNode(groupNode);
+    const currentNodes = useFlowStore.getState().nodes;
+    const childIds = new Set(selectedNodes);
+    const otherNodes = currentNodes.filter((n) => n.id !== groupId && !childIds.has(n.id));
+    const theGroup = currentNodes.find((n) => n.id === groupId)!;
+    const childNodes = currentNodes
+      .filter((n) => childIds.has(n.id))
+      .map((n) => ({
+        ...n,
+        parentId: groupId,
+        extent: 'parent' as const,
+        position: { x: n.position.x - bbox.x, y: n.position.y - bbox.y },
+        data: { ...n.data, groupId },
+      }));
+    setNodes([...otherNodes, theGroup, ...childNodes]);
+    useFlowStore.getState().setSelectedNodes([groupId]);
+    onClose();
+  }, [onClose]);
+
+  const handleLinkGroup = useCallback(() => {
+    const { selectedNodes, createLinkGroup } = useFlowStore.getState();
+    if (selectedNodes.length < 2) return;
+    createLinkGroup(selectedNodes);
+    onClose();
+  }, [onClose]);
 
   return (
     <div ref={menuRef} style={menuStyle} className="relative">
@@ -747,36 +789,36 @@ const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           )}
         </div>
 
-        {/* 15-17. Group items (conditional) with shared divider */}
-        {(isGroupNode && onUngroup) || (isInVisualGroup && onRemoveFromVisualGroup) || (isInLinkGroup && onRemoveFromLinkGroup) ? (
-          <>
-            <MenuDivider darkMode={darkMode} />
-            {isGroupNode && onUngroup && (
-              <MenuItem
-                icon={<Ungroup size={14} />}
-                label="Ungroup"
-                onClick={() => { onUngroup(); onClose(); }}
-                darkMode={darkMode}
-              />
-            )}
-            {isInVisualGroup && onRemoveFromVisualGroup && (
-              <MenuItem
-                icon={<Ungroup size={14} />}
-                label="Remove from Group"
-                onClick={() => { onRemoveFromVisualGroup(); onClose(); }}
-                darkMode={darkMode}
-              />
-            )}
-            {isInLinkGroup && onRemoveFromLinkGroup && (
-              <MenuItem
-                icon={<Unlink size={14} />}
-                label="Remove from Link Group"
-                onClick={() => { onRemoveFromLinkGroup(); onClose(); }}
-                darkMode={darkMode}
-              />
-            )}
-          </>
-        ) : null}
+        {/* Group submenu */}
+        <div className="relative" onMouseLeave={() => setSubmenu(null)}>
+          <MenuItem
+            icon={<Group size={14} />}
+            label="Group"
+            onClick={() => setSubmenu(submenu === 'group' ? null : 'group')}
+            darkMode={darkMode}
+            hasSubmenu
+            onMouseEnter={() => setSubmenu('group')}
+          />
+          {submenu === 'group' && (
+            <SubMenu darkMode={darkMode} className="p-1 min-w-[180px]">
+              {hasMultipleSelected && (
+                <MenuItem icon={<Group size={14} />} label="Section Group" shortcut="Ctrl+G" onClick={handleGroup} darkMode={darkMode} />
+              )}
+              {hasMultipleSelected && (
+                <MenuItem icon={<Link size={14} />} label="Link Group" shortcut="Ctrl+Shift+G" onClick={handleLinkGroup} darkMode={darkMode} />
+              )}
+              {isGroupNode && onUngroup && (
+                <MenuItem icon={<Ungroup size={14} />} label="Ungroup" onClick={() => { onUngroup(); onClose(); }} darkMode={darkMode} />
+              )}
+              {isInVisualGroup && onRemoveFromVisualGroup && (
+                <MenuItem icon={<Ungroup size={14} />} label="Remove from Section" onClick={() => { onRemoveFromVisualGroup(); onClose(); }} darkMode={darkMode} />
+              )}
+              {isInLinkGroup && onRemoveFromLinkGroup && (
+                <MenuItem icon={<Unlink size={14} />} label="Remove from Link Group" onClick={() => { onRemoveFromLinkGroup(); onClose(); }} darkMode={darkMode} />
+              )}
+            </SubMenu>
+          )}
+        </div>
 
         <MenuDivider darkMode={darkMode} />
 
