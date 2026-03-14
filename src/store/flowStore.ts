@@ -248,6 +248,28 @@ export interface FlowState {
 
 const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
 
+// Shape-aware default dimensions (must match GenericShapeNode defaults)
+const CIRCLE_SHAPES = new Set(['circle']);
+const SQUARE_SHAPES = new Set(['diamond']);
+const ARROW_SHAPES = new Set(['blockArrow', 'chevronArrow', 'doubleArrow']);
+const CIRCULAR_ARROW_SHAPES = new Set(['circularArrow']);
+
+function getNodeWidth(node: { data: Record<string, unknown> }): number {
+  if (node.data.width) return node.data.width as number;
+  const shape = (node.data.shape as string) || 'rectangle';
+  if (CIRCLE_SHAPES.has(shape) || SQUARE_SHAPES.has(shape) || CIRCULAR_ARROW_SHAPES.has(shape)) return 100;
+  if (ARROW_SHAPES.has(shape)) return 160;
+  return 160;
+}
+
+function getNodeHeight(node: { data: Record<string, unknown> }): number {
+  if (node.data.height) return node.data.height as number;
+  const shape = (node.data.shape as string) || 'rectangle';
+  if (CIRCLE_SHAPES.has(shape) || SQUARE_SHAPES.has(shape) || CIRCULAR_ARROW_SHAPES.has(shape)) return 100;
+  if (ARROW_SHAPES.has(shape)) return 80;
+  return 60;
+}
+
 // ---------------------------------------------------------------------------
 // Store creation (immer middleware for easy immutable updates)
 // ---------------------------------------------------------------------------
@@ -582,18 +604,21 @@ export const useFlowStore = create<FlowState>()(
           if (!source || !target) continue;
           // Don't move a node that was already repositioned
           if (moved.has(target.id)) continue;
-          const srcW = source.data.width || 160;
-          const srcH = source.data.height || 60;
-          const tgtW = target.data.width || 160;
-          const tgtH = target.data.height || 60;
+          const srcW = getNodeWidth(source);
+          const srcH = getNodeHeight(source);
+          const tgtW = getNodeWidth(target);
+          const tgtH = getNodeHeight(target);
           const sh = edge.sourceHandle || '';
           const th = edge.targetHandle || '';
-          // Determine direction from handles; if no handles, infer from node positions
+          // Determine direction: prioritize source handle direction
+          // source right/left → horizontal, source top/bottom → vertical
+          // Only fall back to target handle or position inference if source has no handle
           let isVert: boolean;
-          if (sh || th) {
-            isVert = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
+          if (sh) {
+            isVert = sh.includes('top') || sh.includes('bottom');
+          } else if (th) {
+            isVert = th.includes('top') || th.includes('bottom');
           } else {
-            // No handles set — infer from relative positions of source & target centers
             const srcCx = source.position.x + srcW / 2;
             const srcCy = source.position.y + srcH / 2;
             const tgtCx = target.position.x + tgtW / 2;

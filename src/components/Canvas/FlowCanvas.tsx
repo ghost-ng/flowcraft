@@ -1163,47 +1163,7 @@ const FlowCanvasInner: React.FC<FlowCanvasProps> = ({ onInit, onUndo, onRedo, ca
 
   const handleEdgeStraighten = useCallback(() => {
     if (!edgeMenu) return;
-    const store = useFlowStore.getState();
-    for (const eid of getTargetEdgeIds()) {
-      const edge = store.getEdge(eid);
-      if (!edge) continue;
-      const sourceNode = store.getNode(edge.source);
-      const targetNode = store.getNode(edge.target);
-      if (!sourceNode || !targetNode) continue;
-
-      const srcW = (sourceNode.data as Record<string, unknown>).width as number || 160;
-      const srcH = (sourceNode.data as Record<string, unknown>).height as number || 60;
-      const tgtW = (targetNode.data as Record<string, unknown>).width as number || 160;
-      const tgtH = (targetNode.data as Record<string, unknown>).height as number || 60;
-
-      // Determine direction from handle positions; infer from node positions if no handles
-      const sh = edge.sourceHandle || '';
-      const th = edge.targetHandle || '';
-      let isVertical: boolean;
-      if (sh || th) {
-        isVertical = sh.includes('top') || sh.includes('bottom') || th.includes('top') || th.includes('bottom');
-      } else {
-        const srcCx = sourceNode.position.x + srcW / 2;
-        const srcCy = sourceNode.position.y + srcH / 2;
-        const tgtCx = targetNode.position.x + tgtW / 2;
-        const tgtCy = targetNode.position.y + tgtH / 2;
-        isVertical = Math.abs(tgtCy - srcCy) >= Math.abs(tgtCx - srcCx);
-      }
-
-      if (isVertical) {
-        const srcCenterX = sourceNode.position.x + srcW / 2;
-        store.updateNodePosition(targetNode.id, {
-          x: srcCenterX - tgtW / 2,
-          y: targetNode.position.y,
-        });
-      } else {
-        const srcCenterY = sourceNode.position.y + srcH / 2;
-        store.updateNodePosition(targetNode.id, {
-          x: targetNode.position.x,
-          y: srcCenterY - tgtH / 2,
-        });
-      }
-    }
+    useFlowStore.getState().straightenEdges(getTargetEdgeIds());
   }, [edgeMenu, getTargetEdgeIds]);
 
   /** Check if the right-clicked node is a group node */
