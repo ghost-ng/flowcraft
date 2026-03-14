@@ -642,7 +642,10 @@ const App: React.FC = () => {
     onApplyPaletteColor: handleApplyPaletteColor,
     onCopyStyle: handleCopyStyle,
     onPasteStyle: handlePasteStyle,
-    onStraightenEdges: () => useFlowStore.getState().straightenEdges(),
+    onStraightenEdges: () => {
+      const { selectedEdges, straightenEdges } = useFlowStore.getState();
+      straightenEdges(selectedEdges.length > 0 ? selectedEdges : undefined);
+    },
     onToggleAI: handleToggleAI,
     onAlignLeft: handleAlignLeft,
     onAlignCenterH: handleAlignCenterH,

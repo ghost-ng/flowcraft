@@ -1217,11 +1217,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
         )}
       </div>
 
-      {/* Straighten All Edges */}
-      <ToolbarButton
+      {/* Straighten Edges — click: selected, hold: all */}
+      <ZOrderButton
         icon={<MoveHorizontal size={iconSize} />}
-        tooltip="Straighten All Edges (Ctrl+Alt+S)"
-        onClick={() => useFlowStore.getState().straightenEdges()}
+        tooltip={"Straighten Selected (Ctrl+Alt+S)\nHold for Straighten All"}
+        onClick={() => {
+          const { selectedEdges, straightenEdges } = useFlowStore.getState();
+          straightenEdges(selectedEdges.length > 0 ? selectedEdges : undefined);
+        }}
+        onSendAll={() => useFlowStore.getState().straightenEdges()}
+        sendAllLabel="Straighten All Edges"
         disabled={useFlowStore.getState().edges.length === 0}
       />
       </>
